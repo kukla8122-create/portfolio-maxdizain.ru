@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ПОДТВЕРЖДЕНИЕ PINTEREST -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <meta name="p:domain_verify" content="4b60bffc49dcdc4e783252ea532de195"/>
+    
+    <!-- ═══════════════════════════════════════════════════ -->
     <!-- ФАВИКОН -->
     <!-- ═══════════════════════════════════════════════════ -->
     <link rel="icon" type="image/png" sizes="512x512" href="https://image.qwenlm.ai/public_source/9fc9fc5b-f14d-4155-9e87-e99283d13f99/19dd4d10b-28dd-4a52-a196-6880ff1c9604.png">
@@ -543,7 +548,7 @@
 
     <div class="section-divider max-w-7xl mx-auto"></div>
 
-    <!-- КОНТАКТЫ (ОБНОВЛЕНО ПОД VK) -->
+    <!-- КОНТАКТЫ -->
     <section id="contact" class="py-16 sm:py-24 lg:py-32">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
@@ -555,7 +560,6 @@
                     </h2>
                     <p class="text-gold-300/60 leading-relaxed mb-8 sm:mb-10 text-sm sm:text-base max-w-lg mx-auto lg:mx-0">Напишите свои пожелания, и мы поможем превратить их в готовое техническое решение.</p>
                     
-                    <!-- Ссылка на личную страницу (как просила) -->
                     <div class="mb-6 p-4 rounded-xl border border-gold-600/20 bg-gold-600/5">
                         <p class="text-gold-400 font-semibold text-sm mb-2">Личная страница дизайнера:</p>
                         <a href="https://vk.com/katerina_belyakova" target="_blank" class="text-gold-500 text-lg font-bold hover:text-gold-300 transition break-all">vk.com/katerina_belyakova</a>
@@ -583,7 +587,6 @@
                     </div>
                 </div>
                 
-                <!-- Блок отправки в VK -->
                 <div class="glass-card rounded-2xl p-5 sm:p-8 lg:p-10 border border-gold-600/15 flex flex-col items-center justify-center h-full min-h-[400px]">
                     <div class="text-center mb-6">
                         <svg class="w-16 h-16 mx-auto mb-4 text-gold-500" viewBox="0 0 24 24" fill="currentColor">
@@ -647,9 +650,6 @@
     </button>
 
     <script>
-        // ═══════════════════════════════════════════════════
-        // ДАННЫЕ ПОРТФОЛИО
-        // ═══════════════════════════════════════════════════
         const portfolioGrid = document.getElementById('portfolioGrid');
         let allPortfolioItems = [];
 
@@ -788,7 +788,6 @@
             });
         });
 
-        // РЕНДЕР ПОРТФОЛИО
         function renderPortfolioGrid(filterType = 'all') {
             portfolioGrid.innerHTML = '';
             const filteredItems = filterType === 'all' ? allPortfolioItems : allPortfolioItems.filter(item => item.category === filterType);
@@ -806,11 +805,6 @@
                             <span class="text-gold-500 text-[10px] sm:text-xs font-semibold tracking-widest uppercase mb-1.5 sm:mb-2">${item.category === 'kitchen' ? 'Кухня' : 'Шкаф-купе'}</span>
                             <h3 class="text-gold-100 text-base sm:text-xl font-bold mb-1.5 sm:mb-2 font-serif leading-tight">${item.title}</h3>
                             <p class="text-gold-300/70 text-xs sm:text-sm mb-2 sm:mb-4 line-clamp-3">${item.desc}</p>
-                            <div class="flex items-center space-x-3 sm:space-x-4">
-                                <span class="text-gold-700/60 text-[10px] sm:text-xs">Egger</span>
-                                <span class="text-gold-700/60 text-[10px] sm:text-xs">Blum</span>
-                                <span class="text-gold-700/60 text-[10px] sm:text-xs">AGT</span>
-                            </div>
                         </div>
                     </div>
                 `;
@@ -827,7 +821,6 @@
 
         renderPortfolioGrid();
 
-        // Фильтрация
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -836,7 +829,6 @@
             });
         });
 
-        // Лайтбокс
         const lightboxEl = document.getElementById('lightbox');
         let currentLightboxIndex = 0;
         let currentLightboxItems = allPortfolioItems;
@@ -874,7 +866,6 @@
             if (e.key === 'ArrowRight') navigateLightbox(1);
         });
 
-        // Навбар
         const navbarEl = document.getElementById('navbar');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 50) { 
@@ -884,7 +875,6 @@
             }
         });
 
-        // Мобильное меню
         const menuToggleBtn = document.getElementById('menuToggle');
         const menuCloseBtn = document.getElementById('menuClose');
         const mobileMenuEl = document.getElementById('mobileMenu');
@@ -904,7 +894,6 @@
             });
         });
 
-        // Кнопка "Наверх"
         const backToTopBtn = document.getElementById('backToTop');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 500) { 
@@ -917,9 +906,6 @@
         });
         backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-        // ═══════════════════════════════════════════════════
-        // ФОРМА -> VK
-        // ═══════════════════════════════════════════════════
         document.getElementById('contactForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -931,11 +917,9 @@
                 return;
             }
 
-            // Показываем успех
             this.style.display = 'none';
             document.getElementById('formSuccess').classList.remove('hidden');
 
-            // Формируем ссылку на чат сообщества
             const vkLink = "https://vk.me/maximummebel";
             
             setTimeout(() => {
@@ -943,7 +927,6 @@
             }, 500);
         });
 
-        // Маска телефона
         const phoneInputEl = document.getElementById('phoneInput');
         phoneInputEl.addEventListener('input', (e) => {
             let v = e.target.value.replace(/\D/g, '');
@@ -958,7 +941,6 @@
             }
         });
 
-        // Fade-in анимации
         const fadeObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -974,6 +956,4 @@
     </script>
 </body>
 </html>
-
-
 

@@ -60,6 +60,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ЯНДЕКС МЕТРИКА -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=108660885', 'ym');
+
+        ym(108660885, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/108660885" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -901,7 +918,7 @@
         backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
         // ═══════════════════════════════════════════════════
-        // ФОРМА -> VK (ОБНОВЛЕНО)
+        // ФОРМА -> VK
         // ═══════════════════════════════════════════════════
         document.getElementById('contactForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -919,8 +936,6 @@
             document.getElementById('formSuccess').classList.remove('hidden');
 
             // Формируем ссылку на чат сообщества
-            // Используем vk.me/maximummebel - это короткий линк на сообщения группы
-            // Если он не сработает, попробуем через ссылку на группу
             const vkLink = "https://vk.me/maximummebel";
             
             setTimeout(() => {
@@ -959,5 +974,6 @@
     </script>
 </body>
 </html>
+
 
 

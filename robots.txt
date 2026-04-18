@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Sitemap: https://portfolio-maxdizain.ru/sitemap.xml
+
+# Запрет индексации служебных папок
+Disallow: /node_modules/
+Disallow: /.git/

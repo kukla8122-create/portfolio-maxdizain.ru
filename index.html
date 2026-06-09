@@ -28,18 +28,7 @@
     <noscript><div><img src="https://top-fwz1.mail.ru/counter?id=3772367;js=na" style="position:absolute;left:-9999px;" alt="Top.Mail.Ru" /></div></noscript>
 
     <title>MAXIMUM MEBEL | Кухни и шкафы на заказ в Нижнем Новгороде</title>
-    <meta name="description" content="Изготовление кухонь и шкафов-купе по индивидуальным размерам в Нижнем Новгороде. Собственное производство, гарантия, бесплатный замер и 3D-проект. Дизайн Катерины. Более 10 лет опыта.">
-    <meta name="keywords" content="кухни на заказ, шкафы-купе, мебель Нижний Новгород, производство мебели, корпусная мебель, 3D визуализация, гардеробные, прихожие, кухни по индивидуальным размерам, МАКСИМУМ МЕБЕЛЬ, дизайнер Катерина">
-    <meta name="author" content="МАКСИМУМ МЕБЕЛЬ">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://portfolio-maxdizain.ru/">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="МАКСИМУМ МЕБЕЛЬ | Кухни и шкафы по вашим размерам">
-    <meta property="og:description" content="Авторская корпусная мебель от производителя в Нижнем Новгороде. Дизайн Катерины.">
-    <meta property="og:url" content="https://portfolio-maxdizain.ru">
-    
-    <meta name="theme-color" content="#0D1F1F">
+    <meta name="description" content="Изготовление кухонь и шкафов-купе по индивидуальным размерам в Нижнем Новгороде. Собственное производство, гарантия, бесплатный замер и 3D-проект.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,218 +39,298 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { dark: '#0D1F1F', 900: '#1B3B3B', 800: '#244F4F' },
-                        gold: { 900: '#8B7340', 800: '#A0894F', 700: '#B89B5E', 600: '#C8A96E', 500: '#D4B87A', 400: '#DCC88C', 300: '#E5D49E', 200: '#EDDFB0', 100: '#F5EBC2' }
+                        brand: {
+                            dark: '#0D1F1F',
+                            900: '#1B3B3B',
+                            800: '#244F4F'
+                        },
+                        gold: {
+                            500: '#C8A96E',
+                            400: '#DCC88C',
+                            600: '#A0894F',
+                            700: '#8B7340',
+                            200: '#EDDFB0'
+                        }
                     },
-                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif']
+                    }
                 }
             }
         }
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; scroll-padding-top: 70px; }
-        body { font-family: 'Inter', sans-serif; background: #0D1F1F; color: #F5EBC2; overflow-x: hidden; }
-        规律 ::-webkit-scrollbar { width: 5px; }
-        规律 ::-webkit-scrollbar-track { background: #0D1F1F; }
-        规律 ::-webkit-scrollbar-thumb { background: #C8A96E; border-radius: 3px; }
-
-        .gradient-gold { background: linear-gradient(135deg, #C8A96E 0%, #E5D49E 50%, #C8A96E 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .glass-card { background: rgba(27,59,59,0.5); backdrop-filter: blur(20px); border: 1px solid rgba(200,169,110,0.15); }
-        .glass-card-hover { transition: all 0.5s cubic-bezier(0.4,0,0.2,1); }
-        .glass-card-hover:hover { background: rgba(27,59,59,0.8); border-color: rgba(200,169,110,0.35); transform: translateY(-6px); }
-        .hero-gradient { background: radial-gradient(ellipse at 30% 40%, rgba(200,169,110,0.07) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(200,169,110,0.04) 0%, transparent 50%); }
-
-        .filter-btn { transition: all 0.3s ease; cursor: pointer; padding: 8px 18px; border-radius: 999px; font-size: 0.85rem; font-weight: 500; border: 1px solid rgba(200,169,110,0.15); color: #B89B5E; }
-        .filter-btn.active { color: #0D1F1F; background: #C8A96E; border-color: #C8A96E; }
-
+        html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+        body { font-family: 'Inter', sans-serif; background: #0D1F1F; color: #EDDFB0; overflow-x: hidden; }
+        
+        .gradient-gold {
+            background: linear-gradient(135deg, #C8A96E 0%, #EDDFB0 50%, #C8A96E 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .glass-card {
+            background: rgba(27, 59, 59, 0.2);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(200, 169, 110, 0.1);
+            transition: all 0.4s ease;
+        }
+        .glass-card:hover {
+            background: rgba(27, 59, 59, 0.4);
+            border-color: rgba(200, 169, 110, 0.25);
+            transform: translateY(-5px);
+        }
+        
         .nav-link { position: relative; transition: color 0.3s; }
-        .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px; background: #C8A96E; transition: width 0.3s; }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: #C8A96E;
+            transition: width 0.3s;
+        }
         .nav-link:hover::after { width: 100%; }
         .nav-link:hover { color: #C8A96E; }
-
-        .btn-gold { background: linear-gradient(135deg, #C8A96E, #A0894F); color: #0D1F1F; transition: all 0.3s; position: relative; overflow: hidden; }
-        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(200,169,110,0.3); }
-        .btn-outline { border: 1px solid rgba(200,169,110,0.4); color: #C8A96E; transition: all 0.3s; }
-        .btn-outline:hover { background: rgba(200,169,110,0.1); }
-        .btn-outline-gold { border: 2px solid #C8A96E; color: #F5EBC2; background: rgba(200,169,110,0.05); transition: all 0.3s; }
-        .btn-outline-gold:hover { background: rgba(200,169,110,0.15); transform: translateY(-2px); }
-
-        .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(200,169,110,0.2), transparent); }
-        .marquee-track { animation: marquee-scroll 30s linear infinite; }
-        @keyframes marquee-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
+        .btn-gold {
+            background: linear-gradient(135deg, #C8A96E, #A0894F);
+            color: #0D1F1F;
+            transition: all 0.3s ease;
+        }
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(200, 169, 110, 0.2);
+            opacity: 0.95;
+        }
+        
+        .btn-outline {
+            border: 1px solid rgba(200, 169, 110, 0.3);
+            color: #C8A96E;
+            transition: all 0.3s;
+        }
+        .btn-outline:hover {
+            background: rgba(200, 169, 110, 0.05);
+            border-color: #C8A96E;
+        }
+        
+        .filter-btn {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(200, 169, 110, 0.15);
+            color: #A0894F;
+        }
+        .filter-btn.active {
+            color: #0D1F1F;
+            background: #C8A96E;
+            border-color: #C8A96E;
+        }
+
+        .img-loading {
+            background: #1B3B3B;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        .img-loading::after { content: 'Загрузка...'; color: #B89B5E; font-size: 0.8rem; }
+
+        .fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .fade-in.is-visible { opacity: 1; transform: translateY(0); }
+        .fade-in-delay-1 { transition-delay: 0.1s; }
+        .fade-in-delay-2 { transition-delay: 0.2s; }
+        .fade-in-delay-3 { transition-delay: 0.3s; }
+        .fade-in-delay-4 { transition-delay: 0.4s; }
+
         .designer-photo { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(200,169,110,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         @media (min-width: 768px) { .designer-photo { width: 250px; height: 250px; } }
     </style>
 </head>
 <body>
-    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-brand-dark/90 backdrop-blur-md border-b border-gold-600/10">
+
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 bg-brand-dark/95 backdrop-blur-md border-b border-gold-500/10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="flex items-center justify-between h-16 lg:h-20">
-                <a href="#home" class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2">
                     <div class="w-9 h-9 lg:w-11 lg:h-11 rounded-full border border-gold-600 flex items-center justify-center flex-shrink-0">
                         <span class="text-gold-500 font-serif text-lg lg:text-xl font-bold">M</span>
                     </div>
-                    <div class="flex flex-col leading-tight">
-                        <span class="text-gold-500 font-serif text-sm lg:text-base font-semibold">МАКСИМУМ МЕБЕЛЬ</span>
-                        <span class="text-gold-700/60 text-[9px] lg:text-[10px] tracking-[0.15em] uppercase hidden sm:block">кухни и шкафы по вашим размерам</span>
+                    <div class="flex flex-col">
+                        <span class="text-gold-500 font-serif text-sm lg:text-base font-bold tracking-wider">МАКСИМУМ МЕБЕЛЬ</span>
+                        <span class="text-gold-600/60 text-[8px] lg:text-[9px] tracking-widest uppercase">кухни и шкафы по вашим размерам</span>
                     </div>
-                </a>
+                </div>
                 <div class="hidden lg:flex items-center space-x-8">
-                    <a href="#home" class="nav-link text-sm text-gold-400/70">Главная</a>
-                    <a href="#designer" class="nav-link text-sm text-gold-400/70">Дизайнер</a>
-                    <a href="#about" class="nav-link text-sm text-gold-400/70">О нас</a>
-                    <a href="#portfolio" class="nav-link text-sm text-gold-400/70">Портфолио</a>
-                    <a href="#contact" class="nav-link text-sm text-gold-400/70">Контакты</a>
-                    <div class="flex flex-col items-end">
-                        <a href="tel:+79159530929" class="text-gold-500 text-sm font-semibold">+7 915 953 09 29</a>
-                        <a href="tel:+79107996471" class="text-gold-700 text-xs">+7 910 799 64 71</a>
-                    </div>
+                    <a href="#home" class="nav-link text-sm font-medium">Главная</a>
+                    <a href="#designer" class="nav-link text-sm font-medium">Дизайнер</a>
+                    <a href="#about" class="nav-link text-sm font-medium">О нас</a>
+                    <a href="#steps" class="nav-link text-sm font-medium">Этапы</a>
+                    <a href="#portfolio" class="nav-link text-sm font-medium">Портфолио</a>
+                    <a href="#contact" class="nav-link text-sm font-medium">Контакты</a>
+                </div>
+                <div class="flex flex-col items-end">
+                    <a href="tel:+79159530929" class="text-gold-400 hover:text-gold-300 text-sm sm:text-base font-semibold tracking-wide">+7 915 953 09 29</a>
+                    <a href="tel:+79107996471" class="text-gold-600/80 text-xs mt-0.5">+7 910 799 64 71</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <section id="home" class="relative min-h-screen flex items-center hero-gradient pt-20">
-        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full text-center">
-            <div class="inline-flex items-center space-x-2 px-4 py-2 rounded-full border border-gold-600/20 bg-gold-600/5 mb-6">
-                <span class="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></span>
-                <span class="text-gold-500 text-xs sm:text-sm font-medium">Собственное производство · Нижний Новгород</span>
+    <section id="home" class="relative min-h-screen flex items-center justify-center pt-20 px-4">
+        <div class="text-center max-w-4xl mx-auto z-10">
+            <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border border-gold-500/20 bg-gold-500/5 mb-6 fade-in">
+                <span class="w-1.5 h-1.5 rounded-full bg-gold-500"></span>
+                <span class="text-gold-400 text-xs font-medium">Собственное производство · Нижний Новгород</span>
             </div>
-            <h1 class="text-4xl sm:text-5xl lg:text-7xl font-serif font-bold leading-tight mb-6">
-                <span class="text-gold-100">Кухни и шкафы</span><br>
-                <span class="gradient-gold">по вашим размерам</span>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight mb-6 fade-in">
+                Кухни и шкафы<br><span class="gradient-gold">по вашим размерам</span>
             </h1>
-            <p class="text-sm sm:text-base lg:text-lg text-gold-300/60 leading-relaxed mb-10 max-w-2xl mx-auto">От идеи и 3D-проекта до профессионального монтажа. Авторская корпусная мебель с гарантией качества.</p>
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                <a href="#portfolio" class="btn-gold w-full sm:w-auto px-10 py-4 rounded-full font-bold text-base shadow-lg shadow-gold-600/20 text-center">СМОТРЕТЬ ПОРТФОЛИО</a>
-                <a href="https://vk.com/maximummebel" target="_blank" rel="noopener noreferrer" class="btn-outline w-full sm:w-auto px-10 py-4 rounded-full font-bold text-base text-center">Группа ВКонтакте</a>
-            </div>
-            <div class="flex gap-12 justify-center mt-16">
-                <div class="text-center"><div class="text-2xl sm:text-3xl font-bold gradient-gold">500+</div><div class="text-gold-700/60 text-xs mt-1">Проектов</div></div>
-                <div class="text-center"><div class="text-2xl sm:text-3xl font-bold gradient-gold">10+</div><div class="text-gold-700/60 text-xs mt-1">Лет опыта</div></div>
-                <div class="text-center"><div class="text-2xl sm:text-3xl font-bold gradient-gold">∞</div><div class="text-gold-700/60 text-xs mt-1">Гарантия</div></div>
-            </div>
-        </div>
-    </section>
-
-    <div class="py-4 border-y border-gold-600/10 overflow-hidden bg-brand-900/30">
-        <div class="flex whitespace-nowrap">
-            <div class="marquee-track flex items-center space-x-8 text-xs sm:text-sm">
-                <span class="text-gold-700/40 font-medium tracking-wider uppercase">Кухни ◆ Шкафы-купе ◆ Гардеробные ◆ Прихожие ◆</span>
-                <span class="text-gold-700/40 font-medium tracking-wider uppercase">Кухни ◆ Шкафы-купе ◆ Гардеробные ◆ Прихожие ◆</span>
-            </div>
-        </div>
-    </div>
-
-    <section id="designer" class="py-16 sm:py-24">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="grid lg:grid-cols-2 gap-10 items-center">
-                <div class="text-center">
-                    <img src="Изображения/Kate.png" alt="Катерина — ваш дизайнер мебели" class="designer-photo mx-auto">
+            <p class="text-sm sm:text-base lg:text-lg text-gold-400/70 max-w-2xl mx-auto mb-10 leading-relaxed fade-in">
+                От идеи и 3D-проекта до профессионального монтажа. Авторская корпусная мебель с гарантией качества.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-center max-w-md mx-auto sm:max-w-none fade-in">
+                <a href="#portfolio" class="btn-gold w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    СМОТРЕТЬ ПОРТФОЛИО
+                </a>
+                <div class="flex w-full sm:w-auto gap-3">
+                    <a href="#contact" class="btn-outline flex-1 sm:flex-none px-6 py-3.5 rounded-full font-bold text-xs tracking-wider uppercase text-center">Бесплатный расчёт →</a>
+                    <a href="https://vk.com/maximummebel" target="_blank" rel="noopener noreferrer" class="btn-outline px-5 py-3.5 rounded-full font-bold text-xs tracking-wider uppercase flex items-center justify-center">Группа ВКонтакте</a>
                 </div>
-                <div class="text-center lg:text-left">
-                    <span class="text-gold-500 text-xs font-semibold tracking-widest uppercase">Ваш персональный дизайнер</span>
-                    <h2 class="text-3xl font-serif font-bold mt-2 mb-6"><span class="text-gold-100">Катерина</span></h2>
-                    <p class="text-gold-300/60 leading-relaxed mb-6">Каждый проект я веду лично. Моя цель — создать для вас мебель, которая будет идеально справляться со своими задачами каждый день, оставаясь стильной и лаконичной.</p>
-                    <a href="#contact" class="btn-gold inline-block px-8 py-3 rounded-full font-semibold text-sm">Обсудить проект с Катериной</a>
+            </div>
+            <div class="grid grid-cols-3 gap-4 sm:gap-10 max-w-xl mx-auto mt-16 border-t border-gold-500/10 pt-8 fade-in">
+                <div>
+                    <div class="text-2xl sm:text-3xl font-bold gradient-gold font-serif">500+</div>
+                    <div class="text-[10px] text-gold-600/60 uppercase tracking-widest mt-1">Проектов</div>
+                </div>
+                <div>
+                    <div class="text-2xl sm:text-3xl font-bold gradient-gold font-serif">10+</div>
+                    <div class="text-[10px] text-gold-600/60 uppercase tracking-widest mt-1">Лет опыта</div>
+                </div>
+                <div>
+                    <div class="text-2xl sm:text-3xl font-bold gradient-gold font-serif">∞</div>
+                    <div class="text-[10px] text-gold-600/60 uppercase tracking-widest mt-1">Гарантия</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <div class="section-divider max-w-7xl mx-auto"></div>
-
-    <section id="about" class="py-16 sm:py-24">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="text-gold-500 text-xs font-semibold tracking-widest uppercase">Наше производство</span>
-                <h2 class="text-3xl sm:text-4xl font-serif font-bold mt-2 text-gold-100">Стиль. Качество. На века.</h2>
+    <section id="about" class="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div class="lg:col-span-5 fade-in">
+                <span class="text-gold-500 text-xs font-bold tracking-widest uppercase block mb-2">О компании</span>
+                <h2 class="text-3xl sm:text-4xl font-serif font-bold text-gold-200 leading-tight">
+                    Стиль. Качество.<br>Максимум.
+                </h2>
             </div>
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="glass-card rounded-xl p-6 glass-card-hover text-center">
-                    <h3 class="text-gold-200 font-semibold mb-2">Материалы</h3>
-                    <p class="text-gold-700/70 text-sm">Плиты Egger, фасады AGT, премиальная эмаль.</p>
-                </div>
-                <div class="glass-card rounded-xl p-6 glass-card-hover text-center">
-                    <h3 class="text-gold-200 font-semibold mb-2">Фурнитура</h3>
-                    <p class="text-gold-700/70 text-sm">Надежные системы Blum и Boyard.</p>
-                </div>
-                <div class="glass-card rounded-xl p-6 glass-card-hover text-center">
-                    <h3 class="text-gold-200 font-semibold mb-2">Сроки</h3>
-                    <p class="text-gold-700/70 text-sm">Изготовление гарнитуров от 14 рабочих дней.</p>
-                </div>
-                <div class="glass-card rounded-xl p-6 glass-card-hover text-center">
-                    <h3 class="text-gold-200 font-semibold mb-2">Сервис</h3>
-                    <p class="text-gold-700/70 text-sm">Бесплатный точный замер и детальный 3D-проект.</p>
-                </div>
+            <div class="lg:col-span-7 space-y-5 text-gold-400/80 text-sm sm:text-base leading-relaxed fade-in">
+                <p>
+                    Наше производство MAXIMUM — это не просто цех, а место, где высокие технологии встречаются с ручным трудом мастеров. Мы берём на себя все этапы: от замера до монтажа.
+                </p>
+                <p>
+                    Работаем с проверенными поставщиками. Плиты Egger, фасады AGT, эмаль. Фурнитура Blum, Boyard — мебель, которая не теряет вид десятилетиями.
+                </p>
             </div>
         </div>
     </section>
 
-    <div class="section-divider max-w-7xl mx-auto"></div>
-
-    <section id="portfolio" class="py-16 sm:py-24">
+    <section id="portfolio" class="py-16 sm:py-24 border-t border-gold-500/5 bg-brand-900/5">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="text-center mb-12">
-                <span class="text-gold-500 text-xs font-semibold tracking-widest uppercase">Наши работы</span>
-                <h2 class="text-3xl font-serif font-bold mt-2 mb-6 text-gold-100">Реализованные проекты</h2>
-                
-                <div class="flex justify-center space-x-4">
-                    <button class="filter-btn active" onclick="filterGallery('all')">Все</button>
-                    <button class="filter-btn" onclick="filterGallery('kitchen')">Кухни</button>
-                    <button class="filter-btn" onclick="filterGallery('wardrobe')">Шкафы</button>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 fade-in">
+                <div>
+                    <span class="text-gold-500 text-xs font-bold tracking-widest uppercase block mb-2">Наши работы</span>
+                    <h2 class="text-3xl sm:text-4xl font-serif font-bold text-gold-200">Реализованные проекты</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button class="filter-btn active text-xs font-semibold px-4 py-2 rounded-full" onclick="filterGallery('all', this)">Все</button>
+                    <button class="filter-btn text-xs font-semibold px-4 py-2 rounded-full" onclick="filterGallery('kitchen', this)">Кухни</button>
+                    <button class="filter-btn text-xs font-semibold px-4 py-2 rounded-full" onclick="filterGallery('wardrobe', this)">Шкафы</button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card rounded-xl overflow-hidden gallery-item kitchen">
-                    <img src="Изображения/Кухни/kitchen1.jpg" alt="Кухня на заказ" class="w-full h-64 object-cover hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x450/1B3B3B/C8A96E?text=%D0%9A%D1%83%D1%85%D0%BD%D1%8F'">
-                    <div class="p-4">
-                        <h3 class="text-gold-200 font-semibold">Стильный кухонный гарнитур</h3>
-                        <p class="text-gold-700 text-xs mt-1">Фасады AGT, фурнитура Blum</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                <div class="glass-card rounded-2xl overflow-hidden gallery-item kitchen fade-in">
+                    <div class="relative aspect-[4/3] w-full overflow-hidden group bg-brand-900/40">
+                        <div class="img-loading"></div>
+                        <img src="Изображения/Кухни/kitchen1.jpg" alt="Кухня" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-700 relative z-10" onload="this.previousElementSibling.style.display='none'" onerror="this.src='https://placehold.co/600x450/1B3B3B/C8A96E?text=MAXIMUM'">
+                    </div>
+                    <div class="p-5 border-t border-gold-500/5">
+                        <span class="text-[10px] text-gold-500/50 uppercase tracking-widest font-bold">Проект</span>
+                        <h3 class="text-gold-200 font-serif text-base font-bold mt-0.5">Современная классика</h3>
                     </div>
                 </div>
-                
-                <div class="glass-card rounded-xl overflow-hidden gallery-item wardrobe">
-                    <img src="Изображения/Шкафы/wardrobe1.jpg" alt="Шкаф на заказ" class="w-full h-64 object-cover hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x450/1B3B3B/C8A96E?text=%D0%A8%D0%BA%D0%B0%D1%84'">
-                    <div class="p-4">
-                        <h3 class="text-gold-200 font-semibold">Встроенный шкаф-купе</h3>
-                        <p class="text-gold-700 text-xs mt-1">Индивидуальные размеры, плавный ход</p>
+
+                <div class="glass-card rounded-2xl overflow-hidden gallery-item wardrobe fade-in">
+                    <div class="relative aspect-[4/3] w-full overflow-hidden group bg-brand-900/40">
+                        <div class="img-loading"></div>
+                        <img src="Изображения/Шкафы/wardrobe1.jpg" alt="Шкаф" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-700 relative z-10" onload="this.previousElementSibling.style.display='none'" onerror="this.src='https://placehold.co/600x450/1B3B3B/C8A96E?text=MAXIMUM'">
+                    </div>
+                    <div class="p-5 border-t border-gold-500/5">
+                        <span class="text-[10px] text-gold-500/50 uppercase tracking-widest font-bold">Проект</span>
+                        <h3 class="text-gold-200 font-serif text-base font-bold mt-0.5">Встроенная система хранения</h3>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="contact" class="py-16 sm:py-24 bg-brand-900/20">
-        <div class="max-w-3xl mx-auto px-4 text-center">
-            <h2 class="text-3xl font-serif font-bold mb-4 text-gold-100">Начнем создание вашей мебели?</h2>
-            <p class="text-gold-300/60 mb-8">Оставьте заявку на бесплатный замер, расчёт стоимости или консультацию дизайнера.</p>
-            <div class="space-y-4">
-                <a href="tel:+79159530929" class="btn-gold inline-block w-full sm:w-auto px-8 py-4 rounded-full font-bold text-lg">+7 915 953 09 29</a>
-                <div class="text-gold-700 text-sm mt-4">Или напишите на почту: <a href="mailto:mebelmaksimum@mail.ru" class="text-gold-500 underline">mebelmaksimum@mail.ru</a></div>
+    <section id="contact" class="py-16 sm:py-24 max-w-4xl mx-auto px-4 text-center">
+        <div class="fade-in space-y-6">
+            <span class="text-gold-500 text-xs font-bold tracking-widest uppercase block">Контакты</span>
+            <h2 class="text-3xl sm:text-4xl font-serif font-bold text-gold-200">Давайте начнем ваш проект</h2>
+            <p class="text-sm sm:text-base text-gold-400/70 max-w-xl mx-auto leading-relaxed">
+                Оставьте заявку на бесплатный замер или свяжитесь с нами удобным способом для предварительного расчёта.
+            </p>
+            <div class="pt-4 flex flex-col items-center gap-2">
+                <a href="tel:+79159530929" class="btn-gold px-10 py-4 rounded-full font-bold text-base shadow-lg shadow-gold-500/5">+7 915 953 09 29</a>
+                <span class="text-gold-600/60 text-xs mt-2">mebelmaksimum@mail.ru</span>
             </div>
         </div>
     </section>
 
     <script>
-        function filterGallery(category) {
+        function filterGallery(category, buttonElement) {
             const items = document.querySelectorAll('.gallery-item');
             const buttons = document.querySelectorAll('.filter-btn');
             
             buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            buttonElement.classList.add('active');
 
             items.forEach(item => {
                 if (category === 'all' || item.classList.contains(category)) {
                     item.style.display = 'block';
+                    setTimeout(() => { item.style.opacity = '1'; item.style.transform = 'scale(1)'; }, 50);
                 } else {
-                    item.style.display = 'none';
+                    item.style.opacity = '0';
+                    item.style.transform = 'scale(0.95)';
+                    setTimeout(() => { item.style.display = 'none'; }, 300);
                 }
             });
         }
+
+        // Анимация плавного появления блоков при скролле (Intersection Observer)
+        document.addEventListener("DOMContentLoaded", function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.fade-in').forEach(el => {
+                observer.observe(el);
+            });
+        });
     </script>
 </body>
 </html>

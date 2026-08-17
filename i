@@ -4,7 +4,7 @@ cd /root
 URL="https://cdn.jsdelivr.net/gh/kukla8122-create/portfolio-maxdizain.ru@f8806c0e87ab45d6d0ad3efedd9b8083af09b137/maxbot-final.py"
 echo DOWNLOAD
 rm -f newbot
-if ! wget -O newbot "$URL"; then
+if ! wget -T 20 --tries=1 -O newbot "$URL"; then
   echo DOWNLOAD_FAILED
   exit 2
 fi

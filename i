@@ -1,10 +1,10 @@
 #!/bin/bash
 set -u
 cd /root
-URL="https://raw.githubusercontent.com/kukla8122-create/portfolio-maxdizain.ru/main/maxbot-final.py"
+URL="https://cdn.jsdelivr.net/gh/kukla8122-create/portfolio-maxdizain.ru@main/maxbot-final.py"
 echo DOWNLOAD
 rm -f newbot
-if ! wget -q -O newbot "$URL"; then
+if ! wget -O newbot "$URL"; then
   echo DOWNLOAD_FAILED
   exit 2
 fi

@@ -20,10 +20,36 @@ done
 MAX_TOKEN="$(cat /root/.max_token)"
 WEBHOOK_SECRET="$(cat /root/.max_webhook_secret)"
 
-# Do not subscribe until public HTTPS is really working.
+# Never switch MAX delivery until public HTTPS is actually healthy.
 curl -fsS "$HEALTH_URL" >/dev/null
-
 echo "Public HTTPS health check: OK"
+
+# Inspect existing webhook subscriptions first. Refuse to touch an unrelated URL.
+SUBSCRIPTIONS="$(curl -fsS "$MAX_API/subscriptions" -H "Authorization: $MAX_TOKEN")"
+CHECK="$(python3 -c '
+import json, sys
+target = sys.argv[1]
+data = json.load(sys.stdin)
+urls = [s.get("url") for s in data.get("subscriptions", []) if s.get("url")]
+print("SAME" if target in urls else "NONE")
+others = [u for u in urls if u != target]
+if others:
+    print("OTHER:" + "|".join(others))
+' "$WEBHOOK_URL" <<<"$SUBSCRIPTIONS")"
+
+if grep -q '^OTHER:' <<<"$CHECK"; then
+  echo "STOP: another MAX webhook subscription already exists. Nothing was changed."
+  echo "$SUBSCRIPTIONS"
+  exit 3
+fi
+
+# Refresh an existing subscription to this exact URL so secret/update types are current.
+if grep -q '^SAME$' <<<"$CHECK"; then
+  curl -fsS -G -X DELETE "$MAX_API/subscriptions" \
+    -H "Authorization: $MAX_TOKEN" \
+    --data-urlencode "url=$WEBHOOK_URL" >/dev/null
+  echo "Previous subscription to the same URL removed safely."
+fi
 
 PAYLOAD="$(python3 - "$WEBHOOK_URL" "$WEBHOOK_SECRET" <<'PY'
 import json, sys
@@ -41,7 +67,6 @@ RESPONSE="$(curl -fsS -X POST "$MAX_API/subscriptions" \
   --data-binary "$PAYLOAD")"
 
 echo "MAX subscription response: $RESPONSE"
-
 echo "Current MAX subscriptions:"
 curl -fsS "$MAX_API/subscriptions" -H "Authorization: $MAX_TOKEN"
 echo

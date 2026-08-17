@@ -49,22 +49,47 @@ with open(SECRET_PATH, "r", encoding="utf-8") as secret_file:
 if len(WEBHOOK_SECRET) < 5:
     raise RuntimeError("MAX webhook secret is missing or too short")
 
-updates_queue = queue.Queue(maxsize=1000)
+# Keep menu/button traffic separate from slower GigaChat traffic so an AI
+# response cannot make the fixed buttons feel unresponsive.
+fast_queue = queue.Queue(maxsize=1000)
+ai_queue = queue.Queue(maxsize=1000)
 
 
-def worker():
+def is_fast_update(update):
+    update_type = update.get("update_type")
+    if update_type == "bot_started":
+        return True
+    if update_type != "message_created":
+        return True
+
+    message = update.get("message") or {}
+    body = message.get("body") or {}
+    text = (body.get("text") or message.get("text") or "").strip()
+    if not text:
+        return True
+
+    key = text.casefold().strip()
+    return (
+        key in bot.START_KEYS
+        or key in bot.MENU_KEYS
+        or key in bot.WORK_KEYS
+        or key in bot.CANNED
+    )
+
+
+def worker(work_queue, name):
     while True:
-        update = updates_queue.get()
+        update = work_queue.get()
         try:
             bot.handle_update(update)
         except Exception as exc:
-            print("WEBHOOK UPDATE ERROR", repr(exc), flush=True)
+            print(name, "UPDATE ERROR", repr(exc), flush=True)
         finally:
-            updates_queue.task_done()
+            work_queue.task_done()
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "MaximumFurnitureBot/1.0"
+    server_version = "MaximumFurnitureBot/1.1"
 
     def log_message(self, fmt, *args):
         print("WEB", fmt % args, flush=True)
@@ -108,19 +133,25 @@ class Handler(BaseHTTPRequestHandler):
             self._write(400, b"Bad JSON")
             return
 
+        target_queue = fast_queue if is_fast_update(update) else ai_queue
         try:
-            updates_queue.put_nowait(update)
+            target_queue.put_nowait(update)
         except queue.Full:
             # A non-200 result asks MAX to retry instead of silently losing the event.
             self._write(503, b"Busy")
             return
 
-        # MAX requires a successful response quickly; processing happens in worker().
+        # MAX requires a successful response quickly; processing happens in workers.
         self._write(200, b"OK")
 
 
 def main():
-    threading.Thread(target=worker, name="maxbot-worker", daemon=True).start()
+    threading.Thread(
+        target=worker, args=(fast_queue, "FAST"), name="maxbot-fast", daemon=True
+    ).start()
+    threading.Thread(
+        target=worker, args=(ai_queue, "AI"), name="maxbot-ai", daemon=True
+    ).start()
     server = ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler)
     print(f"MAXBOT WEBHOOK START http://{LISTEN_HOST}:{LISTEN_PORT}", flush=True)
     server.serve_forever()

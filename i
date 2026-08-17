@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 cd /root
-URL="https://cdn.jsdelivr.net/gh/kukla8122-create/portfolio-maxdizain.ru@main/maxbot-final.py"
+URL="https://cdn.jsdelivr.net/gh/kukla8122-create/portfolio-maxdizain.ru@f8806c0e87ab45d6d0ad3efedd9b8083af09b137/maxbot-final.py"
 echo DOWNLOAD
 rm -f newbot
 if ! wget -O newbot "$URL"; then

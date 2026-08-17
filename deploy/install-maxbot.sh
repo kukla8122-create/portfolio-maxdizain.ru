@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_RAW="https://raw.githubusercontent.com/kukla8122-create/portfolio-maxdizain.ru/main"
+REPO_RAW="https://raw.githubusercontent.com/kukla8122-create/portfolio-maxdizain.ru/maxbot-production"
 APP_DIR="/opt/maxbot"
 SERVICE_FILE="/etc/systemd/system/maxbot-webhook.service"
 

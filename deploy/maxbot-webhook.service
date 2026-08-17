@@ -1,0 +1,20 @@
+[Unit]
+Description=MAXimum Furniture MAX Bot Webhook
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/maxbot
+ExecStart=/usr/bin/python3 /opt/maxbot/maxbot-webhook.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=MAXBOT_LISTEN_HOST=127.0.0.1
+Environment=MAXBOT_LISTEN_PORT=8787
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

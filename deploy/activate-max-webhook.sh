@@ -21,6 +21,7 @@ for p in sys.argv[1].split("."): cur=cur.get(p,"") if isinstance(cur,dict) else 
 print(json.dumps(cur,ensure_ascii=False) if isinstance(cur,(dict,list)) else ("" if cur is None else cur))' "$1"; }
 
 for tool in yc curl python3; do command -v "$tool" >/dev/null 2>&1 || die "Missing tool: $tool"; done
+[ -r /dev/tty ] || die "Interactive terminal /dev/tty is unavailable"
 yc config set cloud-id "$CLOUD_ID" >/dev/null
 yc config set folder-id "$FOLDER_ID" >/dev/null
 
@@ -106,7 +107,7 @@ printf %s "$HEALTH" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert 
 
 say "Validate the exact MAX token used by the deployed private worker"
 printf 'Paste MAX_BOT_TOKEN here (input is hidden): '
-read -r -s MAX_TOKEN
+read -r -s MAX_TOKEN </dev/tty
 printf '\n'
 [ -n "$MAX_TOKEN" ] || die "Empty MAX token"
 [ "$MAX_TOKEN" = "$STORED_MAX_TOKEN" ] || die "This token does not match the MAX bot token stored by bootstrap"
@@ -145,7 +146,7 @@ PY
 printf '\nTARGET WEBHOOK: %s\n' "$WEBHOOK_URL"
 if [ "${CONFIRM_MAX_WEBHOOK_CUTOVER:-}" != "YES" ]; then
   printf 'Type ACTIVATE to switch MAX delivery to this Cloud Function: '
-  read -r answer
+  read -r answer </dev/tty
   [ "$answer" = ACTIVATE ] || die "Cutover cancelled; MAX was not changed"
 fi
 

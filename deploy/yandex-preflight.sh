@@ -16,6 +16,11 @@ if ! command -v yc >/dev/null 2>&1; then
   exit 10
 fi
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo 'FAIL: python3 is not available.'
+  exit 11
+fi
+
 # This changes only the local Cloud Shell CLI context, not any cloud resource.
 yc config set cloud-id "$CLOUD_ID" >/dev/null
 yc config set folder-id "$FOLDER_ID" >/dev/null
@@ -23,10 +28,10 @@ yc config set folder-id "$FOLDER_ID" >/dev/null
 CLOUD_JSON="$(yc resource-manager cloud get "$CLOUD_ID" --format json)"
 FOLDER_JSON="$(yc resource-manager folder get "$FOLDER_ID" --format json)"
 
-python3 - "$EXPECTED_CLOUD_NAME" <<'PY' <<<"$CLOUD_JSON"
-import json, sys
+CLOUD_JSON="$CLOUD_JSON" python3 - "$EXPECTED_CLOUD_NAME" <<'PY'
+import json, os, sys
 expected = sys.argv[1]
-d = json.load(sys.stdin)
+d = json.loads(os.environ['CLOUD_JSON'])
 name = d.get('name', '')
 status = d.get('status', '')
 cloud_id = d.get('id', '')
@@ -39,9 +44,9 @@ if status != 'ACTIVE':
     raise SystemExit(22)
 PY
 
-python3 - <<'PY' <<<"$FOLDER_JSON"
-import json, sys
-d = json.load(sys.stdin)
+FOLDER_JSON="$FOLDER_JSON" python3 - <<'PY'
+import json, os
+d = json.loads(os.environ['FOLDER_JSON'])
 print(f"FOLDER name={d.get('name','')} id={d.get('id','')} status={d.get('status','')}")
 status = d.get('status', '')
 if status and status != 'ACTIVE':

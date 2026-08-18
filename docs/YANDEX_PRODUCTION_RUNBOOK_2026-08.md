@@ -1,111 +1,97 @@
 # MAX-бот «МАКСимум мебель» — Yandex Cloud production runbook (август 2026)
 
-Этот runbook применяется только к ветке `maxbot-production` и дополняет основной стандарт `MAX_BOT_IMPLEMENTATION_2026-08.md`.
+Дата проверки: 18.08.2026.
+
+Этот runbook применяется только к ветке `maxbot-production` и дополняет `docs/MAX_BOT_IMPLEMENTATION_2026-08.md`. При расхождении со свежей официальной документацией MAX/Yandex Cloud сначала перепроверить официальную документацию и только потом менять production.
 
 ## 1. Целевая схема
 
 ```text
 MAX
   -> HTTPS Webhook
-  -> maximum-maxbot-ingress (public)
-  -> Yandex Message Queue (Standard)
+  -> maximum-maxbot-ingress (public Serverless Container)
+  -> Yandex Message Queue Standard
   -> YMQ Trigger
-  -> maximum-maxbot-worker (private)
+  -> maximum-maxbot-worker (private Serverless Container)
   -> YDB Serverless
-  -> MAX Bot API platform-api2.max.ru
+  -> MAX Bot API https://platform-api2.max.ru
 ```
 
-Один Docker-образ используется двумя Serverless Containers. Режим задается `APP_MODE=ingress` или `APP_MODE=worker`.
+Один Docker-образ используется двумя Serverless Containers. Режим задаётся `APP_MODE=ingress` или `APP_MODE=worker`.
 
-## 2. Зафиксированные правила безопасности
+## 2. Жёсткие правила безопасности
 
-- `MAX_BOT_TOKEN` никогда не хранить в GitHub, документах, URL, логах и чатах.
-- MAX token передавать MAX API только через `Authorization`.
-- `MAX_WEBHOOK_SECRET` должен быть отдельным случайным значением и вводиться непосредственно в окружение/secret-хранилище Yandex Cloud.
+- `MAX_BOT_TOKEN` никогда не хранить в GitHub, документах, URL, логах или чатах.
+- MAX token передавать MAX API только через заголовок `Authorization`.
+- `MAX_WEBHOOK_SECRET` — отдельное случайное значение; не выводить в логах.
 - `MAX_ACTIVATE_WEBHOOK=0` на всех preflight-ревизиях.
-- Webhook активируется только после успешной проверки ingress, queue, worker, YDB и MAX `/me`.
-- Старый Long Polling не выключать до controlled cutover.
-- Ingress публичный; worker не должен иметь публичный unauthenticated invoke.
-- Ingress принимает только `GET /health`, `GET /ready`, `POST /webhook`.
-- Worker принимает только YMQ trigger POST (`/` или `/trigger`) плюс служебные `GET /health`, `GET /ready`; `/webhook` на worker отсутствует.
+- Webhook MAX активировать только после полного preflight инфраструктуры и `GET /me`.
+- Старый Long Polling / старую подписку не отключать до controlled cutover.
+- Ingress публичный; worker приватный.
+- Ingress: только `GET /health`, `GET /ready`, `POST /webhook`.
+- Worker: только YMQ trigger POST (`/` или `/trigger`) и служебные `GET /health`, `GET /ready`; `/webhook` на worker отсутствует.
+- Секреты вводятся только внутри Yandex Cloud / Cloud Shell и не копируются в ChatGPT.
 
-## 3. Текущие официальные требования MAX
-
-Проверено 18.08.2026 по MAX Developers:
+## 3. Требования MAX на август 2026
 
 - API: `https://platform-api2.max.ru`.
-- Токен: только HTTP-заголовок `Authorization`.
-- Production transport: Webhook; активная Webhook-подписка отключает Long Polling.
-- Webhook URL: HTTPS, доверенный сертификат.
-- При заданном `secret` MAX отправляет `X-Max-Bot-Api-Secret`.
-- Callback после нажатия кнопки подтверждается через `POST /answers`.
-- `request_contact`: `hash` проверяется как HMAC-SHA256 токеном бота по `vcf_info`; перед хешированием escaped CRLF должны быть приведены к реальным переносам строк.
-- После изменений 19.07.2026 среда выполнения должна доверять сертификатам Минцифры.
+- Production transport: Webhook.
+- Webhook URL: HTTPS с доверенным сертификатом.
+- При заданном secret MAX отправляет `X-Max-Bot-Api-Secret`.
+- Callback подтверждается через `POST /answers`.
+- `request_contact`: `hash` проверяется HMAC-SHA256 токеном бота по `vcf_info`; escaped CRLF нормализуются перед проверкой.
+- Среда выполнения должна доверять актуальным сертификатам Минцифры.
 
-Официальные источники:
-- https://dev.max.ru/docs-api
-- https://dev.max.ru/docs-api/methods/POST/subscriptions
-- https://dev.max.ru/docs-api/methods/GET/subscriptions
-- https://dev.max.ru/docs-api/methods/POST/answers
-- https://dev.max.ru/docs-api/changelog-api
+Официальный источник истины: `dev.max.ru`.
 
 ## 4. Ресурсы Yandex Cloud
 
-Создать в одном Cloud и согласованном Folder:
+В одном Cloud/Folder:
 
-1. `maximum-maxbot-db` — **YDB Serverless**.
-2. `maximum-maxbot-events` — **Message Queue Standard**.
-3. `maximum-maxbot-ingress` — публичный Serverless Container.
-4. `maximum-maxbot-worker` — приватный Serverless Container.
-5. `maximum-maxbot-worker-trigger` — Message Queue trigger -> worker.
-6. Container Registry/repository для Docker-образа.
+1. `maximum-maxbot-db` — YDB Serverless.
+2. `maximum-maxbot-events` — Message Queue Standard.
+3. `maximum-maxbot-ingress` — public Serverless Container.
+4. `maximum-maxbot-worker` — private Serverless Container.
+5. `maximum-maxbot-worker-trigger` — YMQ -> worker.
+6. `maximum-maxbot-registry` — Container Registry.
 
-Не использовать Dedicated YDB для этой первой версии.
+Для YDB использовать Serverless, не Dedicated. Provisioned RCU держать `0`, чтобы не включать почасовую provisioned-capacity оплату.
 
 ## 5. Service accounts и роли
 
 ### `maxbot-ingress-sa`
 
-Нужно:
-- `ymq.writer` на Folder с очередью — отправка сообщений в YMQ;
-- `container-registry.images.puller` на registry/folder, если образ приватный и этот SA используется runtime/revision для pull.
-
-Для Boto3/YMQ создается static access key этого SA. `key_id` и `secret` вводятся непосредственно в Yandex Cloud как `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`; в GitHub и чат не копируются.
+- `ymq.writer` — отправка Update в очередь.
+- `container-registry.images.puller` — pull приватного Docker-образа.
+- Для YMQ создаётся static access key. `key_id`/`secret` используются только в окружении ingress и не публикуются.
 
 ### `maxbot-worker-sa`
 
-Нужно:
-- `ydb.editor` на YDB/Folder — чтение/запись и создание schema objects;
-- `container-registry.images.puller` на registry/folder, если требуется pull приватного образа.
-
-Worker использует metadata credentials service account для YDB; отдельный YDB-пароль не нужен.
+- `ydb.editor` — чтение/запись и инициализация таблиц.
+- `container-registry.images.puller` — pull Docker-образа.
+- YDB runtime использует metadata credentials сервисного аккаунта; отдельный пароль БД не нужен.
 
 ### `maxbot-trigger-sa`
 
-Для **работающего YMQ -> Serverless Container trigger** текущая официальная документация Yandex Cloud требует:
-- `editor` на Folder с Message Queue;
-- `serverless.containers.invoker` на Folder/worker-container, который вызывает trigger.
+Для YMQ trigger официальная YMQ-документация требует `editor` на Folder с очередью. Для вызова private worker использовать актуальную роль:
 
-Это важное уточнение: хотя Message Queue имеет granular роли `ymq.reader`/`ymq.writer`, официальная страница YMQ-trigger для Serverless Containers на июль 2026 прямо указывает `editor` для service account, от имени которого trigger читает очередь. Используем текущую официальную схему, а не старое предположение `ymq.reader`.
+`serverless-containers.containerInvoker`
 
-Создающему trigger пользователю также нужны права использовать service account (`iam.serviceAccounts.user` или роль выше) и viewer-доступ к соответствующим Folder.
+### Важное уточнение 18.08.2026
 
-Официальные источники Yandex Cloud:
-- https://yandex.cloud/en/docs/serverless-containers/concepts/trigger/ymq-trigger
-- https://yandex.cloud/en/docs/serverless-containers/operations/ymq-trigger-create
-- https://yandex.cloud/en/docs/message-queue/security/
-- https://yandex.cloud/en/docs/ydb/security/
-- https://yandex.cloud/en/docs/serverless-containers/security/
+В Yandex Cloud сейчас есть несогласованность документации: YMQ-specific страница всё ещё может показывать устаревшее имя `serverless.containers.invoker`, но актуальный справочник ролей Serverless Containers и общий раздел triggers используют `serverless-containers.containerInvoker`. В нашем production использовать **новое имя** `serverless-containers.containerInvoker`.
 
 ## 6. YDB
 
-Создать Serverless database:
+Создание:
 
 ```bash
-yc ydb database create maximum-maxbot-db --serverless
+yc ydb database create maximum-maxbot-db \
+  --serverless \
+  --sls-provisioned-rcu 0
 ```
 
-В production worker передать `YDB_CONNECTION_STRING` из созданной БД. Код также умеет работать через `YDB_ENDPOINT` + `YDB_DATABASE`, но один connection string предпочтительнее.
+В worker передавать полный `YDB_CONNECTION_STRING` из созданной БД.
 
 Таблицы создаются приложением:
 
@@ -117,75 +103,71 @@ settings
 processed_events
 ```
 
+`processed_events` используется для идемпотентности при повторной доставке YMQ/MAX.
+
 ## 7. Message Queue
 
-Создать **Standard**, не FIFO:
+Очередь: `maximum-maxbot-events`, только **Standard**, не FIFO.
 
-```text
-maximum-maxbot-events
-```
+На старте:
+- trigger batch size = `1`;
+- batch cutoff = `1s`;
+- visibility timeout > максимального времени обработки worker;
+- после smoke-test добавить DLQ.
 
-Ingress отправляет туда оригинальный JSON Update от MAX. Worker получает его через trigger.
-
-Рекомендуемые эксплуатационные параметры на старте:
-- batch size trigger: `1`;
-- batch cutoff: `1s`;
-- visibility timeout очереди должен быть больше максимального времени обработки worker;
-- после smoke-test добавить DLQ, чтобы неисправное сообщение не ретраилось бесконечно до истечения retention.
+Ingress кладёт в очередь исходный JSON Update MAX. Worker получает его через trigger.
 
 ## 8. Docker image
 
-Используется `Dockerfile.yandex` из `maxbot-production`.
+Использовать `Dockerfile.yandex` из `maxbot-production`.
 
-Текущий Dockerfile:
-- больше не использует `curl -k`;
-- устанавливает сертификаты Минцифры;
-- запускает `maxbot-yandex-entry.py`;
-- entrypoint требует явный `PUBLIC_BASE_URL` в ingress mode;
-- split runtime разделяет публичный ingress и private worker.
+Требования:
+- без `curl -k` и других TLS bypass;
+- сертификаты Минцифры установлены в trust store;
+- `maxbot-yandex-entry.py` запускает split runtime;
+- один image, два режима: ingress/worker.
 
-Собрать образ, проверить CI, затем push в Yandex Container Registry.
+Формат image в Yandex Container Registry:
+
+`cr.yandex/<registry-id>/maximum-maxbot:<tag>`
 
 ## 9. Ingress revision
 
-Обязательные переменные:
+Обязательное окружение:
 
 ```text
 APP_MODE=ingress
-MAX_BOT_TOKEN=<вводится только в Yandex Cloud>
-MAX_WEBHOOK_SECRET=<отдельный случайный secret>
+MAX_BOT_TOKEN=<только Yandex Cloud>
+MAX_WEBHOOK_SECRET=<случайный secret>
 MAX_ACTIVATE_WEBHOOK=0
-PUBLIC_BASE_URL=https://<реальный-id>.containers.yandexcloud.net
+PUBLIC_BASE_URL=https://<container-id>.containers.yandexcloud.net
 YMQ_ENDPOINT=https://message-queue.api.cloud.yandex.net
-YMQ_QUEUE_URL=<реальный URL очереди>
+YMQ_QUEUE_URL=<real queue URL>
 YMQ_REGION=ru-central1
-AWS_ACCESS_KEY_ID=<static key id ingress SA>
-AWS_SECRET_ACCESS_KEY=<static key secret ingress SA>
+AWS_ACCESS_KEY_ID=<ingress SA static key id>
+AWS_SECRET_ACCESS_KEY=<ingress SA static key secret>
 ```
 
-Ingress делается публичным для вызова MAX. Никаких YDB credentials ему не выдавать.
+Ingress сделать публичным. YDB-доступ ему не выдавать. `min-instances=0`.
 
 ## 10. Worker revision
 
-Обязательные переменные:
-
 ```text
 APP_MODE=worker
-MAX_BOT_TOKEN=<вводится только в Yandex Cloud>
-MAX_WEBHOOK_SECRET=<тот же webhook secret; нужен shared core>
-YDB_CONNECTION_STRING=<реальный connection string YDB>
+MAX_BOT_TOKEN=<только Yandex Cloud>
+MAX_WEBHOOK_SECRET=<тот же webhook secret>
+MAX_ACTIVATE_WEBHOOK=0
+YDB_CONNECTION_STRING=<real YDB connection string>
 ```
 
-Worker **не** делать публичным. Никаких YMQ static producer keys worker не нужны.
+Worker не делать публичным. YMQ producer credentials worker не нужны. `min-instances=0`.
 
 ## 11. Trigger
-
-Создать YMQ trigger на private worker:
 
 ```bash
 yc serverless trigger create message-queue \
   --name maximum-maxbot-worker-trigger \
-  --queue <QUEUE_ID> \
+  --queue <QUEUE_ARN> \
   --queue-service-account-id <TRIGGER_SA_ID> \
   --invoke-container-id <WORKER_CONTAINER_ID> \
   --invoke-container-service-account-id <TRIGGER_SA_ID> \
@@ -193,67 +175,71 @@ yc serverless trigger create message-queue \
   --batch-cutoff 1s
 ```
 
-Yandex Cloud указывает, что после успешной обработки trigger удаляет сообщение из очереди, а при ошибке возвращает его в очередь после visibility timeout.
+Для `--queue` использовать ARN очереди: именно ARN показан Yandex как Queue ID.
 
-## 12. Preflight — Webhook еще НЕ включать
+## 12. Preflight — MAX Webhook ещё НЕ включать
 
-На ingress обязательно оставить:
+На ingress и worker: `MAX_ACTIVATE_WEBHOOK=0`.
 
-```text
-MAX_ACTIVATE_WEBHOOK=0
-```
+Проверить:
 
-Проверки:
+1. ingress `GET /health` -> 200, `mode=ingress`;
+2. ingress `POST /trigger` -> 404;
+3. ingress `GET /ready`: `max_api=true`, `queue=true`, `activation_enabled=false`;
+4. worker private `GET /health` -> 200, `mode=worker`;
+5. worker `POST /webhook` -> 404;
+6. worker `GET /ready`: `max_api=true`, `storage=true`;
+7. YMQ synthetic probe проходит trigger -> worker и появляется точным ключом в `processed_events` YDB;
+8. повторная доставка одного Update не создаёт вторую заявку.
 
-```text
-1. ingress GET /health -> 200, mode=ingress
-2. ingress POST /trigger -> 404
-3. worker GET /health -> 200, mode=worker (через авторизованный/private invoke)
-4. worker POST /webhook -> 404
-5. YDB /ready -> storage=true
-6. ingress /ready -> max_api=true, queue=true, activation_enabled=false
-7. MAX GET /me -> 200
-8. очередь принимает тестовый update и trigger доставляет его worker
-9. повторная доставка одного и того же MAX update не создает вторую lead row
-```
-
-До этого момента `POST /subscriptions` не выполнять.
+До этого момента `POST /subscriptions` MAX не выполнять.
 
 ## 13. Controlled cutover
 
 Только после полного preflight:
 
-1. создать новую ingress revision с `MAX_ACTIVATE_WEBHOOK=1` **или** выполнить однократный controlled `POST /subscriptions` вручную;
-2. сразу проверить `GET /subscriptions` и точное совпадение production URL;
-3. открыть личный диалог с ботом и проверить `/start`/bot_started, все 8 кнопок, callback, заявку и `request_contact`;
-4. убедиться, что заявка появилась в YDB один раз;
-5. проверить портфолио и fallback;
-6. после успешного E2E старый Long Polling больше не используется.
+1. активировать новую MAX Webhook-подписку на ingress `/webhook`;
+2. проверить `GET /subscriptions` и точное совпадение URL;
+3. проверить `/start`/`bot_started`, 8 кнопок, callback, формы и `request_contact`;
+4. проверить, что lead в YDB создаётся один раз;
+5. проверить портфолио/fallback;
+6. только после успешного E2E считать старый transport выведенным из эксплуатации.
 
-Rollback: удалить production Webhook через официальный `DELETE /subscriptions?url=...`; после удаления Long Polling снова становится доступен.
+Rollback: удалить production Webhook через официальный `DELETE /subscriptions?url=...`; после удаления Webhook Long Polling снова может быть использован.
 
 ## 14. Acceptance gate
 
-Production считается готовым только если:
+Production готов только если:
 
 ```text
-[ ] GitHub CI прошел
+[ ] Python compile/unit tests OK
 [ ] Docker image собирается без TLS bypass
 [ ] ingress public / worker private
 [ ] route isolation подтверждена
-[ ] YDB Serverless работает
+[ ] YDB Serverless RUNNING, provisioned RCU=0
 [ ] YMQ Standard работает
-[ ] trigger retry работает
+[ ] trigger -> worker -> YDB probe доказан
 [ ] MAX /me = 200
-[ ] Webhook secret проверяется
+[ ] MAX webhook secret проверяется
 [ ] callback /answers работает
-[ ] request_contact и HMAC работают
+[ ] request_contact/HMAC работает
 [ ] ручной номер работает
-[ ] заявка не дублируется при повторной доставке
+[ ] retry не дублирует lead
 [ ] 8 пунктов меню работают
 [ ] портфолио работает
-[ ] exact business texts сверены с MAX_BOT_IMPLEMENTATION_2026-08.md
-[ ] неизвестный вопрос уходит в deterministic FAQ/fallback, без выдуманных цен и сроков
+[ ] business texts сверены с MAX_BOT_IMPLEMENTATION_2026-08.md
+[ ] неизвестный вопрос -> deterministic FAQ/fallback без выдуманных цен/сроков
 [ ] политика/основание обработки ПД готовы до коммерческого запуска
-[ ] rollback проверен
+[ ] rollback-план сохранён
 ```
+
+## 15. Официальные источники Yandex Cloud, сверенные 18.08.2026
+
+- Serverless Containers access management / role reference.
+- Serverless Containers YMQ trigger docs and trigger overview.
+- Message Queue access management.
+- Container Registry access management and Docker authentication.
+- YDB CLI/database create and authentication docs.
+- IAM static access key docs.
+
+При будущем изменении CLI/ролей сначала заново сверить эти официальные разделы, затем менять bootstrap/runbook.

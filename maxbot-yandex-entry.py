@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Production guard before starting the split Yandex runtime."""
+"""Production guard before starting the ordered Yandex runtime."""
 
 import os
 import re
@@ -16,6 +16,6 @@ if mode == "ingress":
     os.environ["PUBLIC_BASE_URL"] = public_base
 
 runpy.run_path(
-    str(Path(__file__).resolve().with_name("maxbot-yandex-split.py")),
+    str(Path(__file__).resolve().with_name("maxbot-yandex-stream.py")),
     run_name="__main__",
 )

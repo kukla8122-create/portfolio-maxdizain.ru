@@ -20,5 +20,6 @@ RUN python -m pip install --no-cache-dir -r /app/requirements-yandex.txt
 
 COPY maxbot-selfhosted.py /app/maxbot-selfhosted.py
 COPY maxbot-yandex.py /app/maxbot-yandex.py
+COPY maxbot-yandex-production.py /app/maxbot-yandex-production.py
 
-CMD ["python", "/app/maxbot-yandex.py"]
+CMD ["python", "/app/maxbot-yandex-production.py"]

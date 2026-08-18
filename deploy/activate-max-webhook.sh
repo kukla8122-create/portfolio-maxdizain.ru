@@ -2,8 +2,8 @@
 set -euo pipefail
 umask 077
 
-# Explicit MAX webhook cutover after the Cloud Functions infrastructure has passed
-# its end-to-end synthetic test. This is intentionally separate from bootstrap.
+# Explicit MAX webhook cutover after Cloud Functions infrastructure passed its
+# end-to-end synthetic test. This file is intentionally separate from bootstrap.
 
 CLOUD_ID="b1g91dbs94slnmrj3npv"
 FOLDER_ID="b1g7u7p1qmhjvgtidp0i"
@@ -25,7 +25,7 @@ yc config set cloud-id "$CLOUD_ID" >/dev/null
 yc config set folder-id "$FOLDER_ID" >/dev/null
 
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"; unset MAX_TOKEN WEBHOOK_SECRET IAM_TOKEN || true' EXIT
+trap 'rm -rf "$TMP"; unset MAX_TOKEN STORED_MAX_TOKEN WEBHOOK_SECRET IAM_TOKEN || true' EXIT
 ROOT_CA="$TMP/root.pem"
 SUB_CA="$TMP/sub.pem"
 MAX_CA="$TMP/max-ca.pem"
@@ -33,7 +33,18 @@ curl -fsSL --retry 3 --proto '=https' --tlsv1.2 https://gu-st.ru/content/lending
 curl -fsSL --retry 3 --proto '=https' --tlsv1.2 https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.crt -o "$SUB_CA"
 cat /etc/ssl/certs/ca-certificates.crt "$ROOT_CA" "$SUB_CA" > "$MAX_CA"
 
-say "Resolve the exact public Cloud Function URL"
+if ! command -v ydb >/dev/null 2>&1; then
+  curl -sSL https://install.ydb.tech/cli | bash
+  export PATH="$HOME/ydb/bin:$HOME/.local/bin:$PATH"
+  if ! command -v ydb >/dev/null 2>&1; then
+    YDB_BIN="$(find "$HOME" -type f -name ydb -perm -u+x 2>/dev/null | head -n 1 || true)"
+    [ -n "$YDB_BIN" ] || die "YDB CLI installation completed but executable was not found"
+    export PATH="$(dirname "$YDB_BIN"):$PATH"
+  fi
+fi
+command -v ydb >/dev/null 2>&1 || die "YDB CLI unavailable"
+
+say "Resolve exact public Cloud Function URL"
 FJ="$(yc serverless function get "$INGRESS_FN" --format json)" || die "Ingress function not found"
 [ "$(printf %s "$FJ" | jget status)" = ACTIVE ] || die "Ingress function is not ACTIVE"
 WEBHOOK_URL="$(printf %s "$FJ" | jget http_invoke_url)"
@@ -54,31 +65,51 @@ print((parse_qs(u.query).get('database') or [''])[0])
 PY
 YDB_GRPC="$(sed -n '1p' "$TMP/ydb")"
 YDB_PATH="$(sed -n '2p' "$TMP/ydb")"
-if command -v ydb >/dev/null 2>&1; then
-  IAM_TOKEN="$(yc iam create-token)"; export IAM_TOKEN
-  ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" scheme describe "$STREAM_NAME" >"$TMP/topic"
-  PARTITIONS="$(python3 - "$TMP/topic" <<'PY'
+[ -n "$YDB_GRPC" ] && [ -n "$YDB_PATH" ] || die "Cannot parse YDB connection"
+IAM_TOKEN="$(yc iam create-token)"; export IAM_TOKEN
+ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" scheme describe "$STREAM_NAME" >"$TMP/topic"
+PARTITIONS="$(python3 - "$TMP/topic" <<'PY'
 import re,sys
 s=open(sys.argv[1],encoding='utf-8',errors='replace').read();m=re.search(r'PartitionsCount:\s*(\d+)',s);print(m.group(1) if m else '')
 PY
 )"
-  unset IAM_TOKEN
-  [ "$PARTITIONS" = 1 ] || die "Data Stream must have exactly one partition"
-fi
+[ "$PARTITIONS" = 1 ] || die "Data Stream must have exactly one partition"
+
+cat >"$TMP/read-deployment-secrets.sql" <<'SQL'
+SELECT key,value FROM deployment_secrets
+WHERE key IN ("max_bot_token", "max_webhook_secret");
+SQL
+ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" sql \
+  -f "$TMP/read-deployment-secrets.sql" --format json-unicode >"$TMP/deployment-secrets.out"
+mapfile -t STORED_VALUES < <(python3 - "$TMP/deployment-secrets.out" <<'PY'
+import json,sys
+values={}
+for line in open(sys.argv[1],encoding='utf-8',errors='replace'):
+    line=line.strip()
+    if not line: continue
+    try: row=json.loads(line)
+    except Exception: continue
+    if isinstance(row,dict): values[str(row.get('key',''))]=str(row.get('value',''))
+print(values.get('max_bot_token',''))
+print(values.get('max_webhook_secret',''))
+PY
+)
+STORED_MAX_TOKEN="${STORED_VALUES[0]:-}"
+WEBHOOK_SECRET="${STORED_VALUES[1]:-}"
+unset IAM_TOKEN
+[ -n "$STORED_MAX_TOKEN" ] || die "Stored MAX token is missing in YDB"
+printf %s "$WEBHOOK_SECRET" | grep -Eq '^[A-Za-z0-9_-]{5,256}$' || die "Stored webhook secret is missing/invalid"
+
 HEALTH="$(curl -fsS "$WEBHOOK_URL")" || die "Ingress HTTPS health failed"
 printf %s "$HEALTH" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("ok") is True and d.get("read_only") is True and d.get("transport")=="data-streams" and d.get("max_token_present") is False,d' \
   || die "Ingress health contract failed"
 
-say "Read and validate MAX token"
+say "Validate the exact MAX token used by the deployed private worker"
 printf 'Paste MAX_BOT_TOKEN here (input is hidden): '
 read -r -s MAX_TOKEN
 printf '\n'
 [ -n "$MAX_TOKEN" ] || die "Empty MAX token"
-WEBHOOK_SECRET="$(MAX_TOKEN="$MAX_TOKEN" python3 - <<'PY'
-import hashlib,os
-print(hashlib.sha256(("maximum-webhook-v3:"+os.environ['MAX_TOKEN']).encode()).hexdigest())
-PY
-)"
+[ "$MAX_TOKEN" = "$STORED_MAX_TOKEN" ] || die "This token does not match the MAX bot token stored by bootstrap"
 ME="$(curl --cacert "$MAX_CA" -fsS "$MAX_API/me" -H "Authorization: $MAX_TOKEN")" || die "MAX /me failed"
 printf %s "$ME" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("is_bot") is True,d' || die "MAX token is invalid"
 

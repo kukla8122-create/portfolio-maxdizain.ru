@@ -37,18 +37,42 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
 
     def test_public_ingress_is_token_free(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        ingress = text[text.index('say "Deploy token-free public ingress function"'):text.index('say "Deploy private worker function"')]
+        start = text.index('say "Deploy token-free public ingress function"')
+        end = text.index('say "Deploy private worker function with no MAX credentials')
+        ingress = text[start:end]
         self.assertIn("MAX_WEBHOOK_SECRET", ingress)
         self.assertNotIn("MAX_BOT_TOKEN=", ingress)
         self.assertIn("allow-unauthenticated-invoke", ingress)
         self.assertIn("max_token_present", text)
 
-    def test_worker_is_private_and_has_max_token(self):
+    def test_worker_is_private_and_max_credentials_are_not_function_metadata(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        worker = text[text.index('say "Deploy private worker function"'):text.index('say "Pause exact legacy triggers')]
-        self.assertIn("MAX_BOT_TOKEN=$MAX_BOT_TOKEN", worker)
+        start = text.index('say "Deploy private worker function with no MAX credentials')
+        end = text.index('say "Pause exact legacy triggers')
+        worker = text[start:end]
+        self.assertIn('--environment "YDB_CONNECTION_STRING=$YDB_CS"', worker)
+        self.assertNotIn("MAX_BOT_TOKEN=", worker)
+        self.assertNotIn("MAX_WEBHOOK_SECRET=", worker)
         self.assertIn("deny-unauthenticated-invoke", worker)
         self.assertIn("functions.functionInvoker", worker)
+
+    def test_bootstrap_persists_token_and_stable_webhook_secret_in_ydb(self):
+        text = self.read("deploy/yandex-bootstrap.sh")
+        self.assertIn("CREATE TABLE IF NOT EXISTS deployment_secrets", text)
+        self.assertIn('"max_bot_token", $token', text)
+        self.assertIn('"max_webhook_secret", $secret', text)
+        self.assertIn("secrets.token_urlsafe(36)", text)
+        self.assertIn("read-webhook-secret.sql", text)
+        self.assertIn("MAX token: stored only in protected YDB data", text)
+
+    def test_runtime_reads_max_token_from_ydb_before_loading_core(self):
+        text = self.read("maxbot_yandex_functions.py")
+        get_token = text.index('storage.get_deployment_secret("max_bot_token")')
+        set_env = text.index('os.environ["MAX_BOT_TOKEN"] = max_token')
+        load_core = text.index("core = _load_core_wrapper()")
+        self.assertLess(get_token, set_env)
+        self.assertLess(set_env, load_core)
+        self.assertIn('storage.get_deployment_secret("max_webhook_secret")', text)
 
     def test_bootstrap_uses_one_partition_ordered_data_stream(self):
         text = self.read("deploy/yandex-bootstrap.sh")
@@ -89,10 +113,14 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn("processed_events", text)
         self.assertIn("YANDEX_FUNCTIONS_INFRA_READY_FOR_CUTOVER", text)
 
-    def test_activation_uses_cloud_function_url_and_explicit_cutover(self):
+    def test_activation_uses_stored_identity_and_explicit_cutover(self):
         text = self.read("deploy/activate-max-webhook.sh")
         self.assertIn('INGRESS_FN="maximum-maxbot-ingress-fn"', text)
         self.assertIn("http_invoke_url", text)
+        self.assertIn("deployment_secrets", text)
+        self.assertIn('max_bot_token', text)
+        self.assertIn('max_webhook_secret', text)
+        self.assertIn('This token does not match the MAX bot token stored by bootstrap', text)
         self.assertIn("Type ACTIVATE", text)
         self.assertIn("channel_maxmebel_52", text)
         self.assertIn("read_all_messages", text)
@@ -100,9 +128,11 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertNotIn("lockbox", text.lower())
         self.assertNotIn("serverless container", text.lower())
 
-    def test_rollback_deletes_only_exact_function_url(self):
+    def test_rollback_deletes_only_exact_function_url_for_deployed_bot(self):
         text = self.read("deploy/rollback-max-webhook.sh")
         self.assertIn('INGRESS_FN="maximum-maxbot-ingress-fn"', text)
+        self.assertIn("deployment_secrets", text)
+        self.assertIn("This token does not match the deployed MAX bot", text)
         self.assertIn("http_invoke_url", text)
         self.assertIn("Type ROLLBACK", text)
         self.assertIn('--data-urlencode "url=$WEBHOOK_URL"', text)

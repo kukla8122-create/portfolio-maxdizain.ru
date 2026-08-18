@@ -8,8 +8,9 @@ umask 077
 #
 # This script NEVER creates, replaces, or deletes a MAX webhook subscription.
 # Webhook cutover is a separate explicit deploy/activate-max-webhook.sh action.
-# It also intentionally avoids Yandex Container Registry and Yandex Lockbox so
-# there is no inherent recurring image-storage or secret-version charge.
+# It intentionally avoids Yandex Container Registry and paid Yandex Lockbox.
+# The MAX bot token and stable webhook secret are kept in a protected YDB table;
+# the public ingress never receives the bot token.
 
 CLOUD_ID="b1g91dbs94slnmrj3npv"
 FOLDER_ID="b1g7u7p1qmhjvgtidp0i"
@@ -33,6 +34,7 @@ VENV="$TMP/venv"
 TEMP_ACCESS_KEY_RESOURCE_ID=""
 TEMP_YMQ_ADMIN=0
 ING_SA=""
+MAX_WEBHOOK_SECRET=""
 
 say(){ printf '\n==> %s\n' "$*"; }
 die(){ printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -101,16 +103,11 @@ printf 'Paste MAX_BOT_TOKEN here (input is hidden): '
 read -r -s MAX_BOT_TOKEN
 printf '\n'
 [ -n "$MAX_BOT_TOKEN" ] || die "Empty MAX token"
-MAX_WEBHOOK_SECRET="$(MAX_BOT_TOKEN="$MAX_BOT_TOKEN" python3 - <<'PY'
-import hashlib, os
-print(hashlib.sha256(("maximum-webhook-v3:" + os.environ["MAX_BOT_TOKEN"]).encode()).hexdigest())
-PY
-)"
 ME="$(curl --cacert "$MAX_CA" -fsS "$MAX_API/me" -H "Authorization: $MAX_BOT_TOKEN")" \
   || die "MAX /me failed"
 printf %s "$ME" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("is_bot") is True, d' \
   || die "MAX token does not identify a bot"
-printf 'MAX token: valid; webhook secret: derived and stable\n'
+printf 'MAX token: valid; subscriptions unchanged\n'
 
 if ! command -v ydb >/dev/null 2>&1; then
   say "Install official YDB CLI"
@@ -191,9 +188,68 @@ YDB_PATH="$(sed -n '2p' "$TMP/ydb-connection")"
 [ -n "$YDB_GRPC" ] && [ -n "$YDB_PATH" ] || die "Cannot parse YDB connection"
 printf 'YDB: %s\n' "$YDB_PATH"
 
+say "Create/reuse protected YDB deployment credentials"
+IAM_TOKEN="$(yc iam create-token)"; export IAM_TOKEN
+cat >"$TMP/deployment-secrets-schema.sql" <<'SQL'
+CREATE TABLE IF NOT EXISTS deployment_secrets (
+    key Utf8,
+    value Utf8,
+    updated_at Int64,
+    PRIMARY KEY (key)
+);
+SQL
+ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" sql \
+  -f "$TMP/deployment-secrets-schema.sql" >/dev/null
+cat >"$TMP/read-webhook-secret.sql" <<'SQL'
+DECLARE $key AS Utf8;
+SELECT value FROM deployment_secrets WHERE key=$key LIMIT 1;
+SQL
+printf '%s\n' '{"key":"max_webhook_secret"}' >"$TMP/read-webhook-secret.json"
+ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" sql \
+  -f "$TMP/read-webhook-secret.sql" --input-file "$TMP/read-webhook-secret.json" \
+  --format json-unicode >"$TMP/read-webhook-secret.out"
+MAX_WEBHOOK_SECRET="$(python3 - "$TMP/read-webhook-secret.out" <<'PY'
+import json,sys
+value=''
+for line in open(sys.argv[1],encoding='utf-8',errors='replace'):
+    line=line.strip()
+    if not line: continue
+    try: row=json.loads(line)
+    except Exception: continue
+    if isinstance(row,dict) and row.get('value'):
+        value=str(row['value']); break
+print(value)
+PY
+)"
+if [ -z "$MAX_WEBHOOK_SECRET" ]; then
+  MAX_WEBHOOK_SECRET="$(python3 -c 'import secrets; print(secrets.token_urlsafe(36))')"
+fi
+printf %s "$MAX_WEBHOOK_SECRET" | grep -Eq '^[A-Za-z0-9_-]{5,256}$' \
+  || die "Generated/stored webhook secret has invalid format"
+cat >"$TMP/upsert-deployment-secrets.sql" <<'SQL'
+DECLARE $token AS Utf8;
+DECLARE $secret AS Utf8;
+DECLARE $now AS Int64;
+UPSERT INTO deployment_secrets (key,value,updated_at) VALUES
+    ("max_bot_token", $token, $now),
+    ("max_webhook_secret", $secret, $now);
+SQL
+MAX_BOT_TOKEN="$MAX_BOT_TOKEN" MAX_WEBHOOK_SECRET="$MAX_WEBHOOK_SECRET" python3 - <<'PY' >"$TMP/deployment-secrets-values.json"
+import json,os,time
+print(json.dumps({
+    'token': os.environ['MAX_BOT_TOKEN'],
+    'secret': os.environ['MAX_WEBHOOK_SECRET'],
+    'now': int(time.time()),
+}, ensure_ascii=False))
+PY
+ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" sql \
+  -f "$TMP/upsert-deployment-secrets.sql" --input-file "$TMP/deployment-secrets-values.json" >/dev/null
+rm -f "$TMP/deployment-secrets-values.json"
+unset IAM_TOKEN
+printf 'MAX token: stored only in protected YDB data; webhook secret: stable\n'
+
 say "Create/reuse one-partition Data Stream: 128 KB/s, 1h retention"
-IAM_TOKEN="$(yc iam create-token)"
-export IAM_TOKEN
+IAM_TOKEN="$(yc iam create-token)"; export IAM_TOKEN
 if ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" \
   scheme describe "$STREAM_NAME" >"$TMP/topic-before.txt" 2>"$TMP/topic-before.err"; then
   true
@@ -273,7 +329,7 @@ python3 -m py_compile "$PKG/maxbot_yandex_functions.py" "$PKG/maxbot-selfhosted-
 
 say "Create/reuse Cloud Functions"
 INGJ="$(ensure_function "$INGRESS_FN" 'Public MAX webhook ingress; token-free')"
-WRKJ="$(ensure_function "$WORKER_FN" 'Private MAX business worker')"
+WRKJ="$(ensure_function "$WORKER_FN" 'Private MAX business worker; credentials from YDB')"
 INGRESS_ID="$(printf %s "$INGJ" | jget id)"
 WORKER_ID="$(printf %s "$WRKJ" | jget id)"
 [ -n "$INGRESS_ID" ] && [ -n "$WORKER_ID" ] || die "Function IDs missing"
@@ -292,17 +348,17 @@ INGJ="$(yc serverless function get "$INGRESS_ID" --format json)"
 IURL="$(printf %s "$INGJ" | jget http_invoke_url)"
 [ -n "$IURL" ] || die "Ingress invoke URL missing"
 
-say "Deploy private worker function"
+say "Deploy private worker function with no MAX credentials in version metadata"
 yc serverless function version create \
   --function-id "$WORKER_ID" \
   --runtime python312 \
   --entrypoint maxbot_yandex_functions.worker_handler \
   --memory 256m --execution-timeout 30s \
   --service-account-id "$WRK_SA" \
-  --environment "YDB_CONNECTION_STRING=$YDB_CS,MAX_BOT_TOKEN=$MAX_BOT_TOKEN,MAX_WEBHOOK_SECRET=$MAX_WEBHOOK_SECRET" \
+  --environment "YDB_CONNECTION_STRING=$YDB_CS" \
   --source-path "$PKG" --no-logging >/dev/null
 yc serverless function deny-unauthenticated-invoke "$WORKER_ID" >/dev/null 2>&1 || true
-yc serverless function add-access-binding --id "$WORKER_ID" \
+yc serverless function add-access-binding "$WORKER_ID" \
   --service-account-id "$TRG_SA" --role functions.functionInvoker >/dev/null
 
 say "Pause exact legacy triggers to prevent duplicate delivery if they exist"
@@ -373,12 +429,13 @@ curl -fsS -X POST "$IURL" \
 FOUND=0
 for _ in $(seq 1 180); do
   IAM_TOKEN="$(yc iam create-token)"; export IAM_TOKEN
-  if ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" yql \
+  if ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" sql \
     -s "SELECT event_id FROM processed_events WHERE event_id = '$EXPECTED_KEY';" \
-    >"$TMP/e2e.txt" 2>/dev/null && grep -Fq "$EXPECTED_KEY" "$TMP/e2e.txt"; then
+    --format json-unicode >"$TMP/e2e.txt" 2>/dev/null && grep -Fq "$EXPECTED_KEY" "$TMP/e2e.txt"; then
     FOUND=1
     break
   fi
+  unset IAM_TOKEN
   sleep 2
 done
 unset IAM_TOKEN
@@ -392,5 +449,6 @@ printf 'DLQ: %s\n' "$DLQ_NAME"
 printf 'Docker/Container Registry: NOT USED\n'
 printf 'Lockbox: NOT USED\n'
 printf 'Persistent static access keys: NONE\n'
+printf 'MAX token in function version metadata: NO\n'
 printf 'MAX webhook activation: OFF\n'
 printf 'Next action is the separate reviewed activate-max-webhook.sh only.\n'

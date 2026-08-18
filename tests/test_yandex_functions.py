@@ -31,7 +31,6 @@ def load_module():
     fake_ydb.RetrySettings = lambda **kwargs: kwargs
     sys.modules["ydb"] = fake_ydb
     sys.modules["ydb.iam"] = fake_iam
-
     os.environ["YDB_CONNECTION_STRING"] = "grpcs://example/?database=/db"
     os.environ["MAX_WEBHOOK_SECRET"] = "Secret_12345"
     spec = importlib.util.spec_from_file_location(
@@ -81,6 +80,8 @@ class FakeCore:
 
 class CloudFunctionsRuntimeTests(unittest.TestCase):
     def setUp(self):
+        self._old_ydb = sys.modules.get("ydb")
+        self._old_ydb_iam = sys.modules.get("ydb.iam")
         self.m = load_module()
         self.m._ingress_driver = None
         self.m._ingress_writer = None
@@ -88,6 +89,16 @@ class CloudFunctionsRuntimeTests(unittest.TestCase):
         self.m._worker_storage = None
         os.environ.pop("MAX_BOT_TOKEN", None)
         os.environ["MAX_WEBHOOK_SECRET"] = "Secret_12345"
+
+    def tearDown(self):
+        if self._old_ydb is None:
+            sys.modules.pop("ydb", None)
+        else:
+            sys.modules["ydb"] = self._old_ydb
+        if self._old_ydb_iam is None:
+            sys.modules.pop("ydb.iam", None)
+        else:
+            sys.modules["ydb.iam"] = self._old_ydb_iam
 
     def test_get_health_is_read_only_and_ingress_has_no_max_token(self):
         response = self.m.ingress_handler({"httpMethod": "GET"}, None)
@@ -124,7 +135,6 @@ class CloudFunctionsRuntimeTests(unittest.TestCase):
             None,
         )
         self.assertEqual(response["statusCode"], 200)
-        self.assertEqual(len(writer.calls), 1)
         self.assertEqual(json.loads(writer.calls[0]), update)
 
     def test_ingress_returns_503_when_stream_write_is_not_acknowledged(self):

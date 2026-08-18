@@ -18,6 +18,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install Yandex runtime dependencies for tests
+        run: python -m pip install --disable-pip-version-check -r requirements-yandex.txt
+
       - name: Compile Python sources
         run: |
           python -m py_compile \
@@ -27,6 +30,7 @@ jobs:
             maxbot-yandex.py \
             maxbot-yandex-production.py \
             maxbot-yandex-split.py \
+            maxbot-yandex-stream.py \
             maxbot-yandex-entry.py
 
       - name: Unit tests
@@ -86,40 +90,23 @@ jobs:
           print("Exact confirmation OK")
           '
 
-      - name: Validate split runtime and stable idempotency keys
+      - name: Validate ordered Data Streams runtime contract
         run: |
-          docker run --rm --entrypoint python maximum-maxbot-yandex:ci -c '
-          import importlib.util, json
-
-          base_spec=importlib.util.spec_from_file_location("base", "/app/maxbot-yandex.py")
-          base=importlib.util.module_from_spec(base_spec); base_spec.loader.exec_module(base)
-          update={"update_type":"bot_started","chat_id":123}
-          event={"messages":[{"event_metadata":{"event_id":"evt-1"},"details":{"message":{"body":json.dumps(update)}}}]}
-          assert list(base.extract_trigger_updates(event)) == [("evt-1", update)]
-
-          split_spec=importlib.util.spec_from_file_location("split", "/app/maxbot-yandex-split.py")
-          m=importlib.util.module_from_spec(split_spec); split_spec.loader.exec_module(m)
+          docker run --rm \
+            -e YDS_STREAM_NAME=/ru-central1/folder/database/maximum-maxbot-events \
+            --entrypoint python maximum-maxbot-yandex:ci -c '
+          import importlib.util
+          spec=importlib.util.spec_from_file_location("stream", "/app/maxbot-yandex-stream.py")
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
           assert m.stable_update_key({"update_type":"message_callback","callback":{"callback_id":"cb-1"}}) == "max:message_callback:callback:cb-1"
           assert m.stable_update_key({"update_type":"message_created","message":{"body":{"mid":"m-1"}}}) == "max:message_created:message:m-1"
-
-          class Core:
-              WEBHOOK_SECRET="safe_secret"
-              MAX_BASE="https://platform-api2.max.ru"
-          class Impl:
-              YMQ_QUEUE_URL="https://queue.example/maxbot"
-          class SQS: pass
-          class Storage: pass
-
-          IH=m.create_ingress_handler(Impl, Core, SQS())
-          ingress=IH.__new__(IH); ingress.path="/trigger"
-          got={}; ingress.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
-          ingress.do_POST(); assert got["status"] == 404, got
-
-          WH=m.create_worker_handler(Impl, Core, Storage())
-          worker=WH.__new__(WH); worker.path="/webhook"
-          got={}; worker.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
-          worker.do_POST(); assert got["status"] == 404, got
-          print("Split runtime isolation OK")
+          assert m.event_partition_key({"update_type":"message_created","message":{"recipient":{"chat_id":123}}}) == "chat:123"
+          updates=[
+            {"update_type":"message_created","message":{"body":{"mid":"m-1"}}},
+            {"update_type":"message_created","message":{"body":{"mid":"m-2"}}},
+          ]
+          assert [u for _eid,u in m.extract_stream_updates({"messages":updates})] == updates
+          print("Ordered Data Streams runtime contract OK")
           '
 
       - name: Smoke test Yandex ingress mode
@@ -132,13 +119,13 @@ jobs:
             -e PUBLIC_BASE_URL=https://bot.example \
             -e AWS_ACCESS_KEY_ID=TESTACCESSKEY123 \
             -e AWS_SECRET_ACCESS_KEY=TESTSECRETKEY123 \
-            -e YMQ_QUEUE_URL=https://message-queue.api.cloud.yandex.net/fake/fake/maxbot \
+            -e YDS_STREAM_NAME=/ru-central1/folder/database/maximum-maxbot-events \
             -e MAX_ACTIVATE_WEBHOOK=0 \
             -e PORT=8000 \
             -p 18001:8000 \
             maximum-maxbot-yandex:ci
           for i in $(seq 1 20); do
-            if curl -fsS http://127.0.0.1:18001/health | grep -q '"mode": "ingress"'; then
+            if curl -fsS http://127.0.0.1:18001/health | grep -q '"transport": "data-streams"'; then
               test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18001/trigger)" = "404"
               docker logs maximum-maxbot-yandex-ingress-ci
               exit 0
@@ -163,7 +150,7 @@ jobs:
             -p 18002:8000 \
             maximum-maxbot-yandex:ci
           for i in $(seq 1 20); do
-            if curl -fsS http://127.0.0.1:18002/health | grep -q '"mode": "worker"'; then
+            if curl -fsS http://127.0.0.1:18002/health | grep -q '"transport": "data-streams"'; then
               test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18002/webhook)" = "404"
               docker logs maximum-maxbot-yandex-worker-ci
               exit 0

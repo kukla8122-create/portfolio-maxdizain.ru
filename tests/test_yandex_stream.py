@@ -69,12 +69,23 @@ class FakeCore:
 
 
 class FakeKinesis:
-    def __init__(self):
+    def __init__(self, stream_status="ACTIVE"):
         self.records = []
+        self.describe_calls = []
+        self.stream_status = stream_status
 
     def put_record(self, **kwargs):
         self.records.append(kwargs)
         return {"ShardId": "shard-000000", "SequenceNumber": str(len(self.records))}
+
+    def describe_stream(self, **kwargs):
+        self.describe_calls.append(kwargs)
+        return {
+            "StreamDescription": {
+                "StreamStatus": self.stream_status,
+                "Shards": [{"ShardId": "shard-000000"}],
+            }
+        }
 
 
 class FakeStorage:
@@ -189,9 +200,9 @@ class OrderedDataStreamsTests(unittest.TestCase):
         self.assertEqual(status, 413)
         self.assertEqual(kinesis.records, [])
 
-    def test_ready_is_read_only_and_never_puts_stream_record(self):
+    def test_ready_verifies_active_stream_read_only(self):
         core = FakeCore()
-        kinesis = FakeKinesis()
+        kinesis = FakeKinesis(stream_status="ACTIVE")
         handler = self.stream.create_ingress_handler(FakeImpl(), core, kinesis)
 
         status, raw = request_once(handler, "GET", "/ready")
@@ -201,9 +212,29 @@ class OrderedDataStreamsTests(unittest.TestCase):
         self.assertTrue(payload["read_only"])
         self.assertEqual(payload["transport"], "data-streams")
         self.assertTrue(payload["stream_configured"])
+        self.assertTrue(payload["stream"])
+        self.assertEqual(payload["stream_status"], "ACTIVE")
         self.assertFalse(payload["activation_enabled"])
         self.assertEqual(kinesis.records, [])
+        self.assertEqual(
+            kinesis.describe_calls,
+            [{"StreamName": self.stream.YDS_STREAM_NAME, "Limit": 1}],
+        )
         self.assertTrue(all(method == "GET" for method, _url, _obj in core.http_calls))
+
+    def test_ready_fails_if_stream_is_not_active(self):
+        core = FakeCore()
+        kinesis = FakeKinesis(stream_status="CREATING")
+        handler = self.stream.create_ingress_handler(FakeImpl(), core, kinesis)
+
+        status, raw = request_once(handler, "GET", "/ready")
+        payload = json.loads(raw.decode())
+
+        self.assertEqual(status, 503)
+        self.assertFalse(payload["ok"])
+        self.assertFalse(payload["stream"])
+        self.assertEqual(payload["stream_status"], "CREATING")
+        self.assertEqual(kinesis.records, [])
 
     def test_documented_trigger_messages_are_processed_in_array_order(self):
         core = FakeCore()

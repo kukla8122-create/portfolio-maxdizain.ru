@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ordered Yandex production runtime for «МАКСимум мебель» MAX bot.
+"""Ordered Yandex production runtime for «МАКСИмум мебель» MAX bot.
 
 Architecture:
     MAX Webhook -> public ingress -> Yandex Data Streams -> private worker -> YDB
@@ -8,7 +8,7 @@ Why Data Streams instead of Message Queue for the business-event transport:
 MAX conversations are state machines. A Standard Message Queue trigger does not
 preserve message order, while Data Streams is designed for ordered records within
 a shard/partition. Production uses exactly one stream partition and a trigger
-batch size of one, so the small business bot gets the simplest deterministic
+batch size of one byte, so the small business bot gets the simplest deterministic
 processing path. Yandex Message Queue remains only as the trigger DLQ.
 
 GET /ready is strictly read-only. Webhook activation is always a separate,
@@ -41,7 +41,7 @@ YDS_ENDPOINT = os.environ.get(
 ).strip()
 YDS_REGION = os.environ.get("YDS_REGION", "ru-central1").strip() or "ru-central1"
 YDS_STREAM_NAME = os.environ.get("YDS_STREAM_NAME", "").strip()
-# PutRecord supports up to 1 MiB. Keep headroom for encoding/service overhead.
+# PutRecord accepts a record up to 1 MiB. Keep headroom for service/encoding overhead.
 MAX_UPDATE_STREAM_LIMIT = int(os.environ.get("MAX_UPDATE_STREAM_LIMIT", "900000"))
 CURRENT_EVENT_KEY: contextvars.ContextVar[str] = contextvars.ContextVar(
     "maximum_max_event_key", default=""
@@ -180,12 +180,7 @@ def stable_update_key(update: dict) -> str:
 
 
 def extract_stream_updates(event: dict):
-    """Yield MAX updates from the documented Data Streams trigger JSON envelope.
-
-    Current Yandex documentation states that a Data Streams trigger forwards JSON
-    stream messages inside the top-level ``messages`` array. Keep a narrow legacy
-    decoder too so an old queued YMQ probe cannot crash a rollback/redeploy test.
-    """
+    """Yield MAX updates from the documented Data Streams trigger JSON envelope."""
     messages = event.get("messages") or []
     if not isinstance(messages, list):
         return
@@ -196,7 +191,7 @@ def extract_stream_updates(event: dict):
             yield "", item
             continue
 
-        # Legacy YMQ-trigger shape: details.message.body contains the original body.
+        # Keep a narrow legacy decoder only for rollback diagnostics.
         details = item.get("details") or {}
         msg = details.get("message") or {}
         body = msg.get("body")
@@ -278,7 +273,7 @@ def install_deterministic_leads(core, storage) -> None:
 
 
 def remove_channel(storage, chat_id) -> None:
-    """Honor MAX bot_removed migration guidance by deleting the stored chat id."""
+    """Delete a stored chat id when MAX reports bot_removed."""
     if chat_id is None:
         return
     storage.init_schema()
@@ -294,7 +289,7 @@ def remove_channel(storage, chat_id) -> None:
 
 def create_ingress_handler(impl, core, stream_client):
     class IngressHandler(BaseHTTPRequestHandler):
-        server_version = "MaximumFurnitureBotYandexIngress/3.0"
+        server_version = "MaximumFurnitureBotYandexIngress/3.1"
 
         def log_message(self, fmt, *args):
             print("INGRESS", fmt % args, flush=True)
@@ -365,16 +360,17 @@ def create_ingress_handler(impl, core, stream_client):
                 )
             except Exception as exc:
                 print("Data Streams put_record error:", repr(exc), flush=True)
-                # Non-2xx tells MAX to retry instead of losing the update.
                 self.respond(503, b"Stream unavailable")
                 return
             self.respond(200, b"OK")
 
         def _ready(self):
-            """Read-only readiness probe; never writes to the stream or MAX."""
+            """Read-only readiness probe; never writes to Data Streams or MAX."""
             base = impl.public_base_from_request(self)
             target = base.rstrip("/") + "/webhook" if base else ""
             max_api = False
+            stream_ok = False
+            stream_status = ""
             webhook_present = False
 
             try:
@@ -382,6 +378,20 @@ def create_ingress_handler(impl, core, stream_client):
                 max_api = 200 <= status < 300
             except Exception as exc:
                 print("MAX /me readiness error:", repr(exc), flush=True)
+
+            if YDS_STREAM_NAME and YDS_ENDPOINT:
+                try:
+                    description = stream_client.describe_stream(
+                        StreamName=YDS_STREAM_NAME,
+                        Limit=1,
+                    )
+                    stream_status = str(
+                        (description.get("StreamDescription") or {}).get("StreamStatus")
+                        or ""
+                    ).upper()
+                    stream_ok = stream_status == "ACTIVE"
+                except Exception as exc:
+                    print("Data Streams readiness error:", repr(exc), flush=True)
 
             if max_api and target:
                 try:
@@ -395,7 +405,7 @@ def create_ingress_handler(impl, core, stream_client):
                     print("MAX subscriptions readiness error:", repr(exc), flush=True)
 
             stream_configured = bool(YDS_STREAM_NAME and YDS_ENDPOINT)
-            ready = max_api and stream_configured and bool(target)
+            ready = max_api and stream_ok and bool(target)
             self.json_response(
                 200 if ready else 503,
                 {
@@ -403,6 +413,8 @@ def create_ingress_handler(impl, core, stream_client):
                     "mode": "ingress",
                     "transport": "data-streams",
                     "max_api": max_api,
+                    "stream": stream_ok,
+                    "stream_status": stream_status,
                     "stream_configured": stream_configured,
                     "webhook": webhook_present,
                     "activation_enabled": False,
@@ -417,7 +429,7 @@ def create_ingress_handler(impl, core, stream_client):
 
 def create_worker_handler(impl, core, storage):
     class WorkerHandler(BaseHTTPRequestHandler):
-        server_version = "MaximumFurnitureBotYandexWorker/3.0"
+        server_version = "MaximumFurnitureBotYandexWorker/3.1"
 
         def log_message(self, fmt, *args):
             print("WORKER", fmt % args, flush=True)

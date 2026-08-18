@@ -114,6 +114,11 @@ printf 'Integrity: OK\n'
 printf 'Cloud Functions CLI compatibility: OK\n'
 printf 'Parameterized YDB verification: OK\n'
 printf 'Shell syntax: OK\n'
-printf 'MAX webhook activation: OFF throughout bootstrap\n\n'
+printf 'MAX webhook activation: OFF throughout bootstrap\n'
 
+if [ "${MAXBOT_BOOTSTRAP_VALIDATE_ONLY:-0}" = 1 ]; then
+  printf 'VALIDATION_ONLY_OK — no cloud or MAX mutation executed\n'
+  exit 0
+fi
+printf '\n'
 exec bash "$PATCHED"

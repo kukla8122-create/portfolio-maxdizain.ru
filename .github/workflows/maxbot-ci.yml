@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py maxbot-yandex.py maxbot-yandex-production.py
+        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py maxbot-yandex.py maxbot-yandex-production.py maxbot-yandex-split.py
       - name: Unit tests
         run: python -m unittest discover -s tests -v
 
@@ -72,83 +72,94 @@ jobs:
           assert rows == [("evt-1", update)], rows
           print("YMQ trigger parser OK")
           '
-      - name: Validate safe webhook activation gate
+      - name: Validate split runtime and stable idempotency keys
         run: |
           docker run --rm --entrypoint python maximum-maxbot-yandex:ci -c '
-          import importlib.util, os
-          spec=importlib.util.spec_from_file_location("prod", "/app/maxbot-yandex-production.py")
-          prod=importlib.util.module_from_spec(spec); spec.loader.exec_module(prod)
+          import importlib.util
+          spec=importlib.util.spec_from_file_location("split", "/app/maxbot-yandex-split.py")
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
-          calls=[]
+          a={"update_type":"message_callback","callback":{"callback_id":"cb-1"}}
+          b={"update_type":"message_created","message":{"body":{"mid":"m-1"}}}
+          c={"update_type":"bot_started","chat_id":123,"user":{"user_id":1}}
+          assert m.stable_update_key(a)=="max:message_callback:callback:cb-1"
+          assert m.stable_update_key(b)=="max:message_created:message:m-1"
+          assert m.stable_update_key(c)==m.stable_update_key(dict(reversed(list(c.items()))))
+
           class Core:
-              MAX_BASE="https://platform-api2.max.ru"
               WEBHOOK_SECRET="safe_secret"
-              @staticmethod
-              def subscriptions():
-                  return 200, {"subscriptions": []}
-              @staticmethod
-              def http_json(url, method="GET", obj=None, timeout=0):
-                  calls.append((method, url, obj))
-                  if url.endswith("/me"):
-                      return 200, {"ok": True}
-                  if url.endswith("/subscriptions") and method == "POST":
-                      return 200, {"success": True}
-                  raise AssertionError((method, url))
-          class Storage:
-              @staticmethod
-              def status(): return {"ok": True}
-          class SQS:
-              @staticmethod
-              def get_queue_attributes(**kwargs): return {"Attributes": {}}
+              MAX_BASE="https://platform-api2.max.ru"
           class Impl:
               YMQ_QUEUE_URL="https://queue.example/maxbot"
-              @staticmethod
-              def public_base_from_request(handler): return "https://bot.example"
-              @staticmethod
-              def create_handler(core, storage, sqs): return object
+          class SQS: pass
+          class Storage: pass
 
-          H=prod.create_safe_handler(Impl, Core, Storage(), SQS())
-          h=H()
-          result={}
-          h.json_response=lambda status, obj: result.update(status=status, obj=obj)
+          IH=m.create_ingress_handler(Impl, Core, SQS())
+          ingress=IH.__new__(IH)
+          ingress.path="/trigger"
+          got={}
+          ingress.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
+          ingress.do_POST()
+          assert got["status"]==404, got
 
-          os.environ["MAX_ACTIVATE_WEBHOOK"]="0"
-          h._ready()
-          assert result["status"] == 200, result
-          assert result["obj"]["activation_enabled"] is False, result
-          assert result["obj"]["webhook"] is False, result
-          assert not any(m == "POST" and u.endswith("/subscriptions") for m,u,_ in calls), calls
-
-          calls.clear(); result.clear()
-          os.environ["MAX_ACTIVATE_WEBHOOK"]="1"
-          h._ready()
-          assert result["status"] == 200, result
-          assert result["obj"]["activation_enabled"] is True, result
-          assert result["obj"]["webhook"] is True, result
-          assert sum(1 for m,u,_ in calls if m == "POST" and u.endswith("/subscriptions")) == 1, calls
-          print("Webhook activation gate OK")
+          WH=m.create_worker_handler(Impl, Core, Storage())
+          worker=WH.__new__(WH)
+          worker.path="/webhook"
+          got={}
+          worker.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
+          worker.do_POST()
+          assert got["status"]==404, got
+          print("Split runtime isolation OK")
           '
-      - name: Smoke test Yandex Serverless image
+
+      - name: Smoke test Yandex ingress mode
         run: |
-          docker run -d --name maximum-maxbot-yandex-ci \
+          docker run -d --name maximum-maxbot-yandex-ingress-ci \
             --memory=256m --cpus=0.5 \
+            -e APP_MODE=ingress \
             -e BOT_TOKEN=TestToken_123456789 \
+            -e MAX_WEBHOOK_SECRET=TestWebhookSecret_123456789 \
             -e AWS_ACCESS_KEY_ID=TESTACCESSKEY123 \
             -e AWS_SECRET_ACCESS_KEY=TESTSECRETKEY123 \
             -e YMQ_QUEUE_URL=https://message-queue.api.cloud.yandex.net/fake/fake/maxbot \
-            -e YDB_CONNECTION_STRING=grpcs://ydb.serverless.yandexcloud.net:2135/local-test \
             -e MAX_ACTIVATE_WEBHOOK=0 \
             -e PORT=8000 \
             -p 18001:8000 \
             maximum-maxbot-yandex:ci
           for i in $(seq 1 20); do
-            if curl -fsS http://127.0.0.1:18001/health | grep -q '"platform": "yandex-serverless"'; then
-              docker logs maximum-maxbot-yandex-ci
+            if curl -fsS http://127.0.0.1:18001/health | grep -q '"mode": "ingress"'; then
+              test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18001/trigger)" = "404"
+              docker logs maximum-maxbot-yandex-ingress-ci
               exit 0
             fi
-            if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-yandex-ci; exit 1; fi
+            if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-yandex-ingress-ci; exit 1; fi
             sleep 1
           done
-      - name: Cleanup Yandex Serverless container
+      - name: Cleanup Yandex ingress container
         if: always()
-        run: docker rm -f maximum-maxbot-yandex-ci >/dev/null 2>&1 || true
+        run: docker rm -f maximum-maxbot-yandex-ingress-ci >/dev/null 2>&1 || true
+
+      - name: Smoke test Yandex worker mode
+        run: |
+          docker run -d --name maximum-maxbot-yandex-worker-ci \
+            --memory=256m --cpus=0.5 \
+            -e APP_MODE=worker \
+            -e BOT_TOKEN=TestToken_123456789 \
+            -e MAX_WEBHOOK_SECRET=TestWebhookSecret_123456789 \
+            -e YDB_CONNECTION_STRING=grpcs://ydb.serverless.yandexcloud.net:2135/local-test \
+            -e MAX_ACTIVATE_WEBHOOK=0 \
+            -e PORT=8000 \
+            -p 18002:8000 \
+            maximum-maxbot-yandex:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18002/health | grep -q '"mode": "worker"'; then
+              test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18002/webhook)" = "404"
+              docker logs maximum-maxbot-yandex-worker-ci
+              exit 0
+            fi
+            if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-yandex-worker-ci; exit 1; fi
+            sleep 1
+          done
+      - name: Cleanup Yandex worker container
+        if: always()
+        run: docker rm -f maximum-maxbot-yandex-worker-ci >/dev/null 2>&1 || true

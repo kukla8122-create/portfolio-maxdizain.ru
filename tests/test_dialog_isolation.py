@@ -77,6 +77,58 @@ class DialogIsolationTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def test_adapter_runtime_bindings_are_mirrored_into_shared_core(self):
+        def fake_init_db():
+            return None
+
+        def fake_set_session(*_args, **_kwargs):
+            return None
+
+        def fake_get_session(*_args, **_kwargs):
+            return None
+
+        def fake_clear_session(*_args, **_kwargs):
+            return None
+
+        def fake_save_channel(*_args, **_kwargs):
+            return None
+
+        def fake_save_lead(*_args, **_kwargs):
+            return "lead-ydb"
+
+        def fake_parse_contact(*_args, **_kwargs):
+            return "+79990000000", True
+
+        replacements = {
+            "init_db": fake_init_db,
+            "set_session": fake_set_session,
+            "get_session": fake_get_session,
+            "clear_session": fake_clear_session,
+            "save_channel": fake_save_channel,
+            "save_lead": fake_save_lead,
+            "parse_contact_attachment": fake_parse_contact,
+        }
+        for name, value in replacements.items():
+            setattr(self.bot, name, value)
+
+        self.bot.sync_runtime_bindings()
+
+        for name, value in replacements.items():
+            self.assertIs(getattr(self.bot._core, name), value, name)
+
+    def test_handle_update_synchronizes_adapter_bindings_before_shared_flow(self):
+        calls = []
+
+        def fake_get_session(chat_id):
+            calls.append(("get_session", chat_id))
+            return None
+
+        self.bot.get_session = fake_get_session
+        self.bot.handle_update(message_update("dialog", text="неизвестный вопрос"))
+
+        self.assertIs(self.bot._core.get_session, fake_get_session)
+        self.assertEqual(calls, [("get_session", 42)])
+
     def test_dialog_message_runs_client_flow(self):
         self.bot.handle_update(message_update("dialog"))
         self.assertEqual(self.events, [("menu", 42, True)])

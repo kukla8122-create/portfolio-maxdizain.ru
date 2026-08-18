@@ -17,17 +17,18 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py
+        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py maxbot-yandex.py
       - name: Unit tests
         run: python -m unittest discover -s tests -v
-      - name: Build Docker image
+
+      - name: Build self-hosted Docker image
         run: docker build --pull -t maximum-maxbot:ci .
-      - name: Check image size
+      - name: Check self-hosted image size
         run: |
           SIZE=$(docker image inspect maximum-maxbot:ci --format='{{.Size}}')
-          echo "Docker image bytes: $SIZE"
+          echo "Self-hosted Docker image bytes: $SIZE"
           test "$SIZE" -lt 450000000
-      - name: Smoke test under free-tier limits
+      - name: Smoke test self-hosted image
         run: |
           docker run -d --name maximum-maxbot-ci \
             --memory=192m --cpus=0.5 \
@@ -43,12 +44,54 @@ jobs:
               echo "$STORAGE" | grep -q '"ok": true'
               echo "$STORAGE" | grep -q '"boot_count": 1'
               docker logs maximum-maxbot-ci
-              exit 0
+              break
             fi
+            if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-ci; exit 1; fi
             sleep 1
           done
-          docker logs maximum-maxbot-ci
-          exit 1
-      - name: Cleanup smoke container
+      - name: Cleanup self-hosted container
         if: always()
         run: docker rm -f maximum-maxbot-ci >/dev/null 2>&1 || true
+
+      - name: Build Yandex Serverless image
+        run: docker build --pull -f Dockerfile.yandex -t maximum-maxbot-yandex:ci .
+      - name: Check Yandex image size
+        run: |
+          SIZE=$(docker image inspect maximum-maxbot-yandex:ci --format='{{.Size}}')
+          echo "Yandex Serverless Docker image bytes: $SIZE"
+          test "$SIZE" -lt 500000000
+      - name: Validate YMQ trigger parser
+        run: |
+          docker run --rm --entrypoint python maximum-maxbot-yandex:ci -c '
+          import importlib.util, json
+          spec=importlib.util.spec_from_file_location("my", "/app/maxbot-yandex.py")
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          update={"update_type":"bot_started","chat_id":123}
+          event={"messages":[{"event_metadata":{"event_id":"evt-1"},"details":{"message":{"body":json.dumps(update)}}}]}
+          rows=list(m.extract_trigger_updates(event))
+          assert rows == [("evt-1", update)], rows
+          print("YMQ trigger parser OK")
+          '
+      - name: Smoke test Yandex Serverless image
+        run: |
+          docker run -d --name maximum-maxbot-yandex-ci \
+            --memory=256m --cpus=0.5 \
+            -e BOT_TOKEN=TestToken_123456789 \
+            -e AWS_ACCESS_KEY_ID=TESTACCESSKEY123 \
+            -e AWS_SECRET_ACCESS_KEY=TESTSECRETKEY123 \
+            -e YMQ_QUEUE_URL=https://message-queue.api.cloud.yandex.net/fake/fake/maxbot \
+            -e YDB_CONNECTION_STRING=grpcs://ydb.serverless.yandexcloud.net:2135/local-test \
+            -e PORT=8000 \
+            -p 18001:8000 \
+            maximum-maxbot-yandex:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18001/health | grep -q '"platform": "yandex-serverless"'; then
+              docker logs maximum-maxbot-yandex-ci
+              exit 0
+            fi
+            if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-yandex-ci; exit 1; fi
+            sleep 1
+          done
+      - name: Cleanup Yandex Serverless container
+        if: always()
+        run: docker rm -f maximum-maxbot-yandex-ci >/dev/null 2>&1 || true

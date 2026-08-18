@@ -53,11 +53,14 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertNotIn('CJ" | jget status', text)
         self.assertIn('FJ" | jget status', text)
 
-    def test_bootstrap_uses_service_specific_trigger_roles(self):
+    def test_bootstrap_matches_current_ymq_container_trigger_roles(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertIn("ymq.reader", text)
+        # The current Yandex Serverless Containers YMQ-trigger concept page
+        # explicitly requires editor on the source-queue folder for the trigger SA.
+        self.assertIn('grant_folder "$TRG_SA" editor', text)
+        # Container invocation remains constrained to the worker container itself.
         self.assertIn("serverless-containers.containerInvoker", text)
-        self.assertNotIn('grant_folder "$TRG_SA" editor', text)
+        self.assertIn("dedicated trigger SA", text)
 
     def test_activation_is_yandex_native_and_explicit(self):
         text = self.read("deploy/activate-max-webhook.sh")

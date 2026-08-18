@@ -1,3 +1,4 @@
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,20 @@ ROOT = Path(__file__).resolve().parents[1]
 class YandexDeploymentGuardrailTests(unittest.TestCase):
     def read(self, relative):
         return (ROOT / relative).read_text(encoding="utf-8")
+
+    def test_deployment_scripts_pass_bash_syntax_check(self):
+        for relative in (
+            "deploy/yandex-preflight.sh",
+            "deploy/yandex-bootstrap.sh",
+            "deploy/activate-max-webhook.sh",
+            "deploy/rollback-max-webhook.sh",
+        ):
+            result = subprocess.run(
+                ["bash", "-n", str(ROOT / relative)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, f"{relative}: {result.stderr}")
 
     def test_bootstrap_never_activates_max_webhook(self):
         text = self.read("deploy/yandex-bootstrap.sh")

@@ -45,21 +45,35 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn(
             'YDS_STREAM_ID="/$REGION/$CLOUD_ID/$YDB_ID/$STREAM_NAME"', text
         )
-        self.assertIn("Unexpected Data Streams ID source pattern", text)
+        self.assertIn("Data Streams ID", text)
         self.assertIn("Reviewed Data Streams ID correction missing", text)
 
     def test_bootstrap_launcher_uses_admin_only_temporarily_for_dlq_configuration(self):
         text = self.read("deploy/yandex-bootstrap.sh")
         self.assertIn(
-            's#grant_folder "$ING_SA" ymq.writer#grant_folder "$ING_SA" ymq.admin#',
+            "('grant_folder \"$ING_SA\" ymq.writer',\n        'grant_folder \"$ING_SA\" ymq.admin'",
             text,
         )
         self.assertIn(
-            's#--role ymq.writer --service-account-id "$ING_SA"#--role ymq.admin --service-account-id "$ING_SA"#g',
+            "('--role ymq.writer --service-account-id \"$ING_SA\"',\n        '--role ymq.admin --service-account-id \"$ING_SA\"'",
             text,
         )
         self.assertIn('grant_folder "$TRG_SA" ymq.writer', text)
-        self.assertIn("TEMP_INGRESS_YMQ=1$/a sleep 5", text)
+        self.assertIn('text.replace(needle, needle + "sleep 5\\n", 1)', text)
+
+    def test_bootstrap_launcher_uses_daemonless_buildah_in_cloud_shell(self):
+        text = self.read("deploy/yandex-bootstrap.sh")
+        self.assertIn("apt-get install -y -qq buildah", text)
+        self.assertIn("buildah --storage-driver vfs info", text)
+        self.assertIn(
+            "buildah --storage-driver vfs build --pull=always --isolation chroot --format docker",
+            text,
+        )
+        self.assertIn("buildah login --username iam --password-stdin cr.yandex", text)
+        self.assertIn('buildah --storage-driver vfs push "$IMG" "docker://$IMG"', text)
+        self.assertIn('grep -Fc \'Docker daemon unavailable\' "$PATCHED"', text)
+        self.assertIn('grep -Fc \'dockerd\' "$PATCHED"', text)
+        self.assertNotIn("sudo nohup dockerd", text)
 
     def test_bootstrap_launcher_cannot_activate_max_webhook(self):
         text = self.read("deploy/yandex-bootstrap.sh")

@@ -5,12 +5,14 @@ Production path:
     MAX HTTPS webhook -> public ingress function -> YDB Topic/Data Streams ->
     Data Streams trigger -> private worker function -> YDB + MAX Bot API.
 
-Design goals:
+Security / reliability goals:
 - no Docker / Container Registry dependency;
 - no paid Lockbox dependency;
-- ingress never receives the MAX bot token;
+- public ingress never receives the MAX bot token;
+- MAX bot token is read by the private worker from a protected YDB table at cold start;
+- webhook secret is stable across bot-token rotation;
 - webhook secret is verified before accepting an update;
-- the ingress waits for a YDB topic write acknowledgement before returning HTTP 200;
+- ingress waits for YDB Topic server acknowledgement before returning HTTP 200;
 - worker processing is idempotent for a retried MAX update;
 - GET health checks are read-only and cannot modify MAX subscriptions.
 """
@@ -126,9 +128,8 @@ def _get_ingress_writer():
 def ingress_handler(event: dict, context: Any) -> dict:
     """Public HTTPS MAX webhook.
 
-    Cloud Functions converts HTTPS requests into an event with httpMethod, headers,
-    body and isBase64Encoded. Only POST is accepted for business delivery. GET is a
-    read-only health endpoint and never touches MAX or the stream.
+    Only POST is accepted for business delivery. GET is a read-only health endpoint
+    and never writes to YDB, Data Streams, or MAX.
     """
 
     method = str((event or {}).get("httpMethod") or "").upper()
@@ -169,9 +170,9 @@ def ingress_handler(event: dict, context: Any) -> dict:
     if not isinstance(update, dict) or not update.get("update_type"):
         return _response(400, "Bad update")
 
-    # The Python YDB SDK's writer.write() only queues data in a client-side buffer.
-    # Cloud Functions may freeze the runtime immediately after return, so production
-    # waits for the server acknowledgement before telling MAX HTTP 200.
+    # write() only fills a local client buffer. In a serverless HTTPS handler that
+    # is insufficient: the runtime may freeze immediately after return. Wait for
+    # the YDB server acknowledgement before telling MAX HTTP 200.
     try:
         _get_ingress_writer().write_with_ack(raw.decode("utf-8"))
     except Exception as exc:
@@ -189,7 +190,7 @@ def _row_get(row, name, default=None):
 
 
 class YDBStorage:
-    """YDB persistence adapter for sessions, leads, channels and update deduplication."""
+    """YDB adapter for deployment secrets, sessions, leads and update deduplication."""
 
     def __init__(self):
         self._driver = None
@@ -214,6 +215,22 @@ class YDBStorage:
             params or {},
             retry_settings=settings,
         )
+
+    def get_deployment_secret(self, key: str) -> str:
+        result = self.execute(
+            """
+            DECLARE $key AS Utf8;
+            SELECT value FROM deployment_secrets WHERE key=$key LIMIT 1;
+            """,
+            {"$key": str(key)},
+            idempotent=True,
+        )
+        if not result or not result[0].rows:
+            raise RuntimeError(f"Deployment secret is missing: {key}")
+        value = str(_row_get(result[0].rows[0], "value", "") or "")
+        if not value:
+            raise RuntimeError(f"Deployment secret is empty: {key}")
+        return value
 
     def init_schema(self):
         if self._schema_ready:
@@ -464,7 +481,6 @@ def _install_contact_verification(core):
 
 
 def _configure_max_tls():
-    """Combine system roots with the additional Russian trusted CA bundle."""
     extra = BASE_DIR / "max-russian-ca.pem"
     system = Path("/etc/ssl/certs/ca-certificates.crt")
     if not extra.exists() or not system.exists():
@@ -494,15 +510,22 @@ def _worker_runtime():
         if _worker_core is not None and _worker_storage is not None:
             return _worker_core, _worker_storage
 
-        _require("MAX_BOT_TOKEN")
-        _require("MAX_WEBHOOK_SECRET")
+        storage = YDBStorage()
+        # Keep the MAX token out of the Cloud Function version metadata. Only this
+        # private worker service account has YDB write/read data access at runtime.
+        max_token = storage.get_deployment_secret("max_bot_token")
+        webhook_secret = storage.get_deployment_secret("max_webhook_secret")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{5,256}", webhook_secret):
+            raise RuntimeError("Stored MAX webhook secret has invalid format")
+        os.environ["MAX_BOT_TOKEN"] = max_token
+        os.environ["MAX_WEBHOOK_SECRET"] = webhook_secret
+
         _configure_max_tls()
         os.environ.setdefault("DATA_DIR", "/tmp/maxbot")
         os.environ.setdefault("DATABASE_PATH", "/tmp/maxbot/maxbot-unused.db")
         os.environ["MAX_AUTO_SUBSCRIBE"] = "0"
 
         core = _load_core_wrapper()
-        storage = YDBStorage()
         core.init_db = storage.init_schema
         core.set_session = storage.set_session
         core.get_session = storage.get_session

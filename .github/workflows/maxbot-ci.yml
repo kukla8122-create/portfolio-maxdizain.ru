@@ -1,0 +1,22 @@
+name: MAX bot CI
+
+on:
+  push:
+    branches: [maxbot-production]
+  pull_request:
+    branches: [maxbot-production]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v

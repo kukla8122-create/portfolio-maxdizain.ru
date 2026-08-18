@@ -10,8 +10,9 @@ APP_MODE=worker
     Private container. Receives Yandex Message Queue trigger POST requests and
     runs business logic with YDB persistence. It never exposes /webhook.
 
-The split keeps the public trust boundary intentionally small and makes webhook
-activation an explicit opt-in via MAX_ACTIVATE_WEBHOOK=1.
+Webhook activation is deliberately outside this runtime. GET /ready is strictly
+read-only and must never create, replace or delete a MAX subscription. Production
+cutover is performed only by the explicit deploy/activate-max-webhook.sh script.
 """
 
 from __future__ import annotations
@@ -33,7 +34,9 @@ IMPL_PATH = BASE_DIR / "maxbot-yandex.py"
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8000"))
 MODE = os.environ.get("APP_MODE", "").strip().lower()
-MAX_UPDATE_QUEUE_LIMIT = int(os.environ.get("MAX_UPDATE_QUEUE_LIMIT", "240000"))
+# Yandex Serverless Containers currently caps a trigger message at 230 KB and
+# service metadata can reduce the usable payload. Keep a conservative margin.
+MAX_UPDATE_QUEUE_LIMIT = int(os.environ.get("MAX_UPDATE_QUEUE_LIMIT", "200000"))
 CURRENT_EVENT_KEY: contextvars.ContextVar[str] = contextvars.ContextVar(
     "maximum_max_event_key", default=""
 )
@@ -138,20 +141,13 @@ def stable_update_key(update: dict) -> str:
     if message_id:
         return f"max:{update_type}:message:{message_id}"
 
-    # bot_added/bot_started and any future event still get a stable key because the
-    # original MAX update JSON is stored unchanged in YMQ and replayed on retries.
     canonical = json.dumps(update, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return f"max:{update_type}:sha256:{digest}"
 
 
 def install_deterministic_leads(core, storage) -> None:
-    """Make lead writes idempotent for a retried terminal MAX update.
-
-    The worker marks the update processed after business handling so failed calls can
-    retry. If a process dies after saving a lead but before that mark, the retry gets
-    the same deterministic lead id and therefore cannot create a second lead row.
-    """
+    """Make lead writes idempotent for a retried terminal MAX update."""
 
     def save_lead(chat_id, user_id, kind, data, phone="", verified=False):
         storage.init_schema()
@@ -219,7 +215,7 @@ def install_deterministic_leads(core, storage) -> None:
 
 def create_ingress_handler(impl, core, sqs):
     class IngressHandler(BaseHTTPRequestHandler):
-        server_version = "MaximumFurnitureBotYandexIngress/2.0"
+        server_version = "MaximumFurnitureBotYandexIngress/2.1"
 
         def log_message(self, fmt, *args):
             print("INGRESS", fmt % args, flush=True)
@@ -262,17 +258,25 @@ def create_ingress_handler(impl, core, sqs):
             if not hmac.compare_digest(got, core.WEBHOOK_SECRET):
                 self.respond(403, b"Forbidden")
                 return
+
             try:
-                raw, update = read_json(self)
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                self.respond(400, b"Bad content length")
+                return
+            if length > MAX_UPDATE_QUEUE_LIMIT:
+                self.respond(413, b"Update too large")
+                return
+
+            try:
+                raw, update = read_json(self, max_size=MAX_UPDATE_QUEUE_LIMIT)
             except Exception:
                 self.respond(400, b"Bad JSON")
                 return
             if not isinstance(update, dict):
                 self.respond(400, b"Bad update")
                 return
-            if len(raw) > MAX_UPDATE_QUEUE_LIMIT:
-                self.respond(413, b"Update too large")
-                return
+
             try:
                 sqs.send_message(
                     QueueUrl=impl.YMQ_QUEUE_URL,
@@ -280,18 +284,17 @@ def create_ingress_handler(impl, core, sqs):
                 )
             except Exception as exc:
                 print("YMQ enqueue error:", repr(exc), flush=True)
-                # A non-200 response asks MAX to retry delivery rather than dropping it.
                 self.respond(503, b"Queue unavailable")
                 return
             self.respond(200, b"OK")
 
         def _ready(self):
+            """Read-only readiness probe. Never mutates MAX subscriptions."""
             base = impl.public_base_from_request(self)
             target = base.rstrip("/") + "/webhook" if base else ""
-            activation_enabled = env_true("MAX_ACTIVATE_WEBHOOK", False)
             max_api = False
             queue_ok = False
-            webhook_ok = False
+            webhook_present = False
 
             try:
                 status, _ = core.http_json(f"{core.MAX_BASE}/me", timeout=12)
@@ -308,41 +311,21 @@ def create_ingress_handler(impl, core, sqs):
             except Exception as exc:
                 print("YMQ readiness error:", repr(exc), flush=True)
 
+            # GET /subscriptions is diagnostic only. POST/DELETE is intentionally
+            # impossible from this request path, even if a stale environment variable
+            # such as MAX_ACTIVATE_WEBHOOK=1 is present.
             if max_api and target:
                 try:
                     status, result = core.subscriptions()
                     if 200 <= status < 300:
-                        webhook_ok = any(
+                        webhook_present = any(
                             isinstance(item, dict) and item.get("url") == target
                             for item in (result.get("subscriptions") or [])
                         )
-                    if activation_enabled and not webhook_ok:
-                        body = {
-                            "url": target,
-                            "update_types": [
-                                "bot_added",
-                                "bot_removed",
-                                "bot_started",
-                                "message_created",
-                                "message_callback",
-                            ],
-                            "secret": core.WEBHOOK_SECRET,
-                        }
-                        status, result = core.http_json(
-                            f"{core.MAX_BASE}/subscriptions",
-                            method="POST",
-                            obj=body,
-                            timeout=20,
-                        )
-                        webhook_ok = (
-                            200 <= status < 300
-                            and result.get("success", True) is not False
-                        )
                 except Exception as exc:
-                    print("MAX webhook readiness error:", repr(exc), flush=True)
+                    print("MAX subscriptions readiness error:", repr(exc), flush=True)
 
-            infrastructure_ok = max_api and queue_ok and bool(target)
-            ready = infrastructure_ok and (webhook_ok if activation_enabled else True)
+            ready = max_api and queue_ok and bool(target)
             self.json_response(
                 200 if ready else 503,
                 {
@@ -350,9 +333,11 @@ def create_ingress_handler(impl, core, sqs):
                     "mode": "ingress",
                     "max_api": max_api,
                     "queue": queue_ok,
-                    "webhook": webhook_ok,
-                    "activation_enabled": activation_enabled,
+                    "webhook": webhook_present,
+                    "activation_enabled": False,
+                    "activation_requested": env_true("MAX_ACTIVATE_WEBHOOK", False),
                     "public_url_configured": bool(target),
+                    "read_only": True,
                 },
             )
 
@@ -361,7 +346,7 @@ def create_ingress_handler(impl, core, sqs):
 
 def create_worker_handler(impl, core, storage):
     class WorkerHandler(BaseHTTPRequestHandler):
-        server_version = "MaximumFurnitureBotYandexWorker/2.0"
+        server_version = "MaximumFurnitureBotYandexWorker/2.1"
 
         def log_message(self, fmt, *args):
             print("WORKER", fmt % args, flush=True)
@@ -454,8 +439,6 @@ def create_worker_handler(impl, core, storage):
                 self.respond(200, b"OK")
             except Exception as exc:
                 print("YMQ worker error:", repr(exc), flush=True)
-                # Trigger retries on non-2xx; deterministic lead ids prevent a second
-                # lead row if the first attempt died after persisting the lead.
                 self.respond(500, b"Worker failed")
 
     return WorkerHandler

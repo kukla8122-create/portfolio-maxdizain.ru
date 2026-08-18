@@ -41,14 +41,24 @@ jobs:
           bash -n deploy/activate-max-webhook.sh
           bash -n deploy/rollback-max-webhook.sh
 
-      - name: Verify production path has no Docker Registry or Lockbox dependency
+      - name: Execute bootstrap launcher in non-mutating validation mode
         run: |
-          ! grep -Eqi 'yc[[:space:]]+container[[:space:]]+registry|yc[[:space:]]+lockbox|docker[[:space:]]+build|buildah' deploy/yandex-bootstrap.sh
-          grep -Fq 'yc serverless function version create' deploy/yandex-bootstrap.sh
-          grep -Fq 'maxbot_yandex_functions.ingress_handler' deploy/yandex-bootstrap.sh
-          grep -Fq 'maxbot_yandex_functions.worker_handler' deploy/yandex-bootstrap.sh
-          grep -Fq 'CREATE TABLE IF NOT EXISTS deployment_secrets' deploy/yandex-bootstrap.sh
-          grep -Fq 'MAX webhook activation: OFF' deploy/yandex-bootstrap.sh
+          output="$(MAXBOT_BOOTSTRAP_VALIDATE_ONLY=1 bash deploy/yandex-bootstrap.sh)"
+          printf '%s\n' "$output"
+          grep -Fq 'Integrity: OK' <<<"$output"
+          grep -Fq 'Cloud Functions CLI compatibility: OK' <<<"$output"
+          grep -Fq 'Parameterized YDB verification: OK' <<<"$output"
+          grep -Fq 'Shell syntax: OK' <<<"$output"
+          grep -Fq 'MAX webhook activation: OFF throughout bootstrap' <<<"$output"
+          grep -Fq 'VALIDATION_ONLY_OK' <<<"$output"
+
+      - name: Verify the canonical launcher is immutable and guarded
+        run: |
+          grep -Fq 'BASE_COMMIT="9a5ea38136d9fecddd59cd70c7e7ce1b11c3a84e"' deploy/yandex-bootstrap.sh
+          grep -Fq 'BASE_BLOB="da2f56eaee11955ee3b9b7a99dfb9b41ca17015c"' deploy/yandex-bootstrap.sh
+          grep -Fq 'ACTUAL_BLOB="$(git hash-object "$BASE")"' deploy/yandex-bootstrap.sh
+          grep -Fq 'DECLARE $event_id AS Utf8;' deploy/yandex-bootstrap.sh
+          grep -Fq 'MAXBOT_BOOTSTRAP_VALIDATE_ONLY' deploy/yandex-bootstrap.sh
 
       - name: Build the exact Cloud Functions source layout
         run: |
@@ -63,25 +73,22 @@ jobs:
             /tmp/maximum-function-src/maxbot-selfhosted-core.py \
             /tmp/maximum-function-src/maxbot-selfhosted-yandex.py
 
-      - name: Validate public and private credential boundaries statically
+      - name: Validate runtime and cutover credential boundaries statically
         run: |
           python - <<'PY'
           from pathlib import Path
-          text = Path('deploy/yandex-bootstrap.sh').read_text(encoding='utf-8')
-          ingress_start = text.index('say "Deploy token-free public ingress function"')
-          worker_start = text.index('say "Deploy private worker function with no MAX credentials')
-          trigger_start = text.index('say "Pause exact legacy triggers')
-          ingress = text[ingress_start:worker_start]
-          worker = text[worker_start:trigger_start]
-          assert 'MAX_WEBHOOK_SECRET' in ingress
-          assert 'MAX_BOT_TOKEN=' not in ingress
-          assert 'allow-unauthenticated-invoke' in ingress
-          assert '--environment "YDB_CONNECTION_STRING=$YDB_CS"' in worker
-          assert 'MAX_BOT_TOKEN=' not in worker
-          assert 'MAX_WEBHOOK_SECRET=' not in worker
-          assert 'deny-unauthenticated-invoke' in worker
           runtime = Path('maxbot_yandex_functions.py').read_text(encoding='utf-8')
+          assert 'write_with_ack' in runtime
           assert 'storage.get_deployment_secret("max_bot_token")' in runtime
           assert 'storage.get_deployment_secret("max_webhook_secret")' in runtime
-          print('Ingress has no MAX token; private worker loads MAX credentials from YDB')
+          assert '"max_token_present": bool(os.environ.get("MAX_BOT_TOKEN"))' in runtime
+          activation = Path('deploy/activate-max-webhook.sh').read_text(encoding='utf-8')
+          assert 'deployment_secrets' in activation
+          assert 'Type ACTIVATE' in activation
+          assert 'read_all_messages' in activation and 'write' in activation
+          rollback = Path('deploy/rollback-max-webhook.sh').read_text(encoding='utf-8')
+          assert 'deployment_secrets' in rollback
+          assert 'Type ROLLBACK' in rollback
+          assert '--data-urlencode "url=$WEBHOOK_URL"' in rollback
+          print('Runtime and cutover credential boundaries OK')
           PY

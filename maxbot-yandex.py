@@ -110,7 +110,7 @@ class YDBStorage:
     def __init__(self):
         self._driver = None
         self._pool = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._schema_ready = False
 
     def _connection(self):

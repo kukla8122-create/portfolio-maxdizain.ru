@@ -82,17 +82,21 @@ MAX_ACTIVATE_WEBHOOK=1
 
 ## Что подтверждено CI
 
-Первая Yandex-проверка прошла успешно:
+Финальный повторный CI после установки защитного cutover-gate **успешно пройден**.
+
+Проверено:
 - Python-код компилируется;
 - существующие unit-тесты проходят;
-- self-hosted образ продолжает собираться;
+- self-hosted образ продолжает собираться и запускаться;
 - Yandex Serverless образ собирается;
 - размер Yandex-образа около 206 MB;
-- parser формата события Yandex Message Queue trigger проходит;
+- parser официального формата события Yandex Message Queue trigger проходит;
+- специальный тест `MAX_ACTIVATE_WEBHOOK=0` подтверждает: `POST /subscriptions` не выполняется;
+- специальный тест `MAX_ACTIVATE_WEBHOOK=1` подтверждает: регистрация Webhook разрешается;
 - контейнер стартует при лимите 256 MB RAM и 0.5 CPU;
 - `/health` отвечает HTTP 200.
 
-После добавления `MAX_ACTIVATE_WEBHOOK` запускается повторный CI, который отдельно проверяет, что при значении `0` никакого `POST /subscriptions` нет, а при значении `1` регистрация разрешена.
+Временные CI pull request закрываются без merge. Ветка сайта `main` не затрагивается.
 
 ## Стоимость и free tier — без обещания «вечные 0 ₽»
 
@@ -118,7 +122,7 @@ MAX_ACTIVATE_WEBHOOK=1
 
 ## Следующий неизбежный внешний шаг
 
-После успешного повторного CI:
+Кодовая часть перед созданием облачных ресурсов готова и проверена. Следующий шаг требует только авторизованного кабинета пользователя:
 1. создать/открыть Yandex Cloud и billing account;
 2. ничего не сообщать в чат из паролей, MAX token или static access key;
 3. в облаке создать YDB Serverless, standard Message Queue, Container Registry, service account и Serverless Container;

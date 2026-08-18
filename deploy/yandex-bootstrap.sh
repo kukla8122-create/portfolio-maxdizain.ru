@@ -5,10 +5,11 @@ umask 077
 # Canonical guarded launcher for «МАКСимум мебель» MAX bot.
 #
 # The full Cloud Functions implementation is pinned to an immutable Git commit and
-# Git blob. This launcher verifies the exact source, applies only two reviewed
+# Git blob. This launcher verifies the exact source, applies only reviewed current
 # compatibility hardenings, validates shell syntax, and only then executes it:
 #   1) use the current explicit Cloud Functions byteSize spelling 256MB;
-#   2) parameterize the final YDB end-to-end lookup instead of interpolating a key.
+#   2) pass the full YDB topic path to the Python Topic writer;
+#   3) parameterize the final YDB end-to-end lookup instead of interpolating a key.
 #
 # The pinned implementation itself runs Python/unit tests before cloud mutations,
 # does not use Docker/Container Registry/Lockbox, and NEVER activates MAX webhook.
@@ -47,6 +48,12 @@ text = base.read_text(encoding="utf-8")
 if text.count("--memory 256m") != 2:
     raise SystemExit("Unexpected Cloud Functions memory source pattern")
 text = text.replace("--memory 256m", "--memory 256MB")
+
+old_topic = 'YDS_TOPIC=$STREAM_NAME,MAX_WEBHOOK_SECRET=$MAX_WEBHOOK_SECRET'
+new_topic = 'YDS_TOPIC=$YDB_PATH/$STREAM_NAME,MAX_WEBHOOK_SECRET=$MAX_WEBHOOK_SECRET'
+if text.count(old_topic) != 1:
+    raise SystemExit("Unexpected ingress YDB topic-path source pattern")
+text = text.replace(old_topic, new_topic)
 
 old = '''FOUND=0
 for _ in $(seq 1 180); do
@@ -94,6 +101,10 @@ PY
 # Refuse execution if any reviewed invariant is missing.
 [ "$(grep -Fc -- '--memory 256MB' "$PATCHED")" = 2 ] \
   || die "Cloud Functions memory hardening missing"
+[ "$(grep -Fc 'YDS_TOPIC=$YDB_PATH/$STREAM_NAME' "$PATCHED")" = 1 ] \
+  || die "Full YDB topic path hardening missing"
+[ "$(grep -Fc 'YDS_TOPIC=$STREAM_NAME' "$PATCHED")" = 0 ] \
+  || die "Relative YDB topic path unexpectedly remains"
 [ "$(grep -Fc 'DECLARE $event_id AS Utf8;' "$PATCHED")" = 1 ] \
   || die "Parameterized E2E query missing"
 [ "$(grep -Fc 'SELECT event_id FROM processed_events WHERE event_id=$event_id;' "$PATCHED")" = 1 ] \
@@ -112,6 +123,7 @@ PY
 bash -n "$PATCHED" || die "Reviewed bootstrap shell syntax check failed"
 printf 'Integrity: OK\n'
 printf 'Cloud Functions CLI compatibility: OK\n'
+printf 'Full YDB topic path: OK\n'
 printf 'Parameterized YDB verification: OK\n'
 printf 'Shell syntax: OK\n'
 printf 'MAX webhook activation: OFF throughout bootstrap\n'

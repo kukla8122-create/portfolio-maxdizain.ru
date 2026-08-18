@@ -41,6 +41,15 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn('text.replace("--memory 256m", "--memory 256MB")', text)
         self.assertIn("Cloud Functions CLI compatibility: OK", text)
 
+    def test_launcher_passes_full_ydb_topic_path(self):
+        text = self.read("deploy/yandex-bootstrap.sh")
+        self.assertIn(
+            "YDS_TOPIC=$YDB_PATH/$STREAM_NAME,MAX_WEBHOOK_SECRET=$MAX_WEBHOOK_SECRET",
+            text,
+        )
+        self.assertIn("Full YDB topic path: OK", text)
+        self.assertIn("Relative YDB topic path unexpectedly remains", text)
+
     def test_launcher_parameterizes_final_ydb_verification(self):
         text = self.read("deploy/yandex-bootstrap.sh")
         self.assertIn("DECLARE $event_id AS Utf8;", text)
@@ -86,6 +95,8 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         text = self.read("deploy/rollback-max-webhook.sh")
         self.assertIn('INGRESS_FN="maximum-maxbot-ingress-fn"', text)
         self.assertIn("deployment_secrets", text)
+        self.assertIn("DECLARE $key AS Utf8;", text)
+        self.assertIn('--input-file "$TMP/read-token.json"', text)
         self.assertIn("This token does not match the deployed MAX bot", text)
         self.assertIn("http_invoke_url", text)
         self.assertIn("Type ROLLBACK", text)

@@ -7,6 +7,7 @@ Purpose:
 - derive a valid webhook secret from the bot token when a custom secret is not available;
 - normalize and verify MAX request_contact payloads defensively;
 - add lightweight idempotency for repeated webhook deliveries;
+- expose a non-secret /ready check for MAX API + webhook status;
 - then run the approved maxbot-selfhosted.py implementation.
 """
 
@@ -15,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import importlib.util
+import json
 import os
 import re
 import threading
@@ -165,11 +167,65 @@ def install_idempotency(core) -> None:
     core.worker = worker
 
 
+def install_readiness(core) -> None:
+    """Expose a safe readiness check without leaking bot/account identifiers.
+
+    /health answers whether the local process is alive.
+    /ready additionally verifies that MAX accepts the token and that the exact
+    configured webhook URL is present in GET /subscriptions.
+    """
+
+    base_handler = core.Handler
+
+    class ReadyHandler(base_handler):
+        def do_GET(self):
+            path = self.path.split("?", 1)[0]
+            if path != "/ready":
+                return super().do_GET()
+
+            public_base = (core.PUBLIC_BASE_URL or "").rstrip("/")
+            target = public_base + "/webhook" if public_base else ""
+            api_ok = False
+            webhook_ok = False
+
+            try:
+                status, result = core.http_json(f"{core.MAX_BASE}/me", method="GET", timeout=15)
+                api_ok = 200 <= status < 300 and isinstance(result, dict)
+            except Exception:
+                api_ok = False
+
+            if api_ok and target:
+                try:
+                    status, result = core.subscriptions()
+                    if 200 <= status < 300:
+                        webhook_ok = any(
+                            isinstance(item, dict) and item.get("url") == target
+                            for item in (result.get("subscriptions") or [])
+                        )
+                except Exception:
+                    webhook_ok = False
+
+            ready = api_ok and bool(target) and webhook_ok
+            payload = json.dumps(
+                {
+                    "ok": ready,
+                    "max_api": api_ok,
+                    "webhook": webhook_ok,
+                    "public_url_configured": bool(target),
+                },
+                ensure_ascii=False,
+            ).encode("utf-8")
+            self.respond(200 if ready else 503, payload, "application/json; charset=utf-8")
+
+    core.Handler = ReadyHandler
+
+
 def main() -> None:
     prepare_environment()
     core = load_core()
     install_contact_verification(core)
     install_idempotency(core)
+    install_readiness(core)
     core.main()
 
 

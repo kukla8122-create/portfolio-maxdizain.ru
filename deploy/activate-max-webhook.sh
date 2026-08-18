@@ -10,6 +10,7 @@ FOLDER_ID="b1g7u7p1qmhjvgtidp0i"
 INGRESS_NAME="maximum-maxbot-ingress"
 MAX_SECRET_NAME="maximum-maxbot-max"
 MAX_API="https://platform-api2.max.ru"
+MAX_CHANNEL_LINK="channel_maxmebel_52"
 
 say(){ printf '\n==> %s\n' "$*"; }
 die(){ printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -49,6 +50,31 @@ assert d.get("public_url_configured") is True, d
 ME="$(curl -fsS "$MAX_API/me" -H "Authorization: $MAX_TOKEN")" || die "MAX /me failed"
 printf %s "$ME" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("is_bot") is True, d' \
   || die "MAX token does not identify a bot"
+
+say "Verify MAX channel identity and bot permissions before cutover"
+CHANNEL="$(curl -fsS "$MAX_API/chats/$MAX_CHANNEL_LINK" -H "Authorization: $MAX_TOKEN")" \
+  || die "Cannot resolve MAX channel by link: $MAX_CHANNEL_LINK"
+CHANNEL_ID="$(printf %s "$CHANNEL" | jget chat_id)"
+CHANNEL_TYPE="$(printf %s "$CHANNEL" | jget type)"
+CHANNEL_STATUS="$(printf %s "$CHANNEL" | jget status)"
+[ -n "$CHANNEL_ID" ] || die "MAX channel id is missing"
+[ "$CHANNEL_TYPE" = channel ] || die "MAX link does not resolve to a channel"
+[ "$CHANNEL_STATUS" = active ] || die "MAX bot is not active in the configured channel"
+
+MEMBERSHIP="$(curl -fsS "$MAX_API/chats/$CHANNEL_ID/members/me" -H "Authorization: $MAX_TOKEN")" \
+  || die "Cannot read bot membership in MAX channel $CHANNEL_ID"
+MEMBERSHIP="$MEMBERSHIP" python3 - <<'PY' || exit $?
+import json, os
+m = json.loads(os.environ['MEMBERSHIP'])
+permissions = set(m.get('permissions') or [])
+required = {'read_all_messages', 'write'}
+missing = sorted(required - permissions)
+print('MAX channel bot permissions:', sorted(permissions))
+if missing:
+    print('STOP: missing required MAX channel permissions:', missing)
+    raise SystemExit(32)
+PY
+printf 'MAX channel verified: %s (chat_id=%s)\n' "$MAX_CHANNEL_LINK" "$CHANNEL_ID"
 
 SUBSCRIPTIONS="$(curl -fsS "$MAX_API/subscriptions" -H "Authorization: $MAX_TOKEN")" \
   || die "Cannot read current MAX subscriptions"

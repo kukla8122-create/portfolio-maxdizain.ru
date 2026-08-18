@@ -47,6 +47,7 @@ jobs:
           grep -Fq 'yc serverless function version create' deploy/yandex-bootstrap.sh
           grep -Fq 'maxbot_yandex_functions.ingress_handler' deploy/yandex-bootstrap.sh
           grep -Fq 'maxbot_yandex_functions.worker_handler' deploy/yandex-bootstrap.sh
+          grep -Fq 'CREATE TABLE IF NOT EXISTS deployment_secrets' deploy/yandex-bootstrap.sh
           grep -Fq 'MAX webhook activation: OFF' deploy/yandex-bootstrap.sh
 
       - name: Build the exact Cloud Functions source layout
@@ -62,16 +63,25 @@ jobs:
             /tmp/maximum-function-src/maxbot-selfhosted-core.py \
             /tmp/maximum-function-src/maxbot-selfhosted-yandex.py
 
-      - name: Validate public ingress secret boundary statically
+      - name: Validate public and private credential boundaries statically
         run: |
           python - <<'PY'
           from pathlib import Path
           text = Path('deploy/yandex-bootstrap.sh').read_text(encoding='utf-8')
-          start = text.index('say "Deploy token-free public ingress function"')
-          end = text.index('say "Deploy private worker function"')
-          ingress = text[start:end]
+          ingress_start = text.index('say "Deploy token-free public ingress function"')
+          worker_start = text.index('say "Deploy private worker function with no MAX credentials')
+          trigger_start = text.index('say "Pause exact legacy triggers')
+          ingress = text[ingress_start:worker_start]
+          worker = text[worker_start:trigger_start]
           assert 'MAX_WEBHOOK_SECRET' in ingress
           assert 'MAX_BOT_TOKEN=' not in ingress
           assert 'allow-unauthenticated-invoke' in ingress
-          print('Public ingress has webhook secret but no MAX token')
+          assert '--environment "YDB_CONNECTION_STRING=$YDB_CS"' in worker
+          assert 'MAX_BOT_TOKEN=' not in worker
+          assert 'MAX_WEBHOOK_SECRET=' not in worker
+          assert 'deny-unauthenticated-invoke' in worker
+          runtime = Path('maxbot_yandex_functions.py').read_text(encoding='utf-8')
+          assert 'storage.get_deployment_secret("max_bot_token")' in runtime
+          assert 'storage.get_deployment_secret("max_webhook_secret")' in runtime
+          print('Ingress has no MAX token; private worker loads MAX credentials from YDB')
           PY

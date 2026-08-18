@@ -65,6 +65,37 @@ class MaxBotTests(unittest.TestCase):
         self.assertEqual(phone, "+79991234567")
         self.assertTrue(verified)
 
+    def test_entrypoint_normalizes_literal_escaped_vcf(self):
+        entry = load_module("maxbot_entry_contact_test", ROOT / "maxbot-entry.py")
+        entry.install_contact_verification(self.core)
+
+        normalized = (
+            "BEGIN:VCARD\r\n"
+            "VERSION:3.0\r\n"
+            "TEL;TYPE=cell:79991234567\r\n"
+            "FN:Test User\r\n"
+            "END:VCARD\r\n"
+        )
+        literal = normalized.replace("\r\n", "\\r\\n")
+        digest = hmac.new(
+            os.environ["MAX_BOT_TOKEN"].encode(),
+            normalized.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        message = {
+            "body": {
+                "attachments": [
+                    {
+                        "type": "contact",
+                        "payload": {"vcf_info": literal, "hash": digest},
+                    }
+                ]
+            }
+        }
+        phone, verified = self.core.parse_contact_attachment(message)
+        self.assertEqual(phone, "+79991234567")
+        self.assertTrue(verified)
+
     def test_sqlite_lead_persists(self):
         self.core.init_db()
         lead_id = self.core.save_lead(

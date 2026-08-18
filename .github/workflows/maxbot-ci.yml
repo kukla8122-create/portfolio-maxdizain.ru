@@ -22,3 +22,29 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Build Docker image
         run: docker build --pull -t maximum-maxbot:ci .
+      - name: Check image size
+        run: |
+          SIZE=$(docker image inspect maximum-maxbot:ci --format='{{.Size}}')
+          echo "Docker image bytes: $SIZE"
+          test "$SIZE" -lt 450000000
+      - name: Smoke test under free-tier limits
+        run: |
+          docker run -d --name maximum-maxbot-ci \
+            --memory=192m --cpus=0.5 \
+            -e BOT_TOKEN=TestToken_123456789 \
+            -e MAX_AUTO_SUBSCRIBE=0 \
+            -e PORT=8000 \
+            -p 18000:8000 \
+            maximum-maxbot:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18000/health | grep -q '"ok": true'; then
+              docker logs maximum-maxbot-ci
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs maximum-maxbot-ci
+          exit 1
+      - name: Cleanup smoke container
+        if: always()
+        run: docker rm -f maximum-maxbot-ci >/dev/null 2>&1 || true

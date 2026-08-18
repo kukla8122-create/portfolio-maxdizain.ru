@@ -105,7 +105,7 @@ grant_folder(){
     --role "$2" --service-account-id "$1" >/dev/null
 }
 
-say "Service accounts with service-specific roles"
+say "Service accounts with current service-specific/trigger-required roles"
 ING_SA="$(ensure_sa maxbot-ingress-sa 'MAX bot public ingress')"
 WRK_SA="$(ensure_sa maxbot-worker-sa 'MAX bot private worker')"
 TRG_SA="$(ensure_sa maxbot-trigger-sa 'MAX bot YMQ trigger')"
@@ -113,10 +113,11 @@ grant_folder "$ING_SA" ymq.writer
 grant_folder "$ING_SA" container-registry.images.puller
 grant_folder "$WRK_SA" ydb.editor
 grant_folder "$WRK_SA" container-registry.images.puller
-grant_folder "$TRG_SA" ymq.reader
-# Remove the broad primitive role used by an older bootstrap, if it ever existed.
-yc resource-manager folder remove-access-binding "$FOLDER_ID" \
-  --role editor --service-account-id "$TRG_SA" >/dev/null 2>&1 || true
+# Yandex's current Serverless Containers documentation for a Message Queue
+# trigger explicitly requires editor on the folder containing the source queue.
+# Keep that broad requirement isolated to this dedicated trigger SA; it has no
+# static access key and is not used by the application containers themselves.
+grant_folder "$TRG_SA" editor
 
 say "Stable MAX credentials in Lockbox"
 MAX_SJ="$(getj yc lockbox secret get "$MAX_SECRET_NAME")"

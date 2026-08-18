@@ -18,7 +18,11 @@ WORKDIR /app
 COPY requirements-yandex.txt /app/requirements-yandex.txt
 RUN python -m pip install --no-cache-dir -r /app/requirements-yandex.txt
 
-COPY maxbot-selfhosted.py /app/maxbot-selfhosted.py
+# Preserve the shared VPS core and expose a small Yandex-only wrapper under the
+# filename expected by maxbot-yandex.py. The wrapper applies production acceptance
+# overrides while keeping the standalone VPS image untouched.
+COPY maxbot-selfhosted.py /app/maxbot-selfhosted-core.py
+COPY maxbot-selfhosted-yandex.py /app/maxbot-selfhosted.py
 COPY maxbot-yandex.py /app/maxbot-yandex.py
 COPY maxbot-yandex-production.py /app/maxbot-yandex-production.py
 COPY maxbot-yandex-split.py /app/maxbot-yandex-split.py

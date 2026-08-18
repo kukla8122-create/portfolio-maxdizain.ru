@@ -165,4 +165,9 @@ bash -n "$PATCHED" || die "Reviewed bootstrap shell syntax check failed"
 printf 'Integrity: OK\nCompatibility corrections: OK\nDaemonless Buildah path: OK\nShell syntax: OK\n'
 printf 'MAX webhook activation: OFF throughout bootstrap\n\n'
 
+if [ "${MAX_BOOTSTRAP_VALIDATE_ONLY:-0}" = "1" ]; then
+  printf 'BOOTSTRAP_TRANSFORM_VALIDATION_OK\n'
+  exit 0
+fi
+
 exec bash "$PATCHED"

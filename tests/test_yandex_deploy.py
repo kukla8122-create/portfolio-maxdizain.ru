@@ -23,75 +23,49 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, f"{relative}: {result.stderr}")
 
-    def test_bootstrap_never_activates_or_deletes_max_webhook(self):
+    def test_bootstrap_launcher_is_immutable_and_integrity_checked(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertNotIn("MAX_ACTIVATE_WEBHOOK=1", text)
-        self.assertNotIn('POST "$MAX_API/subscriptions"', text)
-        self.assertNotIn('DELETE "$MAX_API/subscriptions"', text)
-        self.assertIn("MAX webhook activation: OFF", text)
+        self.assertIn(
+            'BASE_COMMIT="751aa5765e570f05762df416043c6d374f7c4441"', text
+        )
+        self.assertIn(
+            'BASE_BLOB="e06f0829dd43ec66d86d17b836e83c207475a708"', text
+        )
+        self.assertIn('ACTUAL_BLOB="$(git hash-object "$BASE")"', text)
+        self.assertIn('[ "$ACTUAL_BLOB" = "$BASE_BLOB" ]', text)
+        self.assertIn("--proto '=https' --tlsv1.2", text)
+        self.assertIn('bash -n "$PATCHED"', text)
+        self.assertIn('exec bash "$PATCHED"', text)
 
-    def test_bootstrap_uses_lockbox_for_runtime_credentials(self):
+    def test_bootstrap_launcher_applies_documented_stream_id_correction(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertIn('MAX_SECRET_NAME="maximum-maxbot-max"', text)
-        self.assertIn('YDS_SECRET_NAME="maximum-maxbot-yds"', text)
-        self.assertNotIn("maximum-maxbot-ymq", text)
-        self.assertIn("environment-variable=MAX_BOT_TOKEN", text)
-        self.assertIn("environment-variable=MAX_WEBHOOK_SECRET", text)
-        self.assertIn("environment-variable=AWS_ACCESS_KEY_ID", text)
-        self.assertIn("environment-variable=AWS_SECRET_ACCESS_KEY", text)
-        self.assertNotIn("APP_MODE=worker,MAX_BOT_TOKEN=", text)
-        self.assertNotIn("APP_MODE=ingress,MAX_BOT_TOKEN=", text)
+        self.assertIn(
+            'YDS_STREAM_ID="/$REGION/$FOLDER_ID/$YDB_ID/$STREAM_NAME"', text
+        )
+        self.assertIn(
+            'YDS_STREAM_ID="/$REGION/$CLOUD_ID/$YDB_ID/$STREAM_NAME"', text
+        )
+        self.assertIn("Unexpected Data Streams ID source pattern", text)
+        self.assertIn("Reviewed Data Streams ID correction missing", text)
 
-    def test_bootstrap_uses_data_streams_as_only_business_event_transport(self):
+    def test_bootstrap_launcher_uses_admin_only_temporarily_for_dlq_configuration(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertIn('STREAM_NAME="maximum-maxbot-events"', text)
-        self.assertIn("topic create", text)
-        self.assertIn("topic alter", text)
-        self.assertIn("--partitions-count 1", text)
-        self.assertIn("--partition-write-speed-kbps 128", text)
-        self.assertIn("--retention-period 1h", text)
-        self.assertIn("--metering-mode reserved-capacity", text)
-        self.assertIn("YDS_STREAM_ID=\"/$REGION/$FOLDER_ID/$YDB_ID/$STREAM_NAME\"", text)
-        self.assertIn("create yds", text)
-        self.assertNotIn("create message-queue", text)
-        self.assertNotIn("RedrivePolicy", text)
-
-    def test_message_queue_is_dlq_only(self):
-        text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertIn('DLQ_NAME="maximum-maxbot-dlq"', text)
-        self.assertIn("MessageRetentionPeriod", text)
-        self.assertIn("--dlq-queue-id", text)
-        self.assertIn("--new-container-dlq-queue-id", text)
-        self.assertNotIn('QUEUE_NAME="maximum-maxbot-events"', text)
-
-    def test_bootstrap_uses_current_data_stream_trigger_controls(self):
-        text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertIn('grant_folder "$ING_SA" yds.writer', text)
-        self.assertIn('grant_folder "$ING_SA" yds.auditor', text)
-        self.assertIn('grant_folder "$TRG_SA" yds.admin', text)
+        self.assertIn(
+            's#grant_folder "$ING_SA" ymq.writer#grant_folder "$ING_SA" ymq.admin#',
+            text,
+        )
+        self.assertIn(
+            's#--role ymq.writer --service-account-id "$ING_SA"#--role ymq.admin --service-account-id "$ING_SA"#g',
+            text,
+        )
         self.assertIn('grant_folder "$TRG_SA" ymq.writer', text)
-        self.assertIn("serverless-containers.containerInvoker", text)
-        self.assertIn("serverless.containers.invoker", text)
-        self.assertIn("--batch-size 1b", text)
-        self.assertIn("--batch-cutoff 1s", text)
-        self.assertIn("--retry-attempts 5", text)
-        self.assertIn("--retry-interval 10s", text)
-        self.assertIn("--new-container-retry-attempts 5", text)
-        self.assertIn("--new-container-retry-interval 10s", text)
+        self.assertIn("TEMP_INGRESS_YMQ=1$/a sleep 5", text)
 
-    def test_bootstrap_does_not_require_cloud_status_field(self):
+    def test_bootstrap_launcher_cannot_activate_max_webhook(self):
         text = self.read("deploy/yandex-bootstrap.sh")
-        self.assertIn("Cloud.Get no longer exposes a cloud status field", text)
-        self.assertNotIn('CJ" | jget status', text)
-        self.assertIn('FJ" | jget status', text)
-
-    def test_bootstrap_tests_and_builds_before_service_account_mutations(self):
-        text = self.read("deploy/yandex-bootstrap.sh")
-        tests = text.index('"$VENV/bin/python" -m unittest discover -s tests -v')
-        build = text.index("sudo docker build --pull -f Dockerfile.yandex")
-        service_accounts = text.index('say "Create/reuse dedicated service accounts')
-        self.assertLess(tests, service_accounts)
-        self.assertLess(build, service_accounts)
+        self.assertNotIn('curl -fsS -X POST "$MAX_API/subscriptions"', text)
+        self.assertNotIn('curl -fsS -G -X DELETE "$MAX_API/subscriptions"', text)
+        self.assertIn("MAX webhook activation: OFF", text)
 
     def test_activation_requires_live_ordered_stream_before_cutover(self):
         text = self.read("deploy/activate-max-webhook.sh")

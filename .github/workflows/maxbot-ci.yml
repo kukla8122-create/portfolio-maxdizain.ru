@@ -4,7 +4,7 @@ on:
   push:
     branches: [maxbot-production]
   pull_request:
-    branches: [maxbot-production]
+    branches: [main]
 
 jobs:
   test:

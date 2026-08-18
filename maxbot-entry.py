@@ -5,15 +5,18 @@ Purpose:
 - keep secrets out of Git;
 - support hosting panels that inject the MAX token as BOT_TOKEN;
 - derive a valid webhook secret from the bot token when a custom secret is not available;
+- normalize and verify MAX request_contact payloads defensively;
 - add lightweight idempotency for repeated webhook deliveries;
-- then run the approved maxbot-selfhosted.py implementation unchanged.
+- then run the approved maxbot-selfhosted.py implementation.
 """
 
 from __future__ import annotations
 
 import hashlib
+import hmac
 import importlib.util
 import os
+import re
 import threading
 from collections import deque
 from pathlib import Path
@@ -23,7 +26,7 @@ CORE_PATH = BASE_DIR / "maxbot-selfhosted.py"
 
 
 def prepare_environment() -> None:
-    # Bothost examples for MAX use BOT_TOKEN. Our core uses MAX_BOT_TOKEN.
+    # Some hosting panels expose the bot token as BOT_TOKEN. Our core uses MAX_BOT_TOKEN.
     if not os.environ.get("MAX_BOT_TOKEN") and os.environ.get("BOT_TOKEN"):
         os.environ["MAX_BOT_TOKEN"] = os.environ["BOT_TOKEN"]
 
@@ -33,14 +36,13 @@ def prepare_environment() -> None:
             "MAX bot token is missing. Set MAX_BOT_TOKEN or use the hosting panel Bot Token field."
         )
 
-    # MAX allows a webhook secret of 5-256 chars matching [A-Za-z0-9_-].
-    # Deriving it means a free hosting plan does not need a second custom secret field.
+    # MAX accepts a webhook secret matching [A-Za-z0-9_-]{5,256}.
+    # Deriving it lets a restrictive free hosting plan work with only the Bot Token field.
     # A manually supplied MAX_WEBHOOK_SECRET always takes precedence.
     if not os.environ.get("MAX_WEBHOOK_SECRET"):
         derived = hashlib.sha256(("maximum-webhook-v1:" + token).encode("utf-8")).hexdigest()
         os.environ["MAX_WEBHOOK_SECRET"] = derived
 
-    # Keep SQLite in the hosting data directory by default.
     os.environ.setdefault("DATA_DIR", "/app/data")
     os.environ.setdefault("DATABASE_PATH", "/app/data/maxbot.db")
     os.environ.setdefault("MAX_AUTO_SUBSCRIBE", "1")
@@ -55,12 +57,60 @@ def load_core():
     return module
 
 
+def install_contact_verification(core) -> None:
+    """Use MAX's documented HMAC-SHA256 verification for request_contact.
+
+    Depending on the JSON/client path, vcf_info may already contain real CRLF
+    characters or may still contain literal ``\\r\\n`` sequences. We normalize the
+    latter for parsing and accept a signature only when it matches the exact raw or
+    documented-normalized VCF payload using the current bot access token.
+    """
+
+    def parse_contact_attachment(message):
+        body = message.get("body") or {}
+        for item in body.get("attachments") or []:
+            if item.get("type") != "contact":
+                continue
+
+            payload = item.get("payload") or {}
+            raw_vcf = str(payload.get("vcf_info") or "")
+            claimed_hash = str(payload.get("hash") or "")
+
+            normalized_vcf = raw_vcf.replace("\\r\\n", "\r\n")
+            normalized_vcf = normalized_vcf.replace("\\n", "\n")
+
+            phone = ""
+            match = re.search(r"(?im)^TEL(?:;[^:]*)?:(.+)$", normalized_vcf)
+            if match:
+                phone = core.normalize_phone(match.group(1))
+
+            verified = False
+            if raw_vcf and claimed_hash:
+                candidates = [raw_vcf]
+                if normalized_vcf != raw_vcf:
+                    candidates.append(normalized_vcf)
+                for candidate in candidates:
+                    calculated = hmac.new(
+                        core.MAX_TOKEN.encode("utf-8"),
+                        candidate.encode("utf-8"),
+                        hashlib.sha256,
+                    ).hexdigest()
+                    if hmac.compare_digest(calculated.lower(), claimed_hash.lower()):
+                        verified = True
+                        break
+
+            return phone, verified
+        return "", False
+
+    core.parse_contact_attachment = parse_contact_attachment
+
+
 def install_idempotency(core) -> None:
     """Ignore obvious duplicate webhook events in the lifetime of one container.
 
     MAX retries failed webhook deliveries. The HTTP handler returns 200 quickly, but
-    a network retry can still produce a duplicate. We prefer a small in-memory guard
-    to duplicate client replies or duplicate lead records.
+    a network retry can still produce a duplicate. This guard prevents duplicate
+    client replies and duplicate lead records during the current process lifetime.
     """
 
     seen = deque(maxlen=5000)
@@ -82,8 +132,6 @@ def install_idempotency(core) -> None:
         if stable:
             return f"{update_type}:{stable}"
 
-        # System events do not always have a message id. timestamp + chat/user is the
-        # best stable tuple exposed by Update for these event types.
         chat_id = update.get("chat_id") or (message.get("recipient") or {}).get("chat_id") or ""
         user_id = (update.get("user") or {}).get("user_id") or (message.get("sender") or {}).get("user_id") or ""
         timestamp = update.get("timestamp") or ""
@@ -120,6 +168,7 @@ def install_idempotency(core) -> None:
 def main() -> None:
     prepare_environment()
     core = load_core()
+    install_contact_verification(core)
     install_idempotency(core)
     core.main()
 

@@ -8,9 +8,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /usr/local/share/ca-certificates/russian-trusted \
-    && curl -kfsSL --retry 3 https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt \
+    && curl -fsSL --retry 3 --proto '=https' --tlsv1.2 https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt \
        -o /usr/local/share/ca-certificates/russian-trusted/russian_trusted_root_ca.crt \
-    && curl -kfsSL --retry 3 https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.crt \
+    && curl -fsSL --retry 3 --proto '=https' --tlsv1.2 https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.crt \
        -o /usr/local/share/ca-certificates/russian-trusted/russian_trusted_sub_ca.crt \
     && update-ca-certificates
 
@@ -21,5 +21,6 @@ RUN python -m pip install --no-cache-dir -r /app/requirements-yandex.txt
 COPY maxbot-selfhosted.py /app/maxbot-selfhosted.py
 COPY maxbot-yandex.py /app/maxbot-yandex.py
 COPY maxbot-yandex-production.py /app/maxbot-yandex-production.py
+COPY maxbot-yandex-split.py /app/maxbot-yandex-split.py
 
-CMD ["python", "/app/maxbot-yandex-production.py"]
+CMD ["python", "/app/maxbot-yandex-split.py"]

@@ -20,3 +20,5 @@ jobs:
         run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py
       - name: Unit tests
         run: python -m unittest discover -s tests -v
+      - name: Build Docker image
+        run: docker build --pull -t maximum-maxbot:ci .

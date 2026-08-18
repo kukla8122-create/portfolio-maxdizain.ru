@@ -26,6 +26,7 @@ def load_yandex_core(tmpdir):
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)
+    module._core.init_db()
     return module
 
 

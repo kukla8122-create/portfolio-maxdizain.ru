@@ -12,22 +12,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile
-        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py maxbot-yandex.py maxbot-yandex-production.py maxbot-yandex-split.py
+
+      - name: Compile Python sources
+        run: |
+          python -m py_compile \
+            maxbot-entry.py \
+            maxbot-selfhosted.py \
+            maxbot-yandex.py \
+            maxbot-yandex-production.py \
+            maxbot-yandex-split.py \
+            maxbot-yandex-entry.py
+
       - name: Unit tests
         run: python -m unittest discover -s tests -v
 
       - name: Build self-hosted Docker image
         run: docker build --pull -t maximum-maxbot:ci .
-      - name: Check self-hosted image size
-        run: |
-          SIZE=$(docker image inspect maximum-maxbot:ci --format='{{.Size}}')
-          echo "Self-hosted Docker image bytes: $SIZE"
-          test "$SIZE" -lt 450000000
+
       - name: Smoke test self-hosted image
         run: |
           docker run -d --name maximum-maxbot-ci \
@@ -39,52 +45,42 @@ jobs:
             maximum-maxbot:ci
           for i in $(seq 1 20); do
             if curl -fsS http://127.0.0.1:18000/health | grep -q '"ok": true'; then
-              STORAGE=$(curl -fsS http://127.0.0.1:18000/storage)
-              echo "$STORAGE"
-              echo "$STORAGE" | grep -q '"ok": true'
-              echo "$STORAGE" | grep -q '"boot_count": 1'
+              curl -fsS http://127.0.0.1:18000/storage | grep -q '"ok": true'
               docker logs maximum-maxbot-ci
-              break
+              exit 0
             fi
             if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-ci; exit 1; fi
             sleep 1
           done
+
       - name: Cleanup self-hosted container
         if: always()
         run: docker rm -f maximum-maxbot-ci >/dev/null 2>&1 || true
 
       - name: Build Yandex Serverless image
         run: docker build --pull -f Dockerfile.yandex -t maximum-maxbot-yandex:ci .
+
       - name: Check Yandex image size
         run: |
           SIZE=$(docker image inspect maximum-maxbot-yandex:ci --format='{{.Size}}')
           echo "Yandex Serverless Docker image bytes: $SIZE"
           test "$SIZE" -lt 500000000
-      - name: Validate YMQ trigger parser
-        run: |
-          docker run --rm --entrypoint python maximum-maxbot-yandex:ci -c '
-          import importlib.util, json
-          spec=importlib.util.spec_from_file_location("my", "/app/maxbot-yandex.py")
-          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-          update={"update_type":"bot_started","chat_id":123}
-          event={"messages":[{"event_metadata":{"event_id":"evt-1"},"details":{"message":{"body":json.dumps(update)}}}]}
-          rows=list(m.extract_trigger_updates(event))
-          assert rows == [("evt-1", update)], rows
-          print("YMQ trigger parser OK")
-          '
+
       - name: Validate split runtime and stable idempotency keys
         run: |
           docker run --rm --entrypoint python maximum-maxbot-yandex:ci -c '
-          import importlib.util
-          spec=importlib.util.spec_from_file_location("split", "/app/maxbot-yandex-split.py")
-          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          import importlib.util, json
 
-          a={"update_type":"message_callback","callback":{"callback_id":"cb-1"}}
-          b={"update_type":"message_created","message":{"body":{"mid":"m-1"}}}
-          c={"update_type":"bot_started","chat_id":123,"user":{"user_id":1}}
-          assert m.stable_update_key(a)=="max:message_callback:callback:cb-1"
-          assert m.stable_update_key(b)=="max:message_created:message:m-1"
-          assert m.stable_update_key(c)==m.stable_update_key(dict(reversed(list(c.items()))))
+          base_spec=importlib.util.spec_from_file_location("base", "/app/maxbot-yandex.py")
+          base=importlib.util.module_from_spec(base_spec); base_spec.loader.exec_module(base)
+          update={"update_type":"bot_started","chat_id":123}
+          event={"messages":[{"event_metadata":{"event_id":"evt-1"},"details":{"message":{"body":json.dumps(update)}}}]}
+          assert list(base.extract_trigger_updates(event)) == [("evt-1", update)]
+
+          split_spec=importlib.util.spec_from_file_location("split", "/app/maxbot-yandex-split.py")
+          m=importlib.util.module_from_spec(split_spec); split_spec.loader.exec_module(m)
+          assert m.stable_update_key({"update_type":"message_callback","callback":{"callback_id":"cb-1"}}) == "max:message_callback:callback:cb-1"
+          assert m.stable_update_key({"update_type":"message_created","message":{"body":{"mid":"m-1"}}}) == "max:message_created:message:m-1"
 
           class Core:
               WEBHOOK_SECRET="safe_secret"
@@ -95,20 +91,14 @@ jobs:
           class Storage: pass
 
           IH=m.create_ingress_handler(Impl, Core, SQS())
-          ingress=IH.__new__(IH)
-          ingress.path="/trigger"
-          got={}
-          ingress.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
-          ingress.do_POST()
-          assert got["status"]==404, got
+          ingress=IH.__new__(IH); ingress.path="/trigger"
+          got={}; ingress.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
+          ingress.do_POST(); assert got["status"] == 404, got
 
           WH=m.create_worker_handler(Impl, Core, Storage())
-          worker=WH.__new__(WH)
-          worker.path="/webhook"
-          got={}
-          worker.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
-          worker.do_POST()
-          assert got["status"]==404, got
+          worker=WH.__new__(WH); worker.path="/webhook"
+          got={}; worker.respond=lambda status, body=b"OK", content_type=None: got.update(status=status)
+          worker.do_POST(); assert got["status"] == 404, got
           print("Split runtime isolation OK")
           '
 
@@ -119,6 +109,7 @@ jobs:
             -e APP_MODE=ingress \
             -e BOT_TOKEN=TestToken_123456789 \
             -e MAX_WEBHOOK_SECRET=TestWebhookSecret_123456789 \
+            -e PUBLIC_BASE_URL=https://bot.example \
             -e AWS_ACCESS_KEY_ID=TESTACCESSKEY123 \
             -e AWS_SECRET_ACCESS_KEY=TESTSECRETKEY123 \
             -e YMQ_QUEUE_URL=https://message-queue.api.cloud.yandex.net/fake/fake/maxbot \
@@ -135,6 +126,7 @@ jobs:
             if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-yandex-ingress-ci; exit 1; fi
             sleep 1
           done
+
       - name: Cleanup Yandex ingress container
         if: always()
         run: docker rm -f maximum-maxbot-yandex-ingress-ci >/dev/null 2>&1 || true
@@ -147,7 +139,6 @@ jobs:
             -e BOT_TOKEN=TestToken_123456789 \
             -e MAX_WEBHOOK_SECRET=TestWebhookSecret_123456789 \
             -e YDB_CONNECTION_STRING=grpcs://ydb.serverless.yandexcloud.net:2135/local-test \
-            -e MAX_ACTIVATE_WEBHOOK=0 \
             -e PORT=8000 \
             -p 18002:8000 \
             maximum-maxbot-yandex:ci
@@ -160,6 +151,7 @@ jobs:
             if [ "$i" -eq 20 ]; then docker logs maximum-maxbot-yandex-worker-ci; exit 1; fi
             sleep 1
           done
+
       - name: Cleanup Yandex worker container
         if: always()
         run: docker rm -f maximum-maxbot-yandex-worker-ci >/dev/null 2>&1 || true

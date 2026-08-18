@@ -1,4 +1,7 @@
 *
 !Dockerfile
+!Dockerfile.yandex
+!requirements-yandex.txt
 !maxbot-entry.py
 !maxbot-selfhosted.py
+!maxbot-yandex.py

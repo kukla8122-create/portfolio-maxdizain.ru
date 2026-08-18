@@ -1,0 +1,1 @@
+MAX bot Docker CI validation trigger — 2026-08-18

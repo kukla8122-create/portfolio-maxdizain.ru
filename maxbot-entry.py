@@ -7,7 +7,7 @@ Purpose:
 - derive a valid webhook secret from the bot token when a custom secret is not available;
 - normalize and verify MAX request_contact payloads defensively;
 - add lightweight idempotency for repeated webhook deliveries;
-- expose a non-secret /ready check for MAX API + webhook status;
+- expose non-secret /ready and /storage checks for deployment verification;
 - then run the approved maxbot-selfhosted.py implementation.
 """
 
@@ -19,6 +19,7 @@ import importlib.util
 import json
 import os
 import re
+import secrets
 import threading
 from collections import deque
 from pathlib import Path
@@ -167,12 +168,61 @@ def install_idempotency(core) -> None:
     core.worker = worker
 
 
-def install_readiness(core) -> None:
-    """Expose a safe readiness check without leaking bot/account identifiers.
+def install_storage_probe(core) -> None:
+    """Track a non-sensitive marker so hosting persistence can be verified remotely."""
 
-    /health answers whether the local process is alive.
-    /ready additionally verifies that MAX accepts the token and that the exact
-    configured webhook URL is present in GET /subscriptions.
+    original_init_db = core.init_db
+
+    def init_db():
+        original_init_db()
+        with core.db_connect() as conn:
+            row = conn.execute(
+                "SELECT value FROM settings WHERE key='storage_probe'"
+            ).fetchone()
+            if not row:
+                conn.execute(
+                    "INSERT INTO settings(key, value) VALUES('storage_probe', ?)",
+                    (secrets.token_hex(16),),
+                )
+
+            row = conn.execute(
+                "SELECT value FROM settings WHERE key='boot_count'"
+            ).fetchone()
+            try:
+                boot_count = int(row["value"]) if row else 0
+            except Exception:
+                boot_count = 0
+            boot_count += 1
+            conn.execute(
+                "INSERT INTO settings(key, value) VALUES('boot_count', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (str(boot_count),),
+            )
+
+    def storage_status():
+        with core.db_connect() as conn:
+            probe = conn.execute(
+                "SELECT value FROM settings WHERE key='storage_probe'"
+            ).fetchone()
+            count = conn.execute(
+                "SELECT value FROM settings WHERE key='boot_count'"
+            ).fetchone()
+        return {
+            "ok": bool(probe),
+            "probe": probe["value"] if probe else "",
+            "boot_count": int(count["value"]) if count else 0,
+        }
+
+    core.init_db = init_db
+    core.storage_probe_status = storage_status
+
+
+def install_readiness(core) -> None:
+    """Expose safe deployment checks without leaking bot/account identifiers.
+
+    /health   -> local process is alive.
+    /ready    -> MAX token accepted and exact webhook URL is registered.
+    /storage  -> non-sensitive persistence marker and process boot count.
     """
 
     base_handler = core.Handler
@@ -180,6 +230,17 @@ def install_readiness(core) -> None:
     class ReadyHandler(base_handler):
         def do_GET(self):
             path = self.path.split("?", 1)[0]
+
+            if path == "/storage":
+                try:
+                    state = core.storage_probe_status()
+                    payload = json.dumps(state, ensure_ascii=False).encode("utf-8")
+                    self.respond(200 if state.get("ok") else 503, payload, "application/json; charset=utf-8")
+                except Exception:
+                    payload = json.dumps({"ok": False}, ensure_ascii=False).encode("utf-8")
+                    self.respond(503, payload, "application/json; charset=utf-8")
+                return
+
             if path != "/ready":
                 return super().do_GET()
 
@@ -225,6 +286,7 @@ def main() -> None:
     core = load_core()
     install_contact_verification(core)
     install_idempotency(core)
+    install_storage_probe(core)
     install_readiness(core)
     core.main()
 

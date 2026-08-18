@@ -187,15 +187,17 @@ class OrderedDataStreamsTests(unittest.TestCase):
         core = FakeCore()
         kinesis = FakeKinesis()
         handler = self.stream.create_ingress_handler(FakeImpl(), core, kinesis)
-        body = b"x" * (self.stream.MAX_UPDATE_STREAM_LIMIT + 1)
 
-        status, _ = request_once(
-            handler,
-            "POST",
-            "/webhook",
-            body,
-            {"X-Max-Bot-Api-Secret": core.WEBHOOK_SECRET},
-        )
+        # The handler rejects an oversized Content-Length before reading the body.
+        # Sending an actually huge body can race the early 413 response and produce
+        # BrokenPipeError in http.client on fast CI runners. A small body with the
+        # deliberately oversized header tests the exact server guard deterministically.
+        body = b"x"
+        headers = {
+            "X-Max-Bot-Api-Secret": core.WEBHOOK_SECRET,
+            "Content-Length": str(self.stream.MAX_UPDATE_STREAM_LIMIT + 1),
+        }
+        status, _ = request_once(handler, "POST", "/webhook", body, headers)
 
         self.assertEqual(status, 413)
         self.assertEqual(kinesis.records, [])

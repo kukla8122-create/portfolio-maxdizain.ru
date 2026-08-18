@@ -18,8 +18,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install production runtime dependencies
-        run: python -m pip install --disable-pip-version-check -r requirements-functions.txt
+      - name: Install production and repository test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            -r requirements-functions.txt \
+            -r requirements-yandex.txt
 
       - name: Compile production Python sources
         run: |

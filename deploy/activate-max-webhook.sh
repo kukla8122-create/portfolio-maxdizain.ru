@@ -26,7 +26,8 @@ say "Resolve Yandex ingress and Lockbox credentials"
 IJ="$(yc serverless container get "$INGRESS_NAME" --format json)" || die "Ingress container not found"
 IURL="$(printf %s "$IJ" | jget url)"
 [ -n "$IURL" ] || die "Ingress invocation URL is missing"
-WEBHOOK_URL="${IURL%/}/webhook"
+IURL="${IURL%/}"
+WEBHOOK_URL="$IURL/webhook"
 
 SJ="$(yc lockbox secret get "$MAX_SECRET_NAME" --format json)" || die "MAX Lockbox secret not found"
 SID="$(printf %s "$SJ" | jget id)"
@@ -35,17 +36,20 @@ MAX_TOKEN="$(yc lockbox payload get --id "$SID" --key max_bot_token)"
 WEBHOOK_SECRET="$(yc lockbox payload get --id "$SID" --key max_webhook_secret)"
 [ -n "$MAX_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ] || die "MAX credentials are incomplete"
 
-say "Read-only readiness checks"
-curl -fsS "${IURL%/}/health" >/dev/null || die "Ingress /health failed"
-READY="$(curl -fsS "${IURL%/}/ready")" || die "Ingress /ready failed"
+say "Read-only ordered-infrastructure readiness checks"
+curl -fsS "$IURL/health" >/dev/null || die "Ingress /health failed"
+READY="$(curl -fsS "$IURL/ready")" || die "Ingress /ready failed"
 printf %s "$READY" | python3 -c 'import json,sys
 d=json.load(sys.stdin)
 assert d.get("ok") is True, d
 assert d.get("read_only") is True, d
+assert d.get("transport") == "data-streams", d
 assert d.get("max_api") is True, d
-assert d.get("queue") is True, d
+assert d.get("stream") is True, d
+assert d.get("stream_status") == "ACTIVE", d
+assert d.get("activation_enabled") is False, d
 assert d.get("public_url_configured") is True, d
-' || die "Ingress is not ready for cutover"
+' || die "Ordered Data Streams ingress is not ready for cutover"
 
 ME="$(curl -fsS "$MAX_API/me" -H "Authorization: $MAX_TOKEN")" || die "MAX /me failed"
 printf %s "$ME" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("is_bot") is True, d' \

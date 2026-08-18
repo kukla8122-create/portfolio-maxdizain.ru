@@ -35,8 +35,8 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
     def test_bootstrap_does_not_require_cloud_status_field(self):
         text = self.read("deploy/yandex-bootstrap.sh")
         self.assertIn("Cloud.Get no longer exposes a cloud status field", text)
-        self.assertNotIn('CJ\" | jget status', text)
-        self.assertIn('FJ\" | jget status', text)
+        self.assertNotIn('CJ" | jget status', text)
+        self.assertIn('FJ" | jget status', text)
 
     def test_bootstrap_uses_service_specific_trigger_roles(self):
         text = self.read("deploy/yandex-bootstrap.sh")

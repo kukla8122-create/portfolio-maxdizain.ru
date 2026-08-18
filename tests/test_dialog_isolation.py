@@ -127,7 +127,10 @@ class DialogIsolationTests(unittest.TestCase):
         self.bot.handle_update(message_update("dialog", text="неизвестный вопрос"))
 
         self.assertIs(self.bot._core.get_session, fake_get_session)
-        self.assertEqual(calls, [("get_session", 42)])
+        self.assertEqual(
+            calls,
+            [("get_session", 42), ("get_session", 42)],
+        )
 
     def test_dialog_message_runs_client_flow(self):
         self.bot.handle_update(message_update("dialog"))

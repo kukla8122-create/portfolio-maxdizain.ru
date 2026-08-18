@@ -1,3 +1,4 @@
 *
 !Dockerfile
+!maxbot-entry.py
 !maxbot-selfhosted.py

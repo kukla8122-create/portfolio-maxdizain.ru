@@ -13,6 +13,13 @@ MAX's current official SDK schema exposes Recipient.chat_type with values
 "dialog", "chat" and "channel". We intentionally fail closed if that field is
 missing on message_created/message_callback: losing one automated reply is safer
 than leaking a lead flow into a public/group context.
+
+Yandex adapters patch this wrapper module with YDB-backed storage and hardened
+contact parsing after import. Functions inherited from the shared module still
+resolve their globals inside that shared module, so the wrapper synchronizes the
+runtime bindings into the underlying module before every Update is processed.
+This prevents sessions, channels or leads from silently falling back to container-
+local SQLite after the YDB adapter has been installed.
 """
 
 from __future__ import annotations
@@ -27,6 +34,33 @@ if _spec is None or _spec.loader is None:
     raise RuntimeError(f"Cannot load shared MAX bot core: {CORE_PATH}")
 _core = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_core)
+
+
+_RUNTIME_BINDINGS = (
+    "init_db",
+    "set_session",
+    "get_session",
+    "clear_session",
+    "save_channel",
+    "save_lead",
+    "parse_contact_attachment",
+)
+
+
+def _sync_runtime_bindings() -> None:
+    """Mirror adapter-installed callables into the shared module's globals.
+
+    maxbot-yandex.py installs YDB/contact overrides on this wrapper object. The
+    shared business-flow functions were defined in ``_core`` and therefore look up
+    names such as ``get_session`` and ``save_lead`` in ``_core.__dict__``. Keeping
+    the two namespaces synchronized is required for persistent YDB behavior.
+    """
+
+    namespace = globals()
+    for name in _RUNTIME_BINDINGS:
+        value = namespace.get(name)
+        if callable(value):
+            setattr(_core, name, value)
 
 
 def _finish_lead_exact(chat_id, user_id, kind, data, phone, verified):
@@ -83,6 +117,10 @@ _original_handle_update = _core.handle_update
 
 
 def _handle_update_private_dialog_only(update):
+    # YDB/contact adapters are installed on this wrapper after import. Synchronize
+    # their current callables before any shared-core business function is entered.
+    _sync_runtime_bindings()
+
     update_type = update.get("update_type")
     if update_type == "message_created" and not _is_private_dialog(update):
         print(
@@ -124,4 +162,5 @@ globals().update(
 finish_lead = _finish_lead_exact
 recipient_chat_type = _recipient_chat_type
 is_private_dialog = _is_private_dialog
+sync_runtime_bindings = _sync_runtime_bindings
 handle_update = _handle_update_private_dialog_only

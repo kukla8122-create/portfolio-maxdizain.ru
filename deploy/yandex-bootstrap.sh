@@ -96,10 +96,12 @@ PY
   || die "Cloud Functions memory hardening missing"
 [ "$(grep -Fc 'DECLARE $event_id AS Utf8;' "$PATCHED")" = 1 ] \
   || die "Parameterized E2E query missing"
+[ "$(grep -Fc 'SELECT event_id FROM processed_events WHERE event_id=$event_id;' "$PATCHED")" = 1 ] \
+  || die "Parameterized E2E predicate missing"
 [ "$(grep -Fc -- '--input-file "$TMP/e2e.json"' "$PATCHED")" = 1 ] \
   || die "Parameterized E2E input file missing"
-[ "$(grep -Fc "WHERE event_id = '$EXPECTED_KEY'" "$PATCHED")" = 0 ] \
-  || die "Unsafe E2E interpolation unexpectedly remains"
+[ "$(grep -Fc -- '-s "SELECT event_id FROM processed_events' "$PATCHED")" = 0 ] \
+  || die "Interpolated E2E SQL unexpectedly remains"
 [ "$(grep -Fci 'yc container registry' "$PATCHED")" = 0 ] \
   || die "Container Registry dependency unexpectedly present"
 [ "$(grep -Fci 'yc lockbox' "$PATCHED")" = 0 ] \

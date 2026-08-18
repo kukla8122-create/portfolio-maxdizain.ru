@@ -23,6 +23,7 @@ jobs:
           python -m py_compile \
             maxbot-entry.py \
             maxbot-selfhosted.py \
+            maxbot-selfhosted-yandex.py \
             maxbot-yandex.py \
             maxbot-yandex-production.py \
             maxbot-yandex-split.py \
@@ -65,6 +66,25 @@ jobs:
           SIZE=$(docker image inspect maximum-maxbot-yandex:ci --format='{{.Size}}')
           echo "Yandex Serverless Docker image bytes: $SIZE"
           test "$SIZE" -lt 500000000
+
+      - name: Validate exact project-standard lead confirmation
+        run: |
+          docker run --rm \
+            -e MAX_BOT_TOKEN=TestToken_123456789 \
+            -e MAX_WEBHOOK_SECRET=TestWebhookSecret_123456789 \
+            --entrypoint python maximum-maxbot-yandex:ci -c '
+          import importlib.util
+          spec=importlib.util.spec_from_file_location("core", "/app/maxbot-selfhosted.py")
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          sent=[]
+          m._core.save_lead=lambda *a, **k: "lead-test"
+          m._core.clear_session=lambda *a, **k: None
+          m._core.send_message=lambda chat_id, text, **k: sent.append(text)
+          m._core.ADMIN_CHAT_ID=""
+          m.finish_lead("chat", "user", "kitchen", {"name":"Тест"}, "+79990000000", True)
+          assert sent == ["Спасибо! Заявка принята ✅ Катерина свяжется с Вами и уточнит детали."], sent
+          print("Exact confirmation OK")
+          '
 
       - name: Validate split runtime and stable idempotency keys
         run: |

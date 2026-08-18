@@ -44,14 +44,25 @@ from urllib.parse import urlsplit,parse_qs
 u=urlsplit(os.environ['YDB_CS']);print(f'{u.scheme}://{u.netloc}');print((parse_qs(u.query).get('database') or [''])[0])
 PY
 YDB_GRPC="$(sed -n '1p' "$TMP/ydb")"; YDB_PATH="$(sed -n '2p' "$TMP/ydb")"
+
+# Read the deployed bot identity with a parameterized YDB query. Avoid embedded
+# string literals so the rollback path uses the same current ydb sql contract as
+# bootstrap and cutover.
+cat >"$TMP/read-token.sql" <<'SQL'
+DECLARE $key AS Utf8;
+SELECT value FROM deployment_secrets WHERE key=$key LIMIT 1;
+SQL
+printf '%s\n' '{"key":"max_bot_token"}' >"$TMP/read-token.json"
 IAM_TOKEN="$(yc iam create-token)"; export IAM_TOKEN
 ydb --endpoint "$YDB_GRPC" --database "$YDB_PATH" sql \
-  -s 'SELECT value FROM deployment_secrets WHERE key="max_bot_token" LIMIT 1;' \
+  -f "$TMP/read-token.sql" --input-file "$TMP/read-token.json" \
   --format json-unicode >"$TMP/token.out"
 STORED_MAX_TOKEN="$(python3 - "$TMP/token.out" <<'PY'
 import json,sys
 v=''
 for line in open(sys.argv[1],encoding='utf-8',errors='replace'):
+    line=line.strip()
+    if not line: continue
     try:r=json.loads(line)
     except Exception:continue
     if isinstance(r,dict) and r.get('value'):v=str(r['value']);break

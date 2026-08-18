@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py maxbot-yandex.py
+        run: python -m py_compile maxbot-entry.py maxbot-selfhosted.py maxbot-yandex.py maxbot-yandex-production.py
       - name: Unit tests
         run: python -m unittest discover -s tests -v
 
@@ -72,6 +72,62 @@ jobs:
           assert rows == [("evt-1", update)], rows
           print("YMQ trigger parser OK")
           '
+      - name: Validate safe webhook activation gate
+        run: |
+          docker run --rm --entrypoint python maximum-maxbot-yandex:ci -c '
+          import importlib.util, os
+          spec=importlib.util.spec_from_file_location("prod", "/app/maxbot-yandex-production.py")
+          prod=importlib.util.module_from_spec(spec); spec.loader.exec_module(prod)
+
+          calls=[]
+          class Core:
+              MAX_BASE="https://platform-api2.max.ru"
+              WEBHOOK_SECRET="safe_secret"
+              @staticmethod
+              def subscriptions():
+                  return 200, {"subscriptions": []}
+              @staticmethod
+              def http_json(url, method="GET", obj=None, timeout=0):
+                  calls.append((method, url, obj))
+                  if url.endswith("/me"):
+                      return 200, {"ok": True}
+                  if url.endswith("/subscriptions") and method == "POST":
+                      return 200, {"success": True}
+                  raise AssertionError((method, url))
+          class Storage:
+              @staticmethod
+              def status(): return {"ok": True}
+          class SQS:
+              @staticmethod
+              def get_queue_attributes(**kwargs): return {"Attributes": {}}
+          class Impl:
+              YMQ_QUEUE_URL="https://queue.example/maxbot"
+              @staticmethod
+              def public_base_from_request(handler): return "https://bot.example"
+              @staticmethod
+              def create_handler(core, storage, sqs): return object
+
+          H=prod.create_safe_handler(Impl, Core, Storage(), SQS())
+          h=H()
+          result={}
+          h.json_response=lambda status, obj: result.update(status=status, obj=obj)
+
+          os.environ["MAX_ACTIVATE_WEBHOOK"]="0"
+          h._ready()
+          assert result["status"] == 200, result
+          assert result["obj"]["activation_enabled"] is False, result
+          assert result["obj"]["webhook"] is False, result
+          assert not any(m == "POST" and u.endswith("/subscriptions") for m,u,_ in calls), calls
+
+          calls.clear(); result.clear()
+          os.environ["MAX_ACTIVATE_WEBHOOK"]="1"
+          h._ready()
+          assert result["status"] == 200, result
+          assert result["obj"]["activation_enabled"] is True, result
+          assert result["obj"]["webhook"] is True, result
+          assert sum(1 for m,u,_ in calls if m == "POST" and u.endswith("/subscriptions")) == 1, calls
+          print("Webhook activation gate OK")
+          '
       - name: Smoke test Yandex Serverless image
         run: |
           docker run -d --name maximum-maxbot-yandex-ci \
@@ -81,6 +137,7 @@ jobs:
             -e AWS_SECRET_ACCESS_KEY=TESTSECRETKEY123 \
             -e YMQ_QUEUE_URL=https://message-queue.api.cloud.yandex.net/fake/fake/maxbot \
             -e YDB_CONNECTION_STRING=grpcs://ydb.serverless.yandexcloud.net:2135/local-test \
+            -e MAX_ACTIVATE_WEBHOOK=0 \
             -e PORT=8000 \
             -p 18001:8000 \
             maximum-maxbot-yandex:ci

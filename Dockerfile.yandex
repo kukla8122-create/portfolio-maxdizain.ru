@@ -22,5 +22,6 @@ COPY maxbot-selfhosted.py /app/maxbot-selfhosted.py
 COPY maxbot-yandex.py /app/maxbot-yandex.py
 COPY maxbot-yandex-production.py /app/maxbot-yandex-production.py
 COPY maxbot-yandex-split.py /app/maxbot-yandex-split.py
+COPY maxbot-yandex-entry.py /app/maxbot-yandex-entry.py
 
-CMD ["python", "/app/maxbot-yandex-split.py"]
+CMD ["python", "/app/maxbot-yandex-entry.py"]

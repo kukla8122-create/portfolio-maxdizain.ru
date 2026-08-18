@@ -28,30 +28,43 @@ yc config set folder-id "$FOLDER_ID" >/dev/null
 CLOUD_JSON="$(yc resource-manager cloud get "$CLOUD_ID" --format json)"
 FOLDER_JSON="$(yc resource-manager folder get "$FOLDER_ID" --format json)"
 
-CLOUD_JSON="$CLOUD_JSON" python3 - "$EXPECTED_CLOUD_NAME" <<'PY'
+# Current Resource Manager Cloud.Get no longer exposes a cloud status field.
+# A successful get plus exact id/name verification is the read-only cloud check.
+CLOUD_JSON="$CLOUD_JSON" python3 - "$EXPECTED_CLOUD_NAME" "$CLOUD_ID" <<'PY'
 import json, os, sys
-expected = sys.argv[1]
+expected_name = sys.argv[1]
+expected_id = sys.argv[2]
 d = json.loads(os.environ['CLOUD_JSON'])
 name = d.get('name', '')
-status = d.get('status', '')
 cloud_id = d.get('id', '')
-print(f'CLOUD name={name} id={cloud_id} status={status}')
-if name != expected:
-    print(f'FAIL: expected cloud name {expected!r}, got {name!r}')
+print(f'CLOUD name={name} id={cloud_id} status=NOT_EXPOSED_BY_API')
+if name != expected_name:
+    print(f'FAIL: expected cloud name {expected_name!r}, got {name!r}')
     raise SystemExit(21)
-if status != 'ACTIVE':
-    print('WAIT: cloud is not ACTIVE yet. Do not deploy resources.')
+if cloud_id != expected_id:
+    print(f'FAIL: expected cloud id {expected_id!r}, got {cloud_id!r}')
     raise SystemExit(22)
 PY
 
-FOLDER_JSON="$FOLDER_JSON" python3 - <<'PY'
-import json, os
+FOLDER_JSON="$FOLDER_JSON" python3 - "$CLOUD_ID" "$FOLDER_ID" <<'PY'
+import json, os, sys
+expected_cloud_id = sys.argv[1]
+expected_folder_id = sys.argv[2]
 d = json.loads(os.environ['FOLDER_JSON'])
-print(f"FOLDER name={d.get('name','')} id={d.get('id','')} status={d.get('status','')}")
+name = d.get('name', '')
+folder_id = d.get('id', '')
+cloud_id = d.get('cloud_id') or d.get('cloudId') or ''
 status = d.get('status', '')
-if status and status != 'ACTIVE':
-    print('WAIT: folder is not ACTIVE yet. Do not deploy resources.')
+print(f'FOLDER name={name} id={folder_id} cloud_id={cloud_id} status={status}')
+if folder_id != expected_folder_id:
+    print(f'FAIL: expected folder id {expected_folder_id!r}, got {folder_id!r}')
     raise SystemExit(23)
+if cloud_id != expected_cloud_id:
+    print(f'FAIL: folder belongs to cloud {cloud_id!r}, expected {expected_cloud_id!r}')
+    raise SystemExit(24)
+if status != 'ACTIVE':
+    print('WAIT: folder is not ACTIVE yet. Do not deploy resources.')
+    raise SystemExit(25)
 PY
 
 printf '\n=== TOOLS ===\n'

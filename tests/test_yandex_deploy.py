@@ -35,6 +35,11 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn('bash -n "$PATCHED"', text)
         self.assertIn('exec bash "$PATCHED"', text)
 
+    def test_bootstrap_reattaches_piped_stdin_to_controlling_terminal(self):
+        text = self.read("deploy/yandex-bootstrap.sh")
+        self.assertIn('[ -r /dev/tty ] || die "Interactive terminal /dev/tty is unavailable"', text)
+        self.assertIn('exec bash "$PATCHED" </dev/tty', text)
+
     def test_launcher_hardens_current_cloud_functions_cli_memory(self):
         text = self.read("deploy/yandex-bootstrap.sh")
         self.assertIn('text.count("--memory 256m") != 2', text)
@@ -88,6 +93,8 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn("channel_maxmebel_52", text)
         self.assertIn("read_all_messages", text)
         self.assertIn("write", text)
+        self.assertIn("read -r -s MAX_TOKEN </dev/tty", text)
+        self.assertIn("read -r answer </dev/tty", text)
         self.assertNotIn("lockbox", text.lower())
         self.assertNotIn("serverless container", text.lower())
 
@@ -100,6 +107,8 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn("This token does not match the deployed MAX bot", text)
         self.assertIn("http_invoke_url", text)
         self.assertIn("Type ROLLBACK", text)
+        self.assertIn('read -r -s MAX_TOKEN </dev/tty', text)
+        self.assertIn('read -r answer </dev/tty', text)
         self.assertIn('--data-urlencode "url=$WEBHOOK_URL"', text)
         self.assertIn("Unrelated MAX webhook exists", text)
 

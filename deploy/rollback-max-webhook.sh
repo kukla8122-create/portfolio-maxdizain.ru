@@ -14,6 +14,7 @@ jget(){ python3 -c 'import json,sys;d=json.load(sys.stdin);cur=d
 for p in sys.argv[1].split("."):cur=cur.get(p,"") if isinstance(cur,dict) else ""
 print(cur if cur is not None else "")' "$1"; }
 for tool in yc curl python3; do command -v "$tool" >/dev/null 2>&1 || die "Missing tool: $tool"; done
+[ -r /dev/tty ] || die "Interactive terminal /dev/tty is unavailable"
 yc config set cloud-id "$CLOUD_ID" >/dev/null
 yc config set folder-id "$FOLDER_ID" >/dev/null
 TMP="$(mktemp -d)"
@@ -73,7 +74,7 @@ unset IAM_TOKEN
 [ -n "$STORED_MAX_TOKEN" ] || die "Stored MAX token missing"
 
 printf 'Paste MAX_BOT_TOKEN here (input is hidden): '
-read -r -s MAX_TOKEN
+read -r -s MAX_TOKEN </dev/tty
 printf '\n'
 [ -n "$MAX_TOKEN" ] || die "Empty token"
 [ "$MAX_TOKEN" = "$STORED_MAX_TOKEN" ] || die "This token does not match the deployed MAX bot"
@@ -89,7 +90,7 @@ PY
 printf '\nTARGET WEBHOOK TO REMOVE: %s\n' "$WEBHOOK_URL"
 if [ "${CONFIRM_MAX_WEBHOOK_ROLLBACK:-}" != "YES" ]; then
   printf 'Type ROLLBACK to remove only this exact MAX webhook: '
-  read -r answer
+  read -r answer </dev/tty
   [ "$answer" = ROLLBACK ] || die "Rollback cancelled; MAX was not changed"
 fi
 say "Delete only the exact Cloud Function webhook URL"

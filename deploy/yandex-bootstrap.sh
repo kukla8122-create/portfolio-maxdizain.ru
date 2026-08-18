@@ -132,5 +132,11 @@ if [ "${MAXBOT_BOOTSTRAP_VALIDATE_ONLY:-0}" = 1 ]; then
   printf 'VALIDATION_ONLY_OK — no cloud or MAX mutation executed\n'
   exit 0
 fi
+
+# This launcher is commonly invoked as `curl ... | bash`. In that mode stdin is
+# the script pipe, not the user's terminal, so the pinned implementation's hidden
+# token prompt would otherwise see EOF and exit. Reattach stdin explicitly to the
+# controlling terminal before entering any interactive part of the deployment.
+[ -r /dev/tty ] || die "Interactive terminal /dev/tty is unavailable"
 printf '\n'
-exec bash "$PATCHED"
+exec bash "$PATCHED" </dev/tty

@@ -62,12 +62,17 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         self.assertIn("serverless-containers.containerInvoker", text)
         self.assertIn("dedicated trigger SA", text)
 
-    def test_activation_is_yandex_native_and_explicit(self):
+    def test_activation_is_yandex_native_explicit_and_channel_guarded(self):
         text = self.read("deploy/activate-max-webhook.sh")
         self.assertIn("maximum-maxbot-ingress", text)
         self.assertIn("https://platform-api2.max.ru", text)
         self.assertNotIn("bot.portfolio-maxdizain.ru", text)
         self.assertIn("Type ACTIVATE", text)
+        self.assertIn('MAX_CHANNEL_LINK="channel_maxmebel_52"', text)
+        self.assertIn("/members/me", text)
+        self.assertIn("read_all_messages", text)
+        self.assertIn("write", text)
+        self.assertLess(text.index('say "Verify MAX channel identity'), text.index("Type ACTIVATE"))
         for event_type in (
             "bot_added",
             "bot_removed",

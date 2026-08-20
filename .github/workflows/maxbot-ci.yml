@@ -50,6 +50,7 @@ jobs:
           grep -Fq 'Integrity: OK' <<<"$output"
           grep -Fq 'Cloud Functions CLI compatibility: OK' <<<"$output"
           grep -Fq 'Full YDB topic path: OK' <<<"$output"
+          grep -Fq 'MAX /me diagnostics: OK' <<<"$output"
           grep -Fq 'Parameterized YDB verification: OK' <<<"$output"
           grep -Fq 'Shell syntax: OK' <<<"$output"
           grep -Fq 'MAX webhook activation: OFF throughout bootstrap' <<<"$output"
@@ -61,6 +62,8 @@ jobs:
           grep -Fq 'BASE_BLOB="da2f56eaee11955ee3b9b7a99dfb9b41ca17015c"' deploy/yandex-bootstrap.sh
           grep -Fq 'ACTUAL_BLOB="$(git hash-object "$BASE")"' deploy/yandex-bootstrap.sh
           grep -Fq 'YDS_TOPIC=$YDB_PATH/$STREAM_NAME' deploy/yandex-bootstrap.sh
+          grep -Fq 'MAX /me transport failed' deploy/yandex-bootstrap.sh
+          grep -Fq 'MAX /me HTTP $MAX_ME_HTTP' deploy/yandex-bootstrap.sh
           grep -Fq 'DECLARE $event_id AS Utf8;' deploy/yandex-bootstrap.sh
           grep -Fq 'MAXBOT_BOOTSTRAP_VALIDATE_ONLY' deploy/yandex-bootstrap.sh
 

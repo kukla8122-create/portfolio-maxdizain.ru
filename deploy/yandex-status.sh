@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # Read-only deployment status probe for «МАКСимум мебель» MAX bot.
 # This script MUST NOT create, update, delete, pause, resume, deploy, invoke,
 # activate or roll back any Yandex Cloud or MAX resource. It uses no MAX token.
+# Missing resources are an expected diagnostic state and must NOT abort the probe.
 
 CLOUD_ID="b1g91dbs94slnmrj3npv"
 FOLDER_ID="b1g7u7p1qmhjvgtidp0i"
@@ -33,13 +34,13 @@ printf 'cloud_identity=%s\n' "$CLOUD_OK"
 printf 'folder_active=%s\n' "$FOLDER_OK"
 
 check_function(){
-  local name="$1" label="$2" j status url
+  local name="$1" label="$2" j status url health
   j="$(yc serverless function get "$name" --format json 2>/dev/null || true)"
   if [ -z "$j" ]; then
     printf '%s_exists=0\n' "$label"
     printf '%s_active=0\n' "$label"
-    [ "$label" = ingress ] && printf 'ingress_public_url=\n'
-    return
+    if [ "$label" = ingress ]; then printf 'ingress_public_url=\n'; fi
+    return 0
   fi
   status="$(printf %s "$j" | jget status)"
   printf '%s_exists=1\n' "$label"
@@ -65,6 +66,7 @@ PY
       printf 'ingress_health_read_only=0\n'
     fi
   fi
+  return 0
 }
 
 check_function "$INGRESS_FN" ingress
@@ -123,8 +125,7 @@ fi
 
 # Final summary uses only the core resources that yc can inspect without secrets.
 CORE_READY=1
-for pair in \
-  "$CLOUD_OK" "$FOLDER_OK"; do [ "$pair" = 1 ] || CORE_READY=0; done
+for pair in "$CLOUD_OK" "$FOLDER_OK"; do [ "$pair" = 1 ] || CORE_READY=0; done
 ING="$(yc serverless function get "$INGRESS_FN" --format json 2>/dev/null || true)"
 WRK="$(yc serverless function get "$WORKER_FN" --format json 2>/dev/null || true)"
 [ -n "$ING" ] && [ "$(printf %s "$ING" | jget status)" = ACTIVE ] || CORE_READY=0
@@ -137,3 +138,4 @@ if [ "$CORE_READY" = 1 ]; then
 else
   printf 'READ_ONLY_CORE_STATUS=INCOMPLETE\n'
 fi
+exit 0

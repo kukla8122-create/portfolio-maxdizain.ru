@@ -13,6 +13,7 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         for relative in (
             "deploy/yandex-preflight.sh",
             "deploy/yandex-bootstrap.sh",
+            "deploy/yandex-status.sh",
             "deploy/activate-max-webhook.sh",
             "deploy/rollback-max-webhook.sh",
         ):
@@ -20,6 +21,29 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
                 ["bash", "-n", str(ROOT / relative)], capture_output=True, text=True
             )
             self.assertEqual(result.returncode, 0, f"{relative}: {result.stderr}")
+
+    def test_status_probe_is_read_only_and_token_free(self):
+        text = self.read("deploy/yandex-status.sh")
+        self.assertIn("READ_ONLY_CORE_STATUS=", text)
+        self.assertIn("No MAX token is requested", text)
+        self.assertNotIn("MAX_BOT_TOKEN", text)
+        for forbidden in (
+            "yc serverless function create",
+            "yc serverless function version create",
+            "yc serverless trigger create",
+            "yc serverless trigger update",
+            "yc serverless trigger pause",
+            "yc serverless trigger resume",
+            "yc resource-manager folder add-access-binding",
+            "yc resource-manager folder remove-access-binding",
+            "yc ydb database create",
+            "yc serverless function allow-unauthenticated-invoke",
+            "yc serverless function deny-unauthenticated-invoke",
+            "-X POST",
+            "-X DELETE",
+            "/subscriptions",
+        ):
+            self.assertNotIn(forbidden, text)
 
     def test_bootstrap_is_integrity_checked_immutable_launcher(self):
         text = self.read("deploy/yandex-bootstrap.sh")

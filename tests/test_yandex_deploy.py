@@ -16,6 +16,7 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
             "deploy/yandex-preflight.sh",
             "deploy/yandex-bootstrap.sh",
             "deploy/yandex-status.sh",
+            "deploy/max-token-check.sh",
             "deploy/activate-max-webhook.sh",
             "deploy/rollback-max-webhook.sh",
         ):
@@ -86,6 +87,23 @@ exit 1
             self.assertIn("trigger_exists=0", result.stdout)
             self.assertIn("ydb_exists=0", result.stdout)
             self.assertIn("READ_ONLY_CORE_STATUS=INCOMPLETE", result.stdout)
+
+    def test_max_token_check_is_read_only_and_uses_current_api_contract(self):
+        text = self.read("deploy/max-token-check.sh")
+        self.assertIn('MAX_API="https://platform-api2.max.ru"', text)
+        self.assertIn('-X GET "$MAX_API/me"', text)
+        self.assertIn('-H "Authorization: $MAX_TOKEN"', text)
+        self.assertIn('read -r -s MAX_TOKEN </dev/tty', text)
+        self.assertIn("MAX_TOKEN_CHECK=VALID", text)
+        self.assertIn("MAX_TOKEN_CHECK=INVALID_HTTP_401", text)
+        self.assertIn("MAX_TOKEN_CHECK=TRANSPORT_ERROR", text)
+        for forbidden in (
+            "/subscriptions",
+            "-X POST",
+            "-X DELETE",
+            "yc ",
+        ):
+            self.assertNotIn(forbidden, text)
 
     def test_bootstrap_is_integrity_checked_immutable_launcher(self):
         text = self.read("deploy/yandex-bootstrap.sh")

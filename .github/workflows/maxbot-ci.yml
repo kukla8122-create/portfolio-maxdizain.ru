@@ -38,6 +38,7 @@ jobs:
         run: |
           bash -n deploy/yandex-preflight.sh
           bash -n deploy/yandex-bootstrap.sh
+          bash -n deploy/yandex-status.sh
           bash -n deploy/activate-max-webhook.sh
           bash -n deploy/rollback-max-webhook.sh
 

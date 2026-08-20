@@ -39,6 +39,7 @@ jobs:
           bash -n deploy/yandex-preflight.sh
           bash -n deploy/yandex-bootstrap.sh
           bash -n deploy/yandex-status.sh
+          bash -n deploy/max-token-check.sh
           bash -n deploy/activate-max-webhook.sh
           bash -n deploy/rollback-max-webhook.sh
 
@@ -85,6 +86,10 @@ jobs:
           assert 'storage.get_deployment_secret("max_bot_token")' in runtime
           assert 'storage.get_deployment_secret("max_webhook_secret")' in runtime
           assert '"max_token_present": bool(os.environ.get("MAX_BOT_TOKEN"))' in runtime
+          token_check = Path('deploy/max-token-check.sh').read_text(encoding='utf-8')
+          assert 'platform-api2.max.ru' in token_check
+          assert 'MAX_TOKEN_CHECK=VALID' in token_check
+          assert '/subscriptions' not in token_check
           activation = Path('deploy/activate-max-webhook.sh').read_text(encoding='utf-8')
           assert 'deployment_secrets' in activation
           assert 'Type ACTIVATE' in activation

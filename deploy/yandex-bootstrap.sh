@@ -9,7 +9,8 @@ umask 077
 # compatibility hardenings, validates shell syntax, and only then executes it:
 #   1) use the current explicit Cloud Functions byteSize spelling 256MB;
 #   2) pass the full YDB topic path to the Python Topic writer;
-#   3) parameterize the final YDB end-to-end lookup instead of interpolating a key.
+#   3) parameterize the final YDB end-to-end lookup instead of interpolating a key;
+#   4) distinguish MAX /me transport failures from HTTP authentication/server errors.
 #
 # The pinned implementation itself runs Python/unit tests before cloud mutations,
 # does not use Docker/Container Registry/Lockbox, and NEVER activates MAX webhook.
@@ -54,6 +55,31 @@ new_topic = 'YDS_TOPIC=$YDB_PATH/$STREAM_NAME,MAX_WEBHOOK_SECRET=$MAX_WEBHOOK_SE
 if text.count(old_topic) != 1:
     raise SystemExit("Unexpected ingress YDB topic-path source pattern")
 text = text.replace(old_topic, new_topic)
+
+old_me = '''ME="$(curl --cacert "$MAX_CA" -fsS "$MAX_API/me" -H "Authorization: $MAX_BOT_TOKEN")" \\
+  || die "MAX /me failed"
+printf %s "$ME" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("is_bot") is True, d' \\
+  || die "MAX token does not identify a bot"'''
+new_me = '''MAX_ME_BODY="$TMP/max-me.json"
+MAX_ME_ERR="$TMP/max-me.err"
+set +e
+MAX_ME_HTTP="$(curl --cacert "$MAX_CA" --silent --show-error \\
+  --connect-timeout 10 --max-time 30 \\
+  --output "$MAX_ME_BODY" --write-out '%{http_code}' \\
+  -X GET "$MAX_API/me" -H "Authorization: $MAX_BOT_TOKEN" 2>"$MAX_ME_ERR")"
+MAX_ME_CURL_RC=$?
+set -e
+if [ "$MAX_ME_CURL_RC" -ne 0 ]; then
+  sed -n '1,3p' "$MAX_ME_ERR" | sed 's/^/MAX transport: /' >&2 || true
+  die "MAX /me transport failed (curl=$MAX_ME_CURL_RC http=${MAX_ME_HTTP:-000})"
+fi
+[ "$MAX_ME_HTTP" = 200 ] || die "MAX /me HTTP $MAX_ME_HTTP"
+ME="$(cat "$MAX_ME_BODY")"
+printf %s "$ME" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("is_bot") is True, d' \\
+  || die "MAX token does not identify a bot"'''
+if text.count(old_me) != 1:
+    raise SystemExit("Unexpected MAX /me validation source pattern")
+text = text.replace(old_me, new_me)
 
 old = '''FOUND=0
 for _ in $(seq 1 180); do
@@ -105,6 +131,10 @@ PY
   || die "Full YDB topic path hardening missing"
 [ "$(grep -Fc 'YDS_TOPIC=$STREAM_NAME' "$PATCHED")" = 0 ] \
   || die "Relative YDB topic path unexpectedly remains"
+[ "$(grep -Fc 'MAX /me transport failed' "$PATCHED")" = 1 ] \
+  || die "MAX transport diagnostic hardening missing"
+[ "$(grep -Fc 'MAX /me HTTP $MAX_ME_HTTP' "$PATCHED")" = 1 ] \
+  || die "MAX HTTP diagnostic hardening missing"
 [ "$(grep -Fc 'DECLARE $event_id AS Utf8;' "$PATCHED")" = 1 ] \
   || die "Parameterized E2E query missing"
 [ "$(grep -Fc 'SELECT event_id FROM processed_events WHERE event_id=$event_id;' "$PATCHED")" = 1 ] \
@@ -124,6 +154,7 @@ bash -n "$PATCHED" || die "Reviewed bootstrap shell syntax check failed"
 printf 'Integrity: OK\n'
 printf 'Cloud Functions CLI compatibility: OK\n'
 printf 'Full YDB topic path: OK\n'
+printf 'MAX /me diagnostics: OK\n'
 printf 'Parameterized YDB verification: OK\n'
 printf 'Shell syntax: OK\n'
 printf 'MAX webhook activation: OFF throughout bootstrap\n'

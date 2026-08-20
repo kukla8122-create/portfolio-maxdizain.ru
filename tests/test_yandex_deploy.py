@@ -1,4 +1,6 @@
+import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -26,6 +28,9 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
         text = self.read("deploy/yandex-status.sh")
         self.assertIn("READ_ONLY_CORE_STATUS=", text)
         self.assertIn("No MAX token is requested", text)
+        self.assertIn("set -uo pipefail", text)
+        self.assertNotIn("set -euo pipefail", text)
+        self.assertIn("return 0", text)
         self.assertNotIn("MAX_BOT_TOKEN", text)
         for forbidden in (
             "yc serverless function create",
@@ -44,6 +49,43 @@ class YandexDeploymentGuardrailTests(unittest.TestCase):
             "/subscriptions",
         ):
             self.assertNotIn(forbidden, text)
+
+    def test_status_probe_completes_when_cloud_resources_are_absent(self):
+        with tempfile.TemporaryDirectory() as td:
+            fake_yc = Path(td) / "yc"
+            fake_yc.write_text(
+                """#!/usr/bin/env bash
+set -u
+if [ \"${1:-}\" = resource-manager ] && [ \"${2:-}\" = cloud ] && [ \"${3:-}\" = get ]; then
+  printf '%s\\n' '{\"id\":\"b1g91dbs94slnmrj3npv\",\"name\":\"maximum-maxbot\"}'
+  exit 0
+fi
+if [ \"${1:-}\" = resource-manager ] && [ \"${2:-}\" = folder ] && [ \"${3:-}\" = get ]; then
+  printf '%s\\n' '{\"id\":\"b1g7u7p1qmhjvgtidp0i\",\"cloud_id\":\"b1g91dbs94slnmrj3npv\",\"status\":\"ACTIVE\"}'
+  exit 0
+fi
+# All deployable resources intentionally absent.
+exit 1
+""",
+                encoding="utf-8",
+            )
+            fake_yc.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{td}:{env.get('PATH', '')}"
+            result = subprocess.run(
+                ["bash", str(ROOT / "deploy/yandex-status.sh")],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("cloud_identity=1", result.stdout)
+            self.assertIn("folder_active=1", result.stdout)
+            self.assertIn("ingress_exists=0", result.stdout)
+            self.assertIn("worker_exists=0", result.stdout)
+            self.assertIn("trigger_exists=0", result.stdout)
+            self.assertIn("ydb_exists=0", result.stdout)
+            self.assertIn("READ_ONLY_CORE_STATUS=INCOMPLETE", result.stdout)
 
     def test_bootstrap_is_integrity_checked_immutable_launcher(self):
         text = self.read("deploy/yandex-bootstrap.sh")

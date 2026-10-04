@@ -1,0 +1,19 @@
+{
+  "name": "МАКСимум мебель — цифровая фабрика",
+  "short_name": "МАКСимум",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07110d",
+  "theme_color": "#07110d",
+  "lang": "ru",
+  "description": "Цифровая фабрика МАКСимум мебель: задачи, проекты и синхронизация ПК ↔ Android.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

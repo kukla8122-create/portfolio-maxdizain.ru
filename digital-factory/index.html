@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#07110d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>МАКСимум мебель — цифровая фабрика v3.3</title>
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#07110d;--panel:rgba(9,25,19,.94);--panel2:#0b1e17;--line:rgba(255,255,255,.10);
+  --text:#f5f8f5;--muted:#9fb0a7;--emerald:#0f7d63;--emerald2:#22a77e;--gold:#d3af69;
+  --danger:#e46c6c;--warn:#e7bd63;--ok:#74d59a;--blue:#7fb7ff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,system-ui,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+#app{height:100dvh;display:grid;grid-template-rows:74px 1fr 64px;gap:10px;padding:10px}
+.glass{background:linear-gradient(180deg,rgba(12,32,25,.95),rgba(7,20,15,.93));border:1px solid var(--line);box-shadow:0 18px 60px rgba(0,0,0,.30)}
+header{border-radius:20px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0}
+.brand{display:flex;align-items:center;gap:13px;min-width:0}.logo{width:42px;height:42px;flex:0 0 auto;border-radius:13px;background:linear-gradient(135deg,var(--emerald2),#0d5f4d);display:grid;place-items:center;font-weight:900;border:1px solid rgba(211,175,105,.55);box-shadow:inset 0 0 0 2px rgba(255,255,255,.04)}
+.brand h1{font-size:19px;margin:0;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand p{margin:2px 0 0;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gold{color:var(--gold)}
+.header-actions{display:flex;gap:8px;align-items:center}.header-stat{padding:9px 12px;border:1px solid var(--line);border-radius:13px;min-width:96px}.header-stat small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.header-stat b{font-size:16px}.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;box-shadow:0 0 10px var(--ok)}
+.main{display:grid;grid-template-columns:280px minmax(420px,1fr) 390px;gap:10px;min-height:0}
+.panel{border-radius:20px;min-height:0;overflow:hidden}.panel-head{height:64px;padding:13px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.eyebrow{font-size:9px;letter-spacing:.16em;color:var(--gold);font-weight:800}.panel h2{font-size:16px;margin:3px 0 0}.pill{padding:6px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;background:rgba(255,255,255,.03)}
+.agents{height:calc(100% - 64px);overflow:auto;padding:8px}.agent{display:grid;grid-template-columns:38px 1fr auto;gap:9px;align-items:center;padding:9px;border-radius:14px;border:1px solid transparent;margin-bottom:5px;transition:.15s}.agent:hover{background:rgba(255,255,255,.04)}.agent.active{background:rgba(34,167,126,.12);border-color:rgba(34,167,126,.28)}.avatar{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:var(--avatar);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.agent strong{font-size:12px;display:block}.agent small{font-size:10px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.agent .state{font-size:15px}
+.center{position:relative;border-radius:20px;overflow:hidden;min-width:0}.world{position:absolute;inset:0}.world-overlay{position:absolute;left:12px;right:12px;top:12px;display:flex;justify-content:space-between;pointer-events:none;z-index:2}.world-card{background:rgba(6,18,13,.82);border:1px solid var(--line);border-radius:14px;padding:9px 11px;backdrop-filter:blur(8px)}.world-card b{font-size:12px}.world-card small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.legend{position:absolute;left:12px;bottom:12px;right:290px;display:flex;gap:7px;flex-wrap:wrap;pointer-events:none;z-index:2}.legend span{font-size:9px;padding:6px 8px;border-radius:999px;background:rgba(6,18,13,.80);border:1px solid var(--line)}
+.focus-panel{position:absolute;right:12px;bottom:12px;width:260px;padding:12px;border-radius:16px;background:rgba(6,18,13,.91);border:1px solid var(--line);backdrop-filter:blur(10px);z-index:3}.focus-panel h3{margin:0 0 2px;font-size:14px}.focus-panel p{margin:3px 0;color:var(--muted);font-size:10px;line-height:1.35}.focus-panel .focus-goal{color:var(--text)}.progress{height:7px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:8px}.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--emerald2),var(--gold));border-radius:inherit}.focus-actions{display:flex;gap:7px;margin-top:9px}.focus-actions button{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);border-radius:10px;padding:7px;font-size:10px}
+.right-tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--line);overflow:auto}.tab{flex:0 0 auto;border:1px solid transparent;background:transparent;color:var(--muted);border-radius:10px;padding:8px 9px;font-size:10px}.tab.active{background:rgba(34,167,126,.13);color:white;border-color:rgba(34,167,126,.24)}.tabview{height:calc(100% - 112px);overflow:auto;padding:9px}
+.attention-card,.task-card,.log-entry,.connection-card,.today-card,.project-card{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);border-radius:13px;padding:10px;margin-bottom:7px}.attention-card{border-left:3px solid var(--warn)}.attention-card.danger{border-left-color:var(--danger)}.task-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.task-title{font-size:11px;font-weight:700;line-height:1.3}.task-meta{font-size:9px;color:var(--muted);margin-top:5px;line-height:1.4}.tag{font-size:8px;padding:4px 6px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}.tag.high{color:#ffd4d4;border-color:rgba(228,108,108,.35);background:rgba(228,108,108,.08)}.tag.mid{color:#ffe9b9;border-color:rgba(231,189,99,.30);background:rgba(231,189,99,.08)}.tag.low{color:#cceadb;border-color:rgba(116,213,154,.25);background:rgba(116,213,154,.07)}.tag.done{color:#bfe9ce}.task-actions{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}.task-actions button{border:1px solid var(--line);background:rgba(255,255,255,.04);color:white;border-radius:8px;padding:6px 7px;font-size:9px}.task-actions .done{background:rgba(34,167,126,.13);border-color:rgba(34,167,126,.25)}
+.today-hero{padding:13px;border-radius:15px;background:linear-gradient(135deg,rgba(34,167,126,.18),rgba(211,175,105,.08));border:1px solid rgba(34,167,126,.25);margin-bottom:9px}.today-hero small{color:var(--muted);font-size:9px}.today-hero h3{font-size:15px;margin:4px 0}.today-hero p{font-size:10px;color:#d9e3dd;margin:4px 0 0;line-height:1.45}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}.metric{border:1px solid var(--line);border-radius:12px;padding:9px;background:rgba(255,255,255,.025)}.metric small{font-size:8px;color:var(--muted);display:block}.metric b{font-size:17px;display:block;margin-top:2px}.section-title{font-size:10px;color:var(--gold);font-weight:800;letter-spacing:.08em;margin:12px 2px 7px}.project-card .project-head{display:flex;justify-content:space-between;gap:8px;align-items:center}.project-card h4{margin:0;font-size:11px}.project-card .pct{font-size:9px;color:var(--muted)}.project-line{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.mini{font-size:8px;border:1px solid var(--line);border-radius:999px;padding:4px 6px;color:var(--muted)}
+.searchbar{display:flex;gap:6px;margin-bottom:8px}.searchbar input{min-width:0;flex:1;border:1px solid var(--line);background:#0b1c16;color:white;border-radius:10px;padding:8px 9px;font-size:10px}.searchbar button{border:1px solid var(--line);background:rgba(255,255,255,.04);color:white;border-radius:9px;padding:7px 9px;font-size:9px}
+.log-entry{padding:9px 10px 9px 34px;position:relative;font-size:10px;line-height:1.4}.log-entry .ico{position:absolute;left:9px;top:9px}.log-entry .time{font-size:8px;color:var(--muted);margin-bottom:2px}.log-entry.ai{border-left:2px solid var(--blue)}.log-entry.decision{border-left:2px solid var(--emerald2)}.log-entry.alert{border-left:2px solid var(--warn)}
+.connection-card{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}.connection-card strong{font-size:11px}.connection-card small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.conn-state{font-size:9px;padding:5px 7px;border-radius:999px;border:1px solid var(--line)}.conn-state.off{color:#d8c095}.conn-state.local{color:#bfe6cc}
+footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8px}.btn{border:1px solid var(--line);color:white;background:rgba(255,255,255,.05);border-radius:11px;padding:9px 12px;font-size:10px}.btn.primary{background:linear-gradient(135deg,var(--emerald2),var(--emerald));border-color:transparent;font-weight:800}.btn.gold{background:rgba(211,175,105,.12);border-color:rgba(211,175,105,.25);color:#f3ddb1}.spacer{flex:1}.footer-info{font-size:9px;color:var(--muted)}
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:20px;z-index:80}.modal-back.open{display:flex}.modal{width:min(680px,96vw);max-height:90dvh;overflow:auto;border-radius:20px;padding:18px}.modal h3{margin:0 0 4px}.modal p{margin:0 0 15px;color:var(--muted);font-size:10px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:9px;color:var(--muted)}.field input,.field select,.field textarea{border:1px solid var(--line);background:#0b1c16;color:white;border-radius:10px;padding:9px 10px;outline:none}.field textarea{min-height:78px;resize:vertical}.check{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}.modal-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:14px;flex-wrap:wrap}
+.brief-list{display:grid;gap:7px}.brief-item{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.025)}.brief-item b{font-size:11px}.brief-item p{font-size:9px;margin:4px 0 0;color:var(--muted)}
+.toast{position:fixed;left:50%;top:92px;transform:translate(-50%,-8px);opacity:0;pointer-events:none;background:#0a1e17;border:1px solid var(--line);padding:9px 13px;border-radius:999px;font-size:10px;z-index:100;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+.empty{padding:18px;text-align:center;color:var(--muted);font-size:10px}
+.mobile-nav,.mobile-fab,.install-banner{display:none}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:999px}
+@media(max-width:1160px){.main{grid-template-columns:240px minmax(360px,1fr) 340px}.focus-panel{width:230px}.legend{right:250px}}
+@media(max-width:900px){
+ html,body{overflow:auto;background:#07110d}
+ #app{height:auto;min-height:100dvh;display:block;padding:0 0 84px}
+ header{height:72px;border-radius:0;border-left:0;border-right:0;border-top:0;padding:0 14px;position:sticky;top:0;z-index:30}
+ .brand h1{font-size:15px}.brand p{font-size:9px}.logo{width:40px;height:40px}
+ .header-actions{display:none}
+ .main{display:block;min-height:0}
+ .panel,.center{display:none;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+ body[data-mobile-view="team"] .panel.left{display:block;height:calc(100dvh - 156px)}
+ body[data-mobile-view="world"] .center{display:block;height:calc(100dvh - 156px)}
+ body[data-mobile-view="work"] .panel.right{display:block;height:calc(100dvh - 156px)}
+ .panel-head{height:62px;padding:12px 14px}
+ .agents{height:calc(100% - 62px)}
+ .agent{min-height:58px;padding:10px}.agent strong{font-size:13px}.agent small{font-size:11px}
+ .right-tabs{padding:8px 10px}.tab{font-size:11px;padding:9px 10px}
+ .tabview{height:calc(100% - 112px);padding:10px 12px 22px}
+ .task-title{font-size:13px}.task-meta{font-size:10px}.task-actions button{font-size:10px;padding:8px 9px}
+ .attention-card,.task-card,.today-card,.project-card,.connection-card,.log-entry{padding:12px;border-radius:14px}
+ .focus-panel{left:10px;right:10px;bottom:10px;width:auto;padding:12px}
+ .focus-panel h3{font-size:15px}.focus-panel p{font-size:10px}
+ .legend{display:none}.world-overlay{top:10px;left:10px;right:10px}
+ footer{display:none}
+ .mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;height:72px;padding:6px 5px calc(6px + env(safe-area-inset-bottom));background:rgba(6,18,13,.97);border-top:1px solid var(--line);z-index:60;backdrop-filter:blur(12px)}
+ .mobile-nav button{border:0;background:transparent;color:var(--muted);font-size:9px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.mobile-nav button span{font-size:20px;line-height:1}.mobile-nav button.active{color:white;background:rgba(34,167,126,.13)}
+ .mobile-fab{display:grid;position:fixed;right:14px;bottom:84px;width:54px;height:54px;place-items:center;border:0;border-radius:18px;background:linear-gradient(135deg,var(--emerald2),var(--emerald));color:white;font-size:26px;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:61}
+ .toast{top:82px;max-width:88vw;text-align:center;font-size:11px}
+ .modal-back{padding:0;align-items:flex-end}.modal{width:100%;max-height:92dvh;border-radius:22px 22px 0 0;padding:17px 14px calc(18px + env(safe-area-inset-bottom))}
+ .form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.field label{font-size:10px}.field input,.field select,.field textarea{font-size:16px;min-height:46px}
+ .metrics{grid-template-columns:repeat(3,1fr)}
+ .today-hero h3{font-size:17px}.today-hero p{font-size:11px}
+ .install-banner{position:fixed;display:none;left:10px;right:10px;bottom:80px;padding:12px;border-radius:16px;z-index:70;align-items:center;gap:9px}.install-banner.show{display:flex}.install-banner div{flex:1}.install-banner b{font-size:11px}.install-banner small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.install-banner button{border:1px solid var(--line);background:var(--emerald);color:white;border-radius:10px;padding:8px 10px;font-size:10px}
+}
+
+.cloud-status{display:flex;align-items:center;gap:6px}
+.cloud-dot{width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 10px currentColor}
+.cloud-dot.online{background:var(--ok);color:var(--ok)} .cloud-dot.syncing{background:var(--blue);color:var(--blue)} .cloud-dot.offline{background:var(--warn);color:var(--warn)}
+.account-btn{border:1px solid var(--line);background:rgba(255,255,255,.04);color:white;border-radius:11px;padding:8px 10px;font-size:10px}
+.auth-state{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.025);font-size:10px;color:var(--muted);margin-bottom:10px}
+.auth-state strong{color:white}.auth-note{font-size:9px;color:var(--muted);line-height:1.45;margin-top:8px}
+</style>
+<style id="webGateStyle">
+#webGate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#07110d;color:#fff;font-family:Inter,Segoe UI,system-ui,sans-serif;padding:20px}
+#webGate .g{width:min(420px,94vw);padding:24px;border-radius:22px;background:#0b1e17;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 80px rgba(0,0,0,.4)}
+#webGate h2{margin:0 0 7px;font-size:21px}#webGate p{margin:0 0 15px;color:#9fb0a7;font-size:12px;line-height:1.5}
+#webGate input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.13);background:#07150f;color:#fff;font-size:16px;outline:none}
+#webGate button{width:100%;margin-top:10px;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#22a77e,#0f7d63);color:white;font-weight:800}
+#webGate .err{min-height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
+</style></head>
+<body data-mobile-view="work"><div id="webGate"><div class="g"><h2>МАКСимум · цифровая фабрика</h2><p>Введите код доступа. После этого откроется рабочий интерфейс.</p><input id="webGateCode" type="password" inputmode="text" autocomplete="off" placeholder="Код доступа"><button id="webGateBtn">Открыть фабрику</button><div id="webGateErr" class="err"></div></div></div>
+<div id="app">
+<header class="glass">
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.3</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="header-actions">
+    <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
+    <div class="header-stat"><small>Активных задач</small><b id="activeTasks">0</b></div>
+    <div class="header-stat"><small>Просрочено</small><b id="overdueTasks">0</b></div>
+    <div class="header-stat"><small>Синхронизация</small><b class="cloud-status"><span id="cloudDot" class="cloud-dot offline"></span><span id="cloudStatus">локально</span></b></div><button id="accountBtn" class="account-btn">Войти</button>
+  </div>
+</header>
+
+<div class="main">
+  <section class="panel left glass">
+    <div class="panel-head"><div><div class="eyebrow">КОМАНДА</div><h2>Цифровые сотрудники</h2></div><span class="pill">10</span></div>
+    <div id="agents" class="agents"></div>
+  </section>
+
+  <section class="center glass">
+    <div id="world" class="world"></div>
+    <div class="world-overlay">
+      <div class="world-card"><b id="simClock">09:00</b><small id="simDay">Рабочий день · режим 1×</small></div>
+      <div class="world-card"><b id="worldStatus">Фабрика работает</b><small>нажми на сотрудника</small></div>
+    </div>
+    <div class="legend"><span>👥 Клиенты</span><span>📐 Дизайн</span><span>🔧 Производство</span><span>📣 Маркетинг</span><span>📄 Документы</span><span>☕ Совещание</span></div>
+    <div class="focus-panel">
+      <h3 id="focusName">Катя AI</h3><p id="focusRole">Диспетчер</p>
+      <p id="focusGoal" class="focus-goal">Следит, чтобы ничего важного не потерялось.</p>
+      <p id="focusNow">Сейчас: анализирует очередь задач</p>
+      <div class="progress"><i id="focusProgress"></i></div>
+      <div class="focus-actions"><button id="focusAttention">Его задачи</button><button id="focusCamera">К сотруднику</button></div>
+    </div>
+  </section>
+
+  <section class="panel right glass">
+    <div class="panel-head"><div><div class="eyebrow">РАБОЧИЙ ЦЕНТР</div><h2 id="workTitle">Что происходит сейчас</h2></div><span class="pill" id="savedState">сохранено</span></div>
+    <div class="right-tabs">
+      <button class="tab active" data-tab="today">Сегодня</button>
+      <button class="tab" data-tab="attention">Внимание</button>
+      <button class="tab" data-tab="tasks">Задачи</button>
+      <button class="tab" data-tab="projects">Проекты</button>
+      <button class="tab" data-tab="log">Лог</button>
+      <button class="tab" data-tab="connections">Связи</button>
+    </div>
+    <div id="tabview" class="tabview"></div>
+  </section>
+</div>
+
+<footer class="glass">
+  <button class="btn primary" id="addTask">+ Добавить задачу</button>
+  <button class="btn" id="voiceTask">🎙 Голосом</button>
+  <button class="btn" id="pause">Пауза</button>
+  <button class="btn" id="speed">Скорость 1×</button>
+  <button class="btn gold" id="dailyBrief">Что мне делать сейчас?</button>
+  <div class="spacer"></div>
+  <span class="footer-info" id="footerSyncText">Данные сохраняются в браузере</span><button class="btn" id="syncBtn">☁ Синхронизация</button>
+  <button class="btn" id="exportBtn">Резервная копия</button>
+  <button class="btn" id="importBtn">Импорт</button>
+  <input type="file" id="importFile" accept="application/json" hidden>
+</footer>
+</div>
+
+<button class="mobile-fab" id="mobileAdd" aria-label="Добавить задачу">+</button>
+<nav class="mobile-nav">
+  <button data-mob="work" data-tab-target="today" class="active"><span>☀️</span>Сегодня</button>
+  <button data-mob="work" data-tab-target="tasks"><span>✅</span>Задачи</button>
+  <button data-mob="world"><span>🏭</span>Фабрика</button>
+  <button data-mob="team"><span>👥</span>Команда</button>
+  <button data-mob="work" data-tab-target="connections"><span>•••</span>Ещё</button>
+</nav>
+
+<div id="installBanner" class="install-banner glass"><div><b>Установить «МАКСимум»</b><small>Будет открываться как отдельное приложение.</small></div><button id="installBtn">Установить</button><button id="installClose">×</button></div>
+
+<div id="taskModal" class="modal-back">
+  <div class="modal glass">
+    <h3 id="taskModalTitle">Новая задача</h3><p>Сохраняется сразу. Можно потом изменить, перенести или закрыть.</p>
+    <input id="fId" type="hidden">
+    <div class="form-grid">
+      <div class="field full"><label>Задача</label><input id="fTitle" placeholder="Например: проверить финальные правки кухни"></div>
+      <div class="field"><label>Клиент / проект</label><input id="fProject" placeholder="Например: Танзиля"></div>
+      <div class="field"><label>Кому передать</label><select id="fAgent"></select></div>
+      <div class="field"><label>Приоритет</label><select id="fPriority"><option value="high">Высокий</option><option value="mid" selected>Средний</option><option value="low">Низкий</option></select></div>
+      <div class="field"><label>Срок</label><input id="fDue" type="date"></div>
+      <div class="field full"><label>Комментарий / решение</label><textarea id="fNotes" placeholder="Что важно учесть, что уже сделано, чего ждём"></textarea></div>
+      <label class="check full"><input id="fKatya" type="checkbox"> Требуется решение или подтверждение Кати</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn hidden" id="deleteTask">Удалить</button>
+      <button class="btn" id="cancelTask">Отмена</button>
+      <button class="btn primary" id="saveTask">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div id="briefModal" class="modal-back">
+  <div class="modal glass">
+    <h3>Что делать сейчас</h3><p id="briefSummary">Приоритеты на текущий момент.</p>
+    <div id="briefList" class="brief-list"></div>
+    <div class="modal-actions"><button class="btn primary" id="closeBrief">Понятно</button></div>
+  </div>
+</div>
+<div id="authModal" class="modal-back">
+  <div class="modal glass" style="width:min(470px,96vw)">
+    <h3>Общая база ПК ↔ Android</h3>
+    <p>Войди в аккаунт MAXIMUM-AI. После входа задачи и настройки будут одинаковыми на компьютере и телефоне.</p>
+    <div id="authStateBox" class="auth-state"><strong>Сейчас:</strong> локальный режим.</div>
+    <div id="authFields" class="form-grid">
+      <div class="field full"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="Почта аккаунта"></div>
+      <div class="field full"><label>Пароль</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Пароль"></div>
+    </div>
+    <div class="auth-note">Пароль не записывается в приложение. Авторизацию выполняет Supabase; доступ к данным закрыт RLS.</div>
+    <div class="modal-actions"><button class="btn hidden" id="signOutBtn">Выйти</button><button class="btn" id="closeAuth">Закрыть</button><button class="btn primary" id="signInBtn">Войти и синхронизировать</button></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const STORAGE='maksimum_digital_factory_v3';
+const OLD_STORAGE='maksimum_digital_factory_v2';
+const OLDER_STORAGE='maksimum_digital_factory_v1';
+const SUPABASE_URL="https://uhyaigqizvwtsbtmvkdr.supabase.co";
+const SUPABASE_KEY="sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8";
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+let cloudUser=null,cloudChannel=null,cloudPulling=false,taskSyncTimer=null,settingsSyncTimer=null;
+
+const AGENTS=[
+ {id:'dispatcher',name:'Катя AI',emoji:'🧠',role:'Диспетчер',color:'#2faa84',zone:'meeting',goal:'Следить, чтобы ни одна важная задача, клиент и срок не потерялись.'},
+ {id:'manager',name:'Алина',emoji:'👥',role:'Менеджер клиентов',color:'#7fb7ff',zone:'clients',goal:'Следить за сообщениями, ответами, ожиданиями клиентов и следующими касаниями.'},
+ {id:'designer',name:'Мира',emoji:'📐',role:'Дизайнер',color:'#c68cff',zone:'design',goal:'Вести проекты, ТЗ, правки и визуализации без потери исходной геометрии.'},
+ {id:'technologist',name:'Техно',emoji:'🔧',role:'Технолог',color:'#e29a5d',zone:'production',goal:'Проверять размеры, зазоры, открывания, материалы, фурнитуру и технологичность.'},
+ {id:'estimator',name:'Смета',emoji:'💰',role:'Сметчик',color:'#d3af69',zone:'documents',goal:'Считать стоимость, предоплаты, остатки и варианты комплектации.'},
+ {id:'production',name:'Цех',emoji:'🏭',role:'Контроль производства',color:'#7bc67b',zone:'production',goal:'Следить за заказами в производстве, материалами, сроками и готовностью.'},
+ {id:'content',name:'Контент',emoji:'✍️',role:'Контент-менеджер',color:'#ff8fba',zone:'marketing',goal:'Готовить посты, видео, идеи и публикации для MAX, VK, Telegram и Avito.'},
+ {id:'marketing',name:'Маркет',emoji:'📣',role:'Маркетолог',color:'#ef765d',zone:'marketing',goal:'Следить за рекламой, заявками, расходами и эффективностью каналов.'},
+ {id:'documents',name:'Док',emoji:'📄',role:'Документы',color:'#9ca8ff',zone:'documents',goal:'Собирать договоры, PDF, техлисты, реестры и следить за версиями.'},
+ {id:'personal',name:'Личный',emoji:'🏠',role:'Личный помощник',color:'#6fd4c6',zone:'meeting',goal:'Хранить бытовые дела, напоминания и личные задачи отдельно от клиентской работы.'}
+];
+const iso=d=>{const x=new Date(d); const y=x.getFullYear(),m=String(x.getMonth()+1).padStart(2,'0'),day=String(x.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`};
+const plusDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const SEED=[
+ {id:'t1',title:'Проверить актуальный статус кухни SEA-22 и этап производства',project:'Ольга · SEA-22 «Биланчино»',agent:'production',priority:'high',due:plusDays(0),notes:'Последнее известное состояние: заказ в производстве. Подтвердить текущий этап, не считать старый статус актуальным без проверки.',katya:true,status:'open',source:'known'},
+ {id:'t2',title:'Проверить, был ли ответ после отправленного расчёта',project:'Светлана Викторовна',agent:'manager',priority:'high',due:plusDays(0),notes:'Сначала показать найденный статус Кате. Ничего клиенту автоматически не отправлять.',katya:true,status:'open',source:'known'},
+ {id:'t3',title:'Сверить текущую версию проекта и список оставшихся правок',project:'Елена · кухня',agent:'designer',priority:'mid',due:plusDays(1),notes:'Последнее известное состояние: проект в работе. Требуется актуализация.',katya:false,status:'open',source:'known'},
+ {id:'t4',title:'Проверить статус проекта №2 и финальных рендеров',project:'Танзиля · кухня-гостиная',agent:'designer',priority:'high',due:plusDays(0),notes:'Не менять конструктив без явного указания. Проверить, что осталось после последней серии правок.',katya:true,status:'open',source:'known'},
+ {id:'t5',title:'Довести рекламное видео для MAX и Telega.in',project:'Маркетинг',agent:'marketing',priority:'mid',due:plusDays(2),notes:'Последнее известное состояние — в работе.',katya:false,status:'open',source:'known'},
+ {id:'t6',title:'Проверить состояние проектов Katya-AI и MAXIMUM-AI в Supabase',project:'Катя AI',agent:'dispatcher',priority:'high',due:plusDays(0),notes:'Ранее проекты были автоматически приостановлены. Проверить текущее состояние перед любыми изменениями.',katya:true,status:'open',source:'service'},
+ {id:'t7',title:'Разобраться с доступом к Mistral API',project:'Катя AI',agent:'dispatcher',priority:'mid',due:plusDays(3),notes:'Ранее API-ключи были недоступны до завершения проверки подписки/оплаты.',katya:false,status:'open',source:'service'},
+ {id:'t8',title:'Исправить причину неудачного деплоя Vercel',project:'Катя AI',agent:'dispatcher',priority:'mid',due:plusDays(3),notes:'Последняя известная причина: deployment actor не состоял в Vercel team.',katya:false,status:'open',source:'service'}
+];
+function defaultState(){return{version:3,tasks:SEED.map(x=>({...x})),logs:[],paused:false,speed:1,selected:'dispatcher',createdAt:Date.now(),taskFilter:'open',search:''}}
+function normalize(s){s.version=3;s.tasks=(s.tasks||[]).map(t=>({...t,status:t.status||'open',priority:t.priority||'mid',katya:!!t.katya}));s.logs=s.logs||[];s.taskFilter=s.taskFilter||'open';s.search=s.search||'';return s}
+function load(){
+ try{const raw=localStorage.getItem(STORAGE);if(raw)return normalize(JSON.parse(raw))}catch(e){}
+ try{const old=localStorage.getItem(OLD_STORAGE);if(old){const s=normalize(JSON.parse(old));localStorage.setItem(STORAGE,JSON.stringify(s));return s}}catch(e){}
+ try{const older=localStorage.getItem(OLDER_STORAGE);if(older){const s=normalize(JSON.parse(older));localStorage.setItem(STORAGE,JSON.stringify(s));return s}}catch(e){}
+ return defaultState()
+}
+let state=load();
+let activeTab='today';
+const agentBy=id=>AGENTS.find(a=>a.id===id)||AGENTS[0];
+const prioText={high:'Высокий',mid:'Средний',low:'Низкий'};
+function save(){
+ try{localStorage.setItem(STORAGE,JSON.stringify(state));$('#savedState').textContent=cloudUser?'сохранено · облако':'сохранено';scheduleSettingsSync()}
+ catch(e){$('#savedState').textContent='без сохранения'}
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function toast(t){const n=$('#toast');n.textContent=t;n.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>n.classList.remove('show'),1800)}
+function startOfToday(){const d=new Date();d.setHours(0,0,0,0);return d}
+function dueDiff(t){if(!t.due)return 999;return Math.round((new Date(t.due+'T00:00:00')-startOfToday())/86400000)}
+function dueText(t){const diff=dueDiff(t);if(diff===999)return'без срока';if(diff<0)return'просрочено';if(diff===0)return'сегодня';if(diff===1)return'завтра';const d=new Date(t.due+'T00:00:00');return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit'}).format(d)}
+function scoreTask(t){let s=t.priority==='high'?100:t.priority==='mid'?55:20;if(t.katya)s+=45;const d=dueDiff(t);if(d<0)s+=70;else if(d===0)s+=45;else if(d<=2)s+=20;return s}
+function openTasks(){return state.tasks.filter(t=>t.status!=='done')}
+function overdue(){return openTasks().filter(t=>dueDiff(t)<0)}
+function fmtTime(ts){return new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'}).format(new Date(ts))}
+function addLog(kind,agent,msg){const item={id:Date.now()+Math.random(),time:Date.now(),kind,agent,msg};state.logs.unshift(item);state.logs=state.logs.slice(0,180);save();pushLogToCloud(item);if(activeTab==='log')renderTab()}
+
+
+function setCloudStatus(mode,label){
+ const dot=$('#cloudDot'),txt=$('#cloudStatus'),foot=$('#footerSyncText');
+ if(dot)dot.className='cloud-dot '+mode;if(txt)txt.textContent=label;
+ if(foot)foot.textContent=mode==='online'?'ПК и Android синхронизируются через Supabase':'Данные пока хранятся только в этом браузере';
+ const b=$('#accountBtn');if(b)b.textContent=cloudUser?'Облако ✓':'Войти';
+}
+function cloudTaskRow(t){return{owner_id:cloudUser.id,client_id:String(t.id),title:t.title,project:t.project||null,agent:t.agent||'dispatcher',priority:t.priority||'mid',due:t.due||null,notes:t.notes||null,katya:!!t.katya,status:t.status||'open',source:t.source||null,completed_at:t.completedAt?new Date(t.completedAt).toISOString():null}}
+function localTaskRow(r){return{id:r.client_id,title:r.title,project:r.project||'',agent:r.agent||'dispatcher',priority:r.priority||'mid',due:r.due||'',notes:r.notes||'',katya:!!r.katya,status:r.status||'open',source:r.source||'cloud',...(r.completed_at?{completedAt:new Date(r.completed_at).getTime()}:{})}}
+function scheduleTaskSync(){if(!cloudUser||cloudPulling||!sb)return;clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(pushTasksToCloud,700)}
+function scheduleSettingsSync(){if(!cloudUser||cloudPulling||!sb)return;clearTimeout(settingsSyncTimer);settingsSyncTimer=setTimeout(pushSettingsToCloud,900)}
+async function pushTasksToCloud(){if(!cloudUser||cloudPulling||!sb)return;try{setCloudStatus('syncing','синхр...');const rows=state.tasks.map(cloudTaskRow);if(rows.length){const {error}=await sb.from('factory_tasks').upsert(rows,{onConflict:'owner_id,client_id'});if(error)throw error}setCloudStatus('online','облако')}catch(e){console.warn(e);setCloudStatus('offline','ошибка')}}
+async function pushLogToCloud(l){if(!cloudUser||cloudPulling||!sb||!l)return;try{const row={owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''};const {error}=await sb.from('factory_logs').upsert(row,{onConflict:'owner_id,client_id'});if(error)throw error}catch(e){console.warn('cloud log',e)}}
+async function pushAllLogsToCloud(){if(!cloudUser||cloudPulling||!sb||!state.logs.length)return;try{const rows=state.logs.map(l=>({owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id'});if(error)throw error}catch(e){console.warn('cloud logs',e)}}
+async function pushSettingsToCloud(){if(!cloudUser||cloudPulling||!sb)return;try{const row={owner_id:cloudUser.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error}catch(e){console.warn(e)}}
+async function deleteCloudTask(id){if(!cloudUser||!sb)return;try{await sb.from('factory_tasks').delete().eq('owner_id',cloudUser.id).eq('client_id',String(id))}catch(e){console.warn(e)}}
+async function pullCloud(){if(!cloudUser||!sb||cloudPulling)return;cloudPulling=true;setCloudStatus('syncing','загрузка');try{
+ const [tr,sr,lr]=await Promise.all([
+  sb.from('factory_tasks').select('*').eq('owner_id',cloudUser.id).order('created_at',{ascending:true}),
+  sb.from('factory_settings').select('*').eq('owner_id',cloudUser.id).maybeSingle(),
+  sb.from('factory_logs').select('*').eq('owner_id',cloudUser.id).order('event_time',{ascending:false}).limit(180)
+ ]);
+ if(tr.error)throw tr.error;if(tr.data&&tr.data.length)state.tasks=tr.data.map(localTaskRow);else await pushTasksToCloud();
+ if(sr.data){state.paused=!!sr.data.paused;state.speed=Number(sr.data.speed||1);state.selected=sr.data.selected||'dispatcher';state.taskFilter=sr.data.task_filter||'open';state.search=sr.data.search||''}else await pushSettingsToCloud();
+ if(lr.data&&lr.data.length)state.logs=lr.data.map(x=>({id:x.client_id,time:new Date(x.event_time).getTime(),kind:x.kind,agent:x.agent,msg:x.msg}));else await pushAllLogsToCloud();
+ localStorage.setItem(STORAGE,JSON.stringify(state));renderHeader();renderAgents();renderFocus();renderTab();$('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';setCloudStatus('online','облако');
+ }catch(e){console.warn(e);setCloudStatus('offline','ошибка');toast('Не удалось синхронизировать облако')}finally{cloudPulling=false}}
+function subscribeCloud(){if(!sb||!cloudUser)return;if(cloudChannel)sb.removeChannel(cloudChannel);let rt=null;cloudChannel=sb.channel('digital-factory-'+cloudUser.id).on('postgres_changes',{event:'*',schema:'public',table:'factory_tasks',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_settings',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_logs',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).subscribe()}
+async function connectCloud(user){cloudUser=user;setCloudStatus('syncing','подключение');await pullCloud();subscribeCloud()}
+async function initCloud(){if(!sb){setCloudStatus('offline','локально');return}try{const {data}=await sb.auth.getSession();if(data?.session?.user)await connectCloud(data.session.user);else setCloudStatus('offline','локально');sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user&&!cloudUser)connectCloud(session.user);if(event==='SIGNED_OUT'){cloudUser=null;if(cloudChannel){sb.removeChannel(cloudChannel);cloudChannel=null}setCloudStatus('offline','локально');renderAuthState()}})}catch(e){setCloudStatus('offline','локально')}}
+function renderAuthState(){const box=$('#authStateBox'),fields=$('#authFields'),ib=$('#signInBtn'),ob=$('#signOutBtn');if(!box)return;if(cloudUser){box.innerHTML='<strong>Сейчас:</strong> вход выполнен. Общая база активна.';fields.classList.add('hidden');ib.classList.add('hidden');ob.classList.remove('hidden')}else{box.innerHTML='<strong>Сейчас:</strong> локальный режим. Для общей базы нужно войти.';fields.classList.remove('hidden');ib.classList.remove('hidden');ob.classList.add('hidden')}}
+function openAuth(){renderAuthState();$('#authModal').classList.add('open')}function closeAuth(){$('#authModal').classList.remove('open')}
+
+function renderHeader(){const o=openTasks();$('#activeTasks').textContent=o.length;$('#needKatya').textContent=o.filter(t=>t.katya).length;$('#overdueTasks').textContent=overdue().length}
+function renderAgents(){const box=$('#agents');box.innerHTML='';AGENTS.forEach(a=>{const tasks=openTasks().filter(t=>t.agent===a.id);const top=[...tasks].sort((x,y)=>scoreTask(y)-scoreTask(x))[0];const div=document.createElement('div');div.className='agent'+(state.selected===a.id?' active':'');div.innerHTML=`<div class="avatar" style="--avatar:${a.color}">${a.emoji}</div><div><strong>${a.name}</strong><small>${a.role}${top?' · '+escapeHtml(top.project||'задача'):''}</small></div><div class="state">${top?'●':'○'}</div>`;div.onclick=()=>selectAgent(a.id,true);box.appendChild(div)})}
+function selectAgent(id,focus=false){state.selected=id;save();renderAgents();renderFocus();if(focus&&worldAgents[id]){cameraTarget.copy(worldAgents[id].group.position);toast(agentBy(id).role)}}
+function renderFocus(){const a=agentBy(state.selected),tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0];$('#focusName').textContent=a.emoji+' '+a.name;$('#focusRole').textContent=a.role;$('#focusGoal').textContent=a.goal;$('#focusNow').textContent=top?'Сейчас: '+top.title:'Сейчас: свободен, проверяет очередь';$('#focusProgress').style.width=Math.min(100,tasks.length?Math.max(12,100-tasks.length*12):100)+'%'}
+function projectGroups(){
+ const map=new Map();
+ state.tasks.forEach(t=>{const p=(t.project||'Без проекта').trim()||'Без проекта';if(!map.has(p))map.set(p,[]);map.get(p).push(t)});
+ return [...map.entries()].sort((a,b)=>Math.max(...b[1].map(scoreTask))-Math.max(...a[1].map(scoreTask)))
+}
+function taskCard(t,attention=false){
+ const a=agentBy(t.agent),isDone=t.status==='done';
+ return `<div class="${attention?'attention-card '+(t.priority==='high'?'danger':''):'task-card'}" style="${isDone?'opacity:.62':''}">
+  <div class="task-top"><div class="task-title">${escapeHtml(t.title)}</div><span class="tag ${isDone?'done':t.priority}">${isDone?'Выполнено':prioText[t.priority]}</span></div>
+  <div class="task-meta">${escapeHtml(t.project||'Без проекта')} · ${a.emoji} ${a.role}<br>Срок: ${dueText(t)}${t.katya&&!isDone?' · <b style="color:#f1d08c">нужно решение Кати</b>':''}</div>
+  ${t.notes?`<div class="task-meta" style="color:#c9d3ce">${escapeHtml(t.notes)}</div>`:''}
+  <div class="task-actions">
+   ${isDone?`<button data-reopen="${t.id}">↩ Вернуть</button>`:`<button class="done" data-done="${t.id}">✓ Выполнено</button><button data-day="${t.id}">+1 день</button><button data-katya="${t.id}">${t.katya?'Снять «Кате»':'Нужно Кате'}</button>`}
+   <button data-edit="${t.id}">Изменить</button>
+   <button data-select-agent="${t.agent}">Сотрудник</button>
+  </div></div>`
+}
+function todayView(){
+ const open=openTasks(),today=open.filter(t=>dueDiff(t)<=0),katya=open.filter(t=>t.katya),late=overdue(),top=[...open].sort((a,b)=>scoreTask(b)-scoreTask(a)).slice(0,3);
+ const first=top[0];
+ return `<div class="today-hero"><small>${new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long'}).format(new Date())}</small>
+   <h3>${first?'Главное сейчас: '+escapeHtml(first.title):'Срочных задач сейчас нет 🎉'}</h3>
+   <p>${first?escapeHtml(first.project||'Без проекта')+' · '+agentBy(first.agent).role+(first.katya?' · требуется твоё решение':''):'Можно проверить проекты или добавить новую задачу.'}</p></div>
+  <div class="metrics"><div class="metric"><small>НА СЕГОДНЯ</small><b>${today.length}</b></div><div class="metric"><small>ТРЕБУЕТ ТЕБЯ</small><b>${katya.length}</b></div><div class="metric"><small>ПРОСРОЧЕНО</small><b>${late.length}</b></div></div>
+  <div class="section-title">ПЕРВЫЕ ТРИ ДЕЙСТВИЯ</div>${top.length?top.map(t=>taskCard(t,true)).join(''):'<div class="empty">Очередь свободна.</div>'}
+  <div class="section-title">АКТИВНЫЕ ПРОЕКТЫ</div>${projectGroups().filter(([p,ts])=>ts.some(t=>t.status!=='done')).slice(0,5).map(projectCard).join('')||'<div class="empty">Нет активных проектов.</div>'}`
+}
+function projectCard([name,tasks]){
+ const done=tasks.filter(t=>t.status==='done').length,open=tasks.length-done,pct=Math.round(done/tasks.length*100),need=tasks.filter(t=>t.status!=='done'&&t.katya).length;
+ return `<div class="project-card" data-project="${escapeHtml(name)}"><div class="project-head"><h4>${escapeHtml(name)}</h4><span class="pct">${pct}%</span></div><div class="progress"><i style="width:${pct}%"></i></div><div class="project-line"><span class="mini">${open} активн.</span><span class="mini">${done} выполн.</span>${need?`<span class="mini" style="color:#f1d08c">${need} требует Кати</span>`:''}</div></div>`
+}
+function renderTab(){
+ const v=$('#tabview');$('#workTitle').textContent={today:'Сегодня',attention:'Требует внимания',tasks:'Все задачи',projects:'Проекты',log:'Журнал решений',connections:'Связи'}[activeTab]||'Рабочий центр';
+ if(activeTab==='today')v.innerHTML=todayView();
+ else if(activeTab==='attention'){const tasks=openTasks().filter(t=>t.katya||scoreTask(t)>=90).sort((a,b)=>scoreTask(b)-scoreTask(a));v.innerHTML=tasks.length?tasks.map(t=>taskCard(t,true)).join(''):'<div class="empty">Сейчас нет задач, требующих твоего решения 🎉</div>'}
+ else if(activeTab==='tasks'){
+  const q=(state.search||'').toLowerCase(),status=state.taskFilter||'open';
+  let tasks=state.tasks.filter(t=>status==='all'||(status==='open'?t.status!=='done':t.status==='done'));
+  if(q)tasks=tasks.filter(t=>[t.title,t.project,t.notes,agentBy(t.agent).role].join(' ').toLowerCase().includes(q));
+  tasks.sort((a,b)=>a.status===b.status?scoreTask(b)-scoreTask(a):(a.status==='done'?1:-1));
+  v.innerHTML=`<div class="searchbar"><input id="taskSearch" value="${escapeHtml(state.search||'')}" placeholder="Поиск по задачам и проектам"><button data-filter="open">Активные</button><button data-filter="done">Готово</button><button data-filter="all">Все</button></div>${tasks.length?tasks.map(t=>taskCard(t)).join(''):'<div class="empty">Ничего не найдено.</div>'}`;
+  const inp=$('#taskSearch'); if(inp)inp.oninput=e=>{state.search=e.target.value;save();clearTimeout(renderTab.searchT);renderTab.searchT=setTimeout(renderTab,250)};
+  $$('[data-filter]').forEach(b=>{if(b.dataset.filter===status)b.style.background='rgba(34,167,126,.16)';b.onclick=()=>{state.taskFilter=b.dataset.filter;save();renderTab()}})
+ }
+ else if(activeTab==='projects')v.innerHTML=projectGroups().map(projectCard).join('')||'<div class="empty">Проектов пока нет.</div>';
+ else if(activeTab==='log')v.innerHTML=state.logs.length?state.logs.map(l=>`<div class="log-entry ${l.kind}"><span class="ico">${l.kind==='alert'?'⚠️':l.kind==='decision'?'🧠':'💬'}</span><div class="time">${fmtTime(l.time)} · ${escapeHtml(agentBy(l.agent).name)}</div>${escapeHtml(l.msg)}</div>`).join(''):'<div class="empty">Лог пока пуст.</div>';
+ else v.innerHTML=`<div class="connection-card"><div><strong>💾 Локальная база</strong><small>Задачи, проекты и журнал сохраняются в браузере этого устройства.</small></div><span class="conn-state local">работает</span></div>
+  <div class="connection-card"><div><strong>📱 Android / PWA</strong><small>Онлайн-версия работает по HTTPS и подготовлена для установки на главный экран.</small></div><span class="conn-state local">HTTPS ✓</span></div>
+  <div class="connection-card"><div><strong>📧 Gmail</strong><small>Следующий этап: новые письма, ответы и ожидания клиентов.</small></div><span class="conn-state off">не подключено</span></div>
+  <div class="connection-card"><div><strong>📅 Google Calendar</strong><small>Следующий этап: замеры, встречи, производство и дедлайны.</small></div><span class="conn-state off">не подключено</span></div>
+  <div class="connection-card"><div><strong>🗄 Supabase</strong><small>Общая база подготовлена. После входа задачи синхронизируются между ПК и Android.</small></div><span class="conn-state local">готово ✓</span></div>
+  <div class="connection-card"><div><strong>🤖 AI-мозг</strong><small>После подключения агенты смогут анализировать реальные сообщения, проекты и документы.</small></div><span class="conn-state off">не подключено</span></div>
+  <div class="section-title">ДАННЫЕ</div><div class="task-actions"><button id="connExport">Резервная копия</button><button id="connImport">Импорт</button><button id="connBrief">Что делать сейчас?</button></div>`;
+ wireTaskButtons();
+ $('#connExport')?.addEventListener('click',exportData);$('#connImport')?.addEventListener('click',()=>$('#importFile').click());$('#connBrief')?.addEventListener('click',showBrief);
+ $$('.project-card[data-project]').forEach(c=>c.onclick=()=>{state.search=c.dataset.project;state.taskFilter='all';switchTab('tasks')})
+}
+function wireTaskButtons(){
+ $$('[data-done]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.done);if(!t)return;t.status='done';t.completedAt=Date.now();addLog('decision',t.agent,`Задача закрыта: ${t.title}`);renderAll();toast('Задача закрыта')});
+ $$('[data-reopen]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.reopen);if(!t)return;t.status='open';delete t.completedAt;addLog('decision',t.agent,`Задача возвращена в работу: ${t.title}`);renderAll();toast('Вернула в работу')});
+ $$('[data-katya]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.katya);if(!t)return;t.katya=!t.katya;save();renderAll()});
+ $$('[data-day]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.day);if(!t)return;const d=t.due?new Date(t.due+'T00:00:00'):new Date();d.setDate(d.getDate()+1);t.due=iso(d);addLog('decision',t.agent,`Срок задачи перенесён на ${t.due}: ${t.title}`);renderAll();toast('Перенесла на +1 день')});
+ $$('[data-edit]').forEach(b=>b.onclick=()=>openTaskModal(state.tasks.find(x=>x.id===b.dataset.edit)));
+ $$('[data-select-agent]').forEach(b=>b.onclick=()=>selectAgent(b.dataset.selectAgent,true));
+}
+function renderAll(){renderHeader();renderAgents();renderFocus();renderTab();save();scheduleTaskSync()}
+
+function switchTab(tab){
+ activeTab=tab;$$('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.body.dataset.mobileView='work';$$('.mobile-nav button').forEach(x=>x.classList.toggle('active',x.dataset.tabTarget===tab&&x.dataset.mob==='work'));renderTab()
+}
+$$('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+$('#fAgent').innerHTML=AGENTS.map(a=>`<option value="${a.id}">${a.emoji} ${a.role}</option>`).join('');
+function openTaskModal(t=null){
+ $('#taskModal').classList.add('open');$('#taskModalTitle').textContent=t?'Изменить задачу':'Новая задача';$('#fId').value=t?.id||'';$('#fTitle').value=t?.title||'';$('#fProject').value=t?.project||'';$('#fAgent').value=t?.agent||state.selected||'dispatcher';$('#fPriority').value=t?.priority||'mid';$('#fDue').value=t?.due||'';$('#fNotes').value=t?.notes||'';$('#fKatya').checked=!!t?.katya;$('#deleteTask').classList.toggle('hidden',!t);setTimeout(()=>$('#fTitle').focus(),120)
+}
+function closeTaskModal(){$('#taskModal').classList.remove('open')}
+$('#addTask').onclick=()=>openTaskModal();$('#mobileAdd').onclick=()=>openTaskModal();$('#cancelTask').onclick=closeTaskModal;$('#taskModal').onclick=e=>{if(e.target.id==='taskModal')closeTaskModal()};
+$('#saveTask').onclick=()=>{
+ const title=$('#fTitle').value.trim();if(!title){toast('Напиши задачу');return}
+ const id=$('#fId').value,t=id?state.tasks.find(x=>x.id===id):null;
+ const data={title,project:$('#fProject').value.trim(),agent:$('#fAgent').value,priority:$('#fPriority').value,due:$('#fDue').value,notes:$('#fNotes').value.trim(),katya:$('#fKatya').checked};
+ if(t){Object.assign(t,data);addLog('decision',t.agent,`Задача обновлена: ${t.title}`)}else{const n={id:'u'+Date.now(),...data,status:'open',source:'user',createdAt:Date.now()};state.tasks.push(n);addLog('decision',n.agent,`Получена новая задача: ${n.title}`)}
+ closeTaskModal();renderAll();toast(t?'Изменения сохранены':'Задача добавлена')
+};
+$('#deleteTask').onclick=()=>{const id=$('#fId').value,t=state.tasks.find(x=>x.id===id);if(!t)return;if(confirm(`Удалить задачу «${t.title}»?`)){state.tasks=state.tasks.filter(x=>x.id!==id);deleteCloudTask(id);addLog('alert','dispatcher',`Удалена задача: ${t.title}`);closeTaskModal();renderAll();toast('Задача удалена')}};
+$('#focusAttention').onclick=()=>{state.search='';state.taskFilter='open';switchTab('tasks');toast('Задачи: '+agentBy(state.selected).role)};
+
+function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='МАКСимум_фабрика_v3_'+iso(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия создана')}
+$('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=normalize(JSON.parse(await f.text()));if(!Array.isArray(data.tasks))throw new Error();state=data;renderAll();toast('Данные импортированы')}catch(err){toast('Не удалось прочитать файл')}e.target.value=''};
+
+function showBrief(){
+ const top=[...openTasks()].sort((a,b)=>scoreTask(b)-scoreTask(a)).slice(0,5),late=overdue().length,need=openTasks().filter(t=>t.katya).length;
+ $('#briefSummary').textContent=`Активных задач: ${openTasks().length}. Требует твоего решения: ${need}. Просрочено: ${late}.`;
+ $('#briefList').innerHTML=top.length?top.map((t,i)=>`<div class="brief-item"><b>${i+1}. ${escapeHtml(t.title)}</b><p>${escapeHtml(t.project||'Без проекта')} · ${agentBy(t.agent).role} · ${dueText(t)}${t.katya?' · нужно твоё решение':''}</p></div>`).join(''):'<div class="empty">Срочных задач нет 🎉</div>';
+ $('#briefModal').classList.add('open');
+ top.slice(0,3).forEach((t,i)=>addLog('alert',t.agent,`Приоритет ${i+1}: ${t.title} (${t.project})`))
+}
+$('#dailyBrief').onclick=showBrief;$('#closeBrief').onclick=()=>$('#briefModal').classList.remove('open');$('#briefModal').onclick=e=>{if(e.target.id==='briefModal')$('#briefModal').classList.remove('open')};
+
+
+$('#accountBtn').onclick=openAuth;$('#syncBtn').onclick=()=>cloudUser?pullCloud():openAuth();$('#closeAuth').onclick=closeAuth;$('#authModal').onclick=e=>{if(e.target.id==='authModal')closeAuth()};
+$('#signInBtn').onclick=async()=>{if(!sb){toast('Supabase не загрузился');return}const email=$('#authEmail').value.trim(),password=$('#authPassword').value;if(!email||!password){toast('Введи email и пароль');return}$('#signInBtn').disabled=true;$('#signInBtn').textContent='Вхожу…';try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(data?.user){await connectCloud(data.user);renderAuthState();toast('Общая база подключена')}}catch(e){console.warn(e);toast('Не удалось войти: проверь почту и пароль')}finally{$('#signInBtn').disabled=false;$('#signInBtn').textContent='Войти и синхронизировать'}};
+$('#signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();cloudUser=null;renderAuthState();setCloudStatus('offline','локально');toast('Облачная сессия отключена')};
+
+function voiceCapture(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){toast('Голосовой ввод не поддерживается этим браузером');openTaskModal();return}
+ const r=new SR();r.lang='ru-RU';r.interimResults=false;r.maxAlternatives=1;toast('Говори задачу…');r.onresult=e=>{openTaskModal();$('#fTitle').value=e.results[0][0].transcript;toast('Распознала. Проверь и сохрани.')};r.onerror=()=>toast('Не получилось распознать. Попробуй ещё раз.');r.start()
+}
+$('#voiceTask').onclick=voiceCapture;
+
+$$('.mobile-nav button').forEach(b=>b.onclick=()=>{
+ const view=b.dataset.mob;document.body.dataset.mobileView=view;$$('.mobile-nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+ if(view==='work'&&b.dataset.tabTarget)switchTab(b.dataset.tabTarget);
+ if(view==='world')setTimeout(resizeWorld,50)
+});
+
+// ---------- Three.js world ----------
+let renderer,scene,camera,cameraTarget=new THREE.Vector3(0,0,0),worldAgents={},zonePos={};
+function initWorld(){
+ const host=$('#world');scene=new THREE.Scene();scene.background=new THREE.Color(0x0e211a);scene.fog=new THREE.Fog(0x0e211a,30,70);camera=new THREE.PerspectiveCamera(47,Math.max(host.clientWidth,1)/Math.max(host.clientHeight,1),.1,120);camera.position.set(24,23,27);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(Math.max(host.clientWidth,1),Math.max(host.clientHeight,1));renderer.shadowMap.enabled=true;host.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0xd8fff0,0x1a2b23,1.7));const sun=new THREE.DirectionalLight(0xffebc2,2.2);sun.position.set(18,30,14);sun.castShadow=true;scene.add(sun);
+ const floor=new THREE.Mesh(new THREE.BoxGeometry(38,1,28),new THREE.MeshStandardMaterial({color:0x30483c,roughness:.95}));floor.position.y=-.5;floor.receiveShadow=true;scene.add(floor);
+ const zones=[['clients',-12,7,0x2e5970,'КЛИЕНТЫ'],['design',0,8,0x53436f,'ДИЗАЙН'],['production',12,7,0x6d533d,'ПРОИЗВОДСТВО'],['marketing',-11,-7,0x66434e,'МАРКЕТИНГ'],['documents',7,-7,0x4d526d,'ДОКУМЕНТЫ'],['meeting',0,0,0x39604e,'СОВЕЩАНИЕ']];
+ zones.forEach(([id,x,z,c,label])=>{zonePos[id]=new THREE.Vector3(x,0,z);const pad=new THREE.Mesh(new THREE.CylinderGeometry(id==='meeting'?4.3:4.8,id==='meeting'?4.3:4.8,.32,32),new THREE.MeshStandardMaterial({color:c,roughness:.8}));pad.position.set(x,.16,z);pad.receiveShadow=true;scene.add(pad);const table=new THREE.Mesh(new THREE.BoxGeometry(id==='meeting'?4.8:5.8,.45,2.4),new THREE.MeshStandardMaterial({color:0x8a6f4f,roughness:.9}));table.position.set(x,1.05,z);table.castShadow=true;scene.add(table);const spr=labelSprite(label);spr.position.set(x,3.2,z);scene.add(spr)});
+ AGENTS.forEach((a,i)=>{const g=makePerson(a),zp=zonePos[a.zone];g.position.set(zp.x+(i%2?1.5:-1.5)+Math.random(),1,zp.z+(Math.random()*2-1));scene.add(g);worldAgents[a.id]={group:g,target:g.position.clone(),phase:Math.random()*6.28}});
+ renderer.domElement.addEventListener('pointerdown',pickPerson);window.addEventListener('resize',resizeWorld);animateWorld(performance.now())
+}
+function labelSprite(text){const c=document.createElement('canvas');c.width=512;c.height=96;const x=c.getContext('2d');x.fillStyle='rgba(6,16,12,.78)';x.fillRect(20,18,472,58);x.fillStyle='#e8e0c8';x.font='700 24px Segoe UI';x.textAlign='center';x.fillText(text,256,56);const tex=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));s.scale.set(6.5,1.22,1);return s}
+function makePerson(a){const g=new THREE.Group();g.userData.agentId=a.id;const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,1.2,4,8),new THREE.MeshStandardMaterial({color:new THREE.Color(a.color),roughness:.7}));body.position.y=1.4;body.castShadow=true;body.userData.agentId=a.id;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.42,12,10),new THREE.MeshStandardMaterial({color:0xe8bea0,roughness:.8}));head.position.y=2.7;head.castShadow=true;head.userData.agentId=a.id;g.add(head);const ring=new THREE.Mesh(new THREE.RingGeometry(.55,.67,22),new THREE.MeshBasicMaterial({color:new THREE.Color(a.color),side:THREE.DoubleSide,transparent:true,opacity:.75}));ring.rotation.x=-Math.PI/2;ring.position.y=.08;g.add(ring);const n=labelSprite(a.name);n.scale.set(3.6,.68,1);n.position.y=3.55;g.add(n);return g}
+function pickPerson(e){const r=renderer.domElement.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1)),ray=new THREE.Raycaster();ray.setFromCamera(m,camera);const hits=ray.intersectObjects(Object.values(worldAgents).map(x=>x.group),true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.agentId)o=o.parent;if(o?.userData.agentId)selectAgent(o.userData.agentId,true)}}
+function resizeWorld(){const h=$('#world');if(!renderer||!h.clientWidth||!h.clientHeight)return;camera.aspect=h.clientWidth/h.clientHeight;camera.updateProjectionMatrix();renderer.setSize(h.clientWidth,h.clientHeight)}
+$('#focusCamera').onclick=()=>{const w=worldAgents[state.selected];if(w){cameraTarget.copy(w.group.position);toast('Камера: '+agentBy(state.selected).name)}};
+let last=performance.now(),simMinutes=9*60,decisionTimer=0;const speeds=[.5,1,2,4];
+$('#pause').onclick=()=>{state.paused=!state.paused;$('#pause').textContent=state.paused?'Продолжить':'Пауза';$('#worldStatus').textContent=state.paused?'Фабрика на паузе':'Фабрика работает';save()};
+$('#speed').onclick=()=>{let i=speeds.indexOf(state.speed||1);state.speed=speeds[(i+1)%speeds.length];$('#speed').textContent='Скорость '+state.speed+'×';save()};
+function animateWorld(now){
+ requestAnimationFrame(animateWorld);const raw=Math.min(.05,(now-last)/1000);last=now,dt=state.paused?0:raw*(state.speed||1);simMinutes=(simMinutes+dt*5)%1440;$('#simClock').textContent=String(Math.floor(simMinutes/60)).padStart(2,'0')+':'+String(Math.floor(simMinutes%60)).padStart(2,'0');$('#simDay').textContent='Рабочий день · режим '+(state.speed||1)+'×';decisionTimer+=dt;if(decisionTimer>6){decisionTimer=0;agentDecision()}
+ Object.entries(worldAgents).forEach(([id,w])=>{const to=w.target.clone().sub(w.group.position);to.y=0;const d=to.length();if(d>.25){to.normalize();w.group.position.addScaledVector(to,dt*(1.05+((id.charCodeAt(0)%4)*.08)));w.group.rotation.y=Math.atan2(to.x,to.z)}w.group.position.y=1+Math.sin(now*.004+w.phase)*.025});
+ cameraTarget.lerp(new THREE.Vector3(0,0,0),.003);const desired=new THREE.Vector3(cameraTarget.x+24,23,cameraTarget.z+27);camera.position.lerp(desired,.025);camera.lookAt(cameraTarget.x,0,cameraTarget.z);if(renderer.domElement.clientWidth>0)renderer.render(scene,camera)
+}
+function agentDecision(){
+ AGENTS.forEach((a,idx)=>{const tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0],w=worldAgents[a.id];if(top){const home=zonePos[a.zone].clone();home.x+=((idx%3)-1)*1.2;home.z+=((idx%2)-.5)*1.3;w.target.copy(home);if(Math.random()<.26)addLog('decision',a.id,`Выбираю «${top.title}»: ${top.katya?'нужно решение Кати; ':''}${prioText[top.priority].toLowerCase()}, срок — ${dueText(top)}.`)}else{const m=zonePos.meeting.clone();m.x+=Math.random()*5-2.5;m.z+=Math.random()*5-2.5;w.target.copy(m)}})
+ const t=openTasks().find(t=>t.priority==='high'&&t.agent==='designer');if(t&&Math.random()<.22){worldAgents.designer.target.copy(zonePos.meeting).add(new THREE.Vector3(-1,0,0));worldAgents.technologist.target.copy(zonePos.meeting).add(new THREE.Vector3(1,0,0));addLog('ai','technologist',`Запрашиваю у дизайнера контекст по «${t.project}», чтобы проверить технологические риски.`)}
+}
+initWorld();
+
+// ---------- PWA / install ----------
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBanner').classList.add('show')});
+$('#installBtn').onclick=async()=>{if(!deferredPrompt){toast('Установка станет доступна после размещения приложения по защищённой ссылке');return}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBanner').classList.remove('show')};
+$('#installClose').onclick=()=>$('#installBanner').classList.remove('show');
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=4',{updateViaCache:'none'}).catch(()=>{});
+
+// startup
+if(!state.logs.length){addLog('decision','dispatcher','Цифровая фабрика v3 запущена. После входа включается общая база ПК ↔ Android.');addLog('alert','dispatcher','Экран «Сегодня» показывает только ближайшие приоритеты, чтобы не перегружать тебя всей очередью сразу.')}
+$('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';
+renderAll();
+initCloud();
+})();
+</script>
+<script>
+(function(){
+ const CODE='MF-7Q9K-52XT',KEY='mf_factory_gate_v1';
+ const g=document.getElementById('webGate'),i=document.getElementById('webGateCode'),b=document.getElementById('webGateBtn'),e=document.getElementById('webGateErr');
+ function open(){sessionStorage.setItem(KEY,'1');g.remove();}
+ if(sessionStorage.getItem(KEY)==='1'){g.remove();return;}
+ function check(){if(i.value.trim()===CODE)open();else{e.textContent='Код неверный';i.select();}}
+ b.addEventListener('click',check);i.addEventListener('keydown',x=>{if(x.key==='Enter')check()});setTimeout(()=>i.focus(),100);
+})();
+</script></body>
+</html>

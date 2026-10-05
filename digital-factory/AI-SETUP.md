@@ -7,7 +7,7 @@ In the existing Vercel project, add **Production** environment variables:
 - `GIGACHAT_CREDENTIALS`: the GigaChat **Authorization key**, the same type of credential used by the existing MAX bot. This is not the temporary access token. Never add it to GitHub, HTML or chat.
 - `GIGACHAT_SCOPE`: the scope of the existing subscription, usually `GIGACHAT_API_PERS`, or `GIGACHAT_API_B2B` / `GIGACHAT_API_CORP` for the corresponding account. Default: `GIGACHAT_API_PERS`.
 - `FACTORY_AI_MODEL`: a model available to the subscription. Default: `GigaChat-2-Pro`.
-- `GIGACHAT_CA_PEM`: if required by the provider's certificate chain, the official trusted CA PEM chain. It is used only for the two GigaChat hosts, with hostname verification kept enabled.
+- `GIGACHAT_CA_PEM`: optional override of the official trusted CA PEM chain. The official root is already bundled in `api/lib/gigachat-roots.json`, downloaded from the URL in the provider's certificate documentation. It is used only for the two GigaChat hosts, with hostname verification kept enabled. No system trust store is changed.
 - Optional `FACTORY_AI_ALLOWED_USERS`: comma-separated Supabase user UUIDs allowed to use the assistant. If omitted, authenticated factory users can use their own task data.
 
 Redeploy after changing environment variables. GET `/api/factory-ai` should return `configured: true`. This checks the presence of the key, not its validity. A successful signed-in request is required to verify OAuth, the model subscription and the actual reply.

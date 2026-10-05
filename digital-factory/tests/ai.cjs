@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const handler=require('../../api/factory-ai.js');
+const https=require('node:https'),{EventEmitter}=require('node:events');const previousRequest=https.request;
 const previousFetch=global.fetch,previousKey=process.env.GIGACHAT_CREDENTIALS;
 const calls=[];let user='test-user',mode='ok';
 global.fetch=async(url,options={})=>{
@@ -17,6 +18,10 @@ async function request(method,body,authorization='Bearer FAKE_USER_TOKEN'){
  await handler({method,body,headers:{authorization}},res);return res;
 }
 const input={agent:'designer',message:'Что сделать дальше?',history:[]};
+https.request=(url,options,callback)=>{
+ assert.notEqual(options.rejectUnauthorized,false);assert(options.ca.length>1);
+ const req=new EventEmitter();let body='';req.write=chunk=>{body+=chunk};req.destroy=error=>req.emit('error',error);req.end=()=>{global.fetch(url,{...options,body}).then(async result=>{const res=new EventEmitter();res.statusCode=result.status;callback(res);res.emit('data',JSON.stringify(await result.json()));res.emit('end')}).catch(error=>req.emit('error',error))};return req;
+};
 async function run(){
  delete process.env.GIGACHAT_CREDENTIALS;
  let res=await request('GET');assert.equal(res.code,200);assert.equal(res.body.configured,false);
@@ -39,4 +44,4 @@ async function run(){
  user='empty-test';mode='empty-reply';assert.equal((await request('POST',input)).code,502);
  console.log('PASS: config, JWT validation, request bounds, role validation, owner-scoped context, GigaChat OAuth, provider request, token separation, token cache, rate limit, safe failure handling');
 }
-run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{global.fetch=previousFetch;if(previousKey===undefined)delete process.env.GIGACHAT_CREDENTIALS;else process.env.GIGACHAT_CREDENTIALS=previousKey});
+run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{global.fetch=previousFetch;https.request=previousRequest;if(previousKey===undefined)delete process.env.GIGACHAT_CREDENTIALS;else process.env.GIGACHAT_CREDENTIALS=previousKey});

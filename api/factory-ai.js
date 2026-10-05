@@ -2,6 +2,7 @@
 const {randomUUID}=require('node:crypto');
 const https=require('node:https');
 const tls=require('node:tls');
+const gigaRoots=require('./lib/gigachat-roots.json');
 const SUPABASE_URL='https://uhyaigqizvwtsbtmvkdr.supabase.co';
 const SUPABASE_KEY='sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8';
 const ROLES={dispatcher:'диспетчер: приоритеты, сроки и следующий шаг',manager:'менеджер: вопросы клиенту и черновики ответов',designer:'дизайнер: ТЗ, правки и недостающие исходные данные',technologist:'технолог: проверочные списки размеров и фурнитуры',estimator:'сметчик: структура расчёта без выдуманных цен',production:'контроль производства: этапы, материалы и сроки',content:'контент-менеджер: черновики публикаций',marketing:'маркетолог: идеи и анализ имеющихся данных',documents:'документы: структура и проверочные списки',personal:'личный помощник: планирование личных задач'};
@@ -10,7 +11,7 @@ function configuration(){return{provider:'gigachat',key:process.env.GIGACHAT_CRE
 function answer(res,status,body){res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json; charset=utf-8');return res.status(status).json(body)}
 async function requestJson(url,options={}){
  // Extra roots, when needed, apply only to the two official GigaChat hosts.
- const address=new URL(url),pem=process.env.GIGACHAT_CA_PEM;
+ const address=new URL(url),pem=process.env.GIGACHAT_CA_PEM||gigaRoots.pem;
  if(pem&&['api.giga.chat','ngw.devices.sberbank.ru'].includes(address.hostname)){
   return new Promise((resolve,reject)=>{const req=https.request(address,{method:options.method||'GET',headers:options.headers,ca:[...tls.rootCertificates,pem.replace(/\\n/g,'\n')],timeout:20000},res=>{let body='';res.on('data',chunk=>{body+=chunk;if(body.length>2*1024*1024)req.destroy(new Error('Response too large'))});res.on('end',()=>{try{resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode,data:JSON.parse(body)})}catch(e){reject(e)}})});req.on('timeout',()=>req.destroy(new Error('Timeout')));req.on('error',reject);if(options.body)req.write(options.body);req.end()});
  }

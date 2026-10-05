@@ -6,8 +6,9 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.4</title>
+<title>МАКСимум мебель — цифровая фабрика v3.5</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
@@ -96,11 +97,12 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 #webGate input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.13);background:#07150f;color:#fff;font-size:16px;outline:none}
 #webGate button{width:100%;margin-top:10px;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#22a77e,#0f7d63);color:white;font-weight:800}
 #webGate .err{min-height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
+#webGate .recovery-link{display:block;margin-top:14px;text-align:center;color:#d3af69;font-size:14px;text-underline-offset:4px}
 </style></head>
-<body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><div id="webGateErr" class="err" role="status"></div></form></div>
+<body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><a class="recovery-link" href="./recover.html">Забыли пароль?</a><div id="webGateErr" class="err" role="status"></div></form></div>
 <div id="app">
 <header class="glass">
-  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.4</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.5</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
   <button id="mobileAccountBtn" class="account-btn mobile-account-btn">Войти</button>
   <div class="header-actions">
     <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
@@ -208,7 +210,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
       <div class="field full"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="Почта аккаунта"></div>
       <div class="field full"><label>Пароль</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Пароль"></div>
     </div>
-    <div class="auth-note">Пароль не записывается в приложение. Авторизацию выполняет Supabase; доступ к данным закрыт RLS.</div>
+    <div class="auth-note">Для входа нужен аккаунт фабрики. <a href="./recover.html" style="color:var(--gold)">Забыли пароль? Восстановить доступ</a></div>
     <div class="modal-actions"><button class="btn hidden" id="signOutBtn">Выйти</button><button class="btn" id="closeAuth">Закрыть</button><button class="btn primary" id="signInBtn">Войти и синхронизировать</button></div>
   </div>
 </div>
@@ -479,7 +481,7 @@ let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBanner').classList.add('show')});
 $('#installBtn').onclick=async()=>{if(!deferredPrompt){toast('Установка станет доступна после размещения приложения по защищённой ссылке');return}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBanner').classList.remove('show')};
 $('#installClose').onclick=()=>$('#installBanner').classList.remove('show');
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=34',{updateViaCache:'none'}).catch(()=>{});
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=35',{updateViaCache:'none'}).catch(()=>{});
 
 // startup
 if(!state.logs.length){addLog('decision','dispatcher','Цифровая фабрика v3 запущена. После входа включается общая база ПК ↔ Android.');addLog('alert','dispatcher','Экран «Сегодня» показывает только ближайшие приоритеты, чтобы не перегружать тебя всей очередью сразу.')}

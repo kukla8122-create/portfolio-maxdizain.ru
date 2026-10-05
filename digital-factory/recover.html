@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07110d">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Восстановить доступ — МАКСимум мебель</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<style>
+:root{color-scheme:dark;--bg:#07110d;--panel:#0b1e17;--text:#f5f8f5;--muted:#a8b8ae;--gold:#d3af69;--line:rgba(255,255,255,.15)}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,system-ui,sans-serif}.card{width:min(460px,100%);padding:28px;border:1px solid var(--line);border-radius:24px;background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.35)}.brand{color:var(--gold);font-weight:800;font-size:17px;letter-spacing:.02em;margin-bottom:22px}h1{font-size:25px;line-height:1.2;margin:0 0 12px}p{font-size:15px;line-height:1.6;color:var(--muted);margin:0 0 20px}label{display:block;font-size:15px;margin-bottom:7px}input{width:100%;padding:14px;border:1px solid var(--line);border-radius:12px;background:#07150f;color:var(--text);font:inherit;font-size:17px;margin-bottom:18px}input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:4px}button,.primary-link{display:block;width:100%;border:0;border-radius:12px;padding:14px;background:linear-gradient(135deg,#22a77e,#0f7d63);color:#fff;font:inherit;font-size:16px;font-weight:800;text-align:center;text-decoration:none;cursor:pointer}button:disabled{cursor:wait;opacity:.6}.back{display:block;text-align:center;color:var(--gold);font-size:15px;text-underline-offset:4px;margin-top:22px}.message{font-size:14px;line-height:1.55;margin-top:18px;min-height:22px;color:var(--muted);overflow-wrap:anywhere}.message.error{color:#ffb4b4}.message.success{color:#b7ebd0}.hidden{display:none!important}.note{font-size:13px;margin-top:18px;margin-bottom:0}@media(max-width:480px){.card{padding:24px 20px}}
+</style>
+</head>
+<body>
+<main class="card">
+ <div class="brand">МАКСимум мебель</div>
+ <section id="requestView">
+  <h1>Восстановить доступ</h1>
+  <p>Укажи email аккаунта фабрики. В письме будет ссылка, по которой можно задать новый пароль.</p>
+  <form id="requestForm">
+   <label for="recoverEmail">Email аккаунта</label>
+   <input id="recoverEmail" type="email" autocomplete="username" placeholder="Твоя почта" required>
+   <button id="sendRecovery" type="submit">Отправить письмо</button>
+  </form>
+  <p class="note">Используй прежнюю почту — так сохранятся твои задачи и настройки.</p>
+ </section>
+ <section id="passwordView" class="hidden">
+  <h1>Новый пароль</h1>
+  <p>Придумай пароль для входа в фабрику. Он должен содержать не меньше 8 символов.</p>
+  <form id="passwordForm">
+   <label for="newPassword">Новый пароль</label>
+   <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+   <label for="confirmPassword">Повтори новый пароль</label>
+   <input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+   <button id="savePassword" type="submit">Сохранить пароль</button>
+  </form>
+ </section>
+ <section id="doneView" class="hidden">
+  <h1>Пароль обновлён</h1>
+  <p>Можно открыть фабрику. Твои задачи и настройки остались в прежнем аккаунте.</p>
+  <a class="primary-link" href="./">Открыть фабрику</a>
+ </section>
+ <div id="recoveryMessage" class="message" role="status" aria-live="polite"></div>
+ <a class="back" id="backToFactory" href="./">К входу в фабрику</a>
+</main>
+<script>
+(()=>{
+ 'use strict';
+ const $=s=>document.querySelector(s);
+ const FLAG='maksimum_factory_password_recovery';
+ let pendingRecovery=new URLSearchParams(location.hash.replace(/^#/, '')).get('type')==='recovery';
+ try{pendingRecovery=pendingRecovery||sessionStorage.getItem(FLAG)==='1'}catch{}
+ let recoveryUser=null;
+ const sb=window.supabase?.createClient('https://uhyaigqizvwtsbtmvkdr.supabase.co','sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const callbackURL=new URL('./recover.html',location.href).href;
+ function message(text,kind=''){const box=$('#recoveryMessage');box.textContent=text;box.className='message'+(kind?' '+kind:'')}
+ function view(name){for(const id of ['request','password','done'])$('#'+id+'View').classList.toggle('hidden',id!==name)}
+ function forgetRecovery(){pendingRecovery=false;recoveryUser=null;try{sessionStorage.removeItem(FLAG)}catch{}}
+ function clearCallback(){history.replaceState(null,'',location.pathname)}
+ function activateRecovery(user){if(!user)return;pendingRecovery=true;recoveryUser=user;try{sessionStorage.setItem(FLAG,'1')}catch{}view('password');message('');clearCallback()}
+ $('#backToFactory').addEventListener('click',forgetRecovery);
+ $('#requestForm').onsubmit=async e=>{
+  e.preventDefault();if(!$('#recoverEmail').reportValidity())return;
+  if(!sb){message('Не загрузился модуль входа. Обнови страницу с интернетом.','error');return}
+  const button=$('#sendRecovery');button.disabled=true;button.textContent='Отправляю…';message('');let limited=false;
+  try{const{error}=await sb.auth.resetPasswordForEmail($('#recoverEmail').value.trim(),{redirectTo:callbackURL});if(error)throw error;message('Запрос принят. Если эта почта зарегистрирована в фабрике, на неё придёт письмо. Проверь также папку «Спам».','success')}
+  catch(err){limited=err.status===429;if(limited)message('Письма запрашивались слишком часто. Подожди минуту и попробуй снова.','error');else message('Не удалось запросить письмо. Проверь интернет и попробуй ещё раз.','error')}
+  finally{button.textContent='Отправить письмо';if(limited)setTimeout(()=>{button.disabled=false},60000);else button.disabled=false}
+ };
+ $('#passwordForm').onsubmit=async e=>{
+  e.preventDefault();if(!sb||!recoveryUser){view('request');message('Ссылка устарела. Запроси новое письмо.','error');return}
+  const password=$('#newPassword').value;
+  if(password.length<8){message('Нужно не меньше 8 символов.','error');return}
+  if(password!==$('#confirmPassword').value){message('Пароли не совпадают. Проверь оба поля.','error');return}
+  const button=$('#savePassword');button.disabled=true;button.textContent='Сохраняю…';message('');
+  try{const{error}=await sb.auth.updateUser({password});if(error)throw error;$('#newPassword').value='';$('#confirmPassword').value='';forgetRecovery();clearCallback();view('done');message('')}
+  catch(err){if(err.status===401||err.code==='session_not_found'||err.code==='refresh_token_not_found'){forgetRecovery();view('request');message('Ссылка устарела. Запроси новое письмо.','error')}else if(err.code==='weak_password')message('Этот пароль слишком простой. Добавь буквы разного регистра и цифры.','error');else message('Не удалось сохранить пароль. Проверь интернет и попробуй снова.','error')}
+  finally{button.disabled=false;button.textContent='Сохранить пароль'}
+ };
+ async function init(){
+  if(!sb){message('Не загрузился модуль входа. Обнови страницу с интернетом.','error');return}
+  sb.auth.onAuthStateChange((event,session)=>{
+   if(event==='PASSWORD_RECOVERY'){pendingRecovery=true;try{sessionStorage.setItem(FLAG,'1')}catch{}}
+   setTimeout(()=>{if(event==='PASSWORD_RECOVERY')activateRecovery(session?.user);if(event==='SIGNED_OUT'){forgetRecovery();view('request')}},0);
+  });
+  try{const{data,error}=await sb.auth.getSession();if(error)throw error;if(pendingRecovery&&data?.session?.user)activateRecovery(data.session.user);else if(pendingRecovery||new URLSearchParams(location.hash.replace(/^#/, '')).has('error')){forgetRecovery();clearCallback();message('Ссылка устарела или уже использована. Запроси новое письмо.','error')}}
+  catch{forgetRecovery();clearCallback();message('Не удалось открыть ссылку восстановления. Запроси новое письмо или попробуй с интернетом.','error')}
+ }
+ init();
+})();
+</script>
+</body>
+</html>

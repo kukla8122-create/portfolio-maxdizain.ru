@@ -5,6 +5,7 @@ The current site uses the repository root as its Vercel root directory. The back
 In the existing Vercel project, add **Production** environment variables:
 
 - `GIGACHAT_CREDENTIALS`: the GigaChat **Authorization key**, the same type of credential used by the existing MAX bot. This is not the temporary access token. Never add it to GitHub, HTML or chat.
+- The existing Production secret named `maxmebel` is also accepted when `GIGACHAT_CREDENTIALS` is absent; its secret value remains in Vercel.
 - `GIGACHAT_SCOPE`: the scope of the existing subscription, usually `GIGACHAT_API_PERS`, or `GIGACHAT_API_B2B` / `GIGACHAT_API_CORP` for the corresponding account. Default: `GIGACHAT_API_PERS`.
 - `FACTORY_AI_MODEL`: a model available to the subscription. Default: `GigaChat-2-Pro`.
 - `GIGACHAT_CA_PEM`: optional override of the official trusted CA PEM chain. The official root is already bundled in `api/lib/gigachat-roots.json`, downloaded from the URL in the provider's certificate documentation. It is used only for the two GigaChat hosts, with hostname verification kept enabled. No system trust store is changed.

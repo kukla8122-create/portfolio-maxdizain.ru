@@ -7,7 +7,7 @@ const SUPABASE_URL='https://uhyaigqizvwtsbtmvkdr.supabase.co';
 const SUPABASE_KEY='sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8';
 const ROLES={dispatcher:'диспетчер: приоритеты, сроки и следующий шаг',manager:'менеджер: вопросы клиенту и черновики ответов',designer:'дизайнер: ТЗ, правки и недостающие исходные данные',technologist:'технолог: проверочные списки размеров и фурнитуры',estimator:'сметчик: структура расчёта без выдуманных цен',production:'контроль производства: этапы, материалы и сроки',content:'контент-менеджер: черновики публикаций',marketing:'маркетолог: идеи и анализ имеющихся данных',documents:'документы: структура и проверочные списки',personal:'личный помощник: планирование личных задач'};
 const buckets=new Map();let gigaToken=null,gigaTokenPromise=null;
-function configuration(){return{provider:'gigachat',key:process.env.GIGACHAT_CREDENTIALS,configured:!!process.env.GIGACHAT_CREDENTIALS,model:process.env.FACTORY_AI_MODEL||'GigaChat-2-Pro'}}
+function configuration(){const key=process.env.GIGACHAT_CREDENTIALS||process.env.maxmebel;return{provider:'gigachat',key,configured:!!key,model:process.env.FACTORY_AI_MODEL||'GigaChat-2-Pro'}}
 function answer(res,status,body){res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json; charset=utf-8');return res.status(status).json(body)}
 async function requestJson(url,options={}){
  // Extra roots, when needed, apply only to the two official GigaChat hosts.

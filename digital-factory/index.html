@@ -545,7 +545,7 @@ $('#voiceTask').onclick=voiceCapture;
 $$('.mobile-nav button').forEach(b=>b.onclick=()=>{
  const view=b.dataset.mob;document.body.dataset.mobileView=view;$$('.mobile-nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
  if(view==='work'&&b.dataset.tabTarget)switchTab(b.dataset.tabTarget);
- if(view==='world')setTimeout(resizeWorld,50)
+ window.scrollTo({top:0,left:0});if(view==='world')setTimeout(resizeWorld,50)
 });
 
 // ---------- Three.js world ----------
@@ -574,7 +574,7 @@ $('#speed').onclick=()=>{let i=speeds.indexOf(state.speed||1);state.speed=speeds
 function animateWorld(now){
  requestAnimationFrame(animateWorld);const raw=Math.min(.05,(now-last)/1000);last=now;const dt=state.paused?0:raw*(state.speed||1);simMinutes=(simMinutes+dt*5)%1440;$('#simClock').textContent=String(Math.floor(simMinutes/60)).padStart(2,'0')+':'+String(Math.floor(simMinutes%60)).padStart(2,'0');$('#simDay').textContent='Рабочий день · режим '+(state.speed||1)+'×';decisionTimer+=dt;if(decisionTimer>6){decisionTimer=0;agentDecision()}
  Object.entries(worldAgents).forEach(([id,w])=>{const to=w.target.clone().sub(w.group.position);to.y=0;const d=to.length();if(d>.25){to.normalize();w.group.position.addScaledVector(to,dt*(1.05+((id.charCodeAt(0)%4)*.08)));w.group.rotation.y=Math.atan2(to.x,to.z)}w.group.position.y=1+Math.sin(now*.004+w.phase)*.025});
- if(renderer&&cameraTarget){cameraTarget.lerp(new THREE.Vector3(0,0,0),.003);const desired=new THREE.Vector3(cameraTarget.x+24,23,cameraTarget.z+27);camera.position.lerp(desired,.025);camera.lookAt(cameraTarget.x,0,cameraTarget.z);if(renderer.domElement.clientWidth>0)renderer.render(scene,camera)}
+ if(renderer&&cameraTarget){cameraTarget.lerp(new THREE.Vector3(0,0,0),.003);const fit=Math.max(1,1.35/Math.max(camera.aspect,.4));const desired=new THREE.Vector3(cameraTarget.x+24*fit,23*fit,cameraTarget.z+27*fit);camera.position.lerp(desired,.025);camera.lookAt(cameraTarget.x,0,cameraTarget.z);if(renderer.domElement.clientWidth>0)renderer.render(scene,camera)}
 }
 function agentDecision(){
  // Visual movement only. The journal records user actions, never simulated AI work.

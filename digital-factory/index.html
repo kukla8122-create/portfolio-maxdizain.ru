@@ -211,7 +211,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
   <form id="aiForm">
    <div class="field"><label for="aiPrompt">Что нужно сделать?</label><textarea id="aiPrompt" maxlength="3000" rows="3" placeholder="Помоги выбрать три главных дела на сегодня" required></textarea></div>
    <div id="aiError" role="alert"></div>
-   <div class="modal-actions"><button type="button" class="btn" id="closeAI">Закрыть</button><button type="submit" class="btn primary" id="sendAI">Спросить GigaChat</button></div>
+   <div class="modal-actions"><button type="button" class="btn" id="testAI">Проверить связь</button><button type="button" class="btn" id="closeAI">Закрыть</button><button type="submit" class="btn primary" id="sendAI">Спросить GigaChat</button></div>
   </form>
  </div>
 </div>
@@ -571,15 +571,16 @@ async function checkAI(){try{const response=await fetch('/api/factory-ai',{cache
 function openAI(agent=state.selected,prompt=''){if(!cloudUser){openAuth();toast('Войди в аккаунт, чтобы AI мог прочитать твои задачи.');return}if(aiBusy){toast('Дождись текущего ответа AI.');return}aiAgent=agent;$('#aiTitle').textContent=agentBy(agent).name+' · GigaChat';$('#aiMeta').textContent=aiConfigured?'Используются до 40 активных задач из облака. Несинхронизированные правки могут отсутствовать.':'Подключение GigaChat ещё не активировано.';$('#aiError').textContent='';$('#aiPrompt').value=prompt;$('#sendAI').disabled=false;renderAIChat();$('#aiModal').classList.add('open');$('#aiPrompt').focus()}
 function closeAI(){$('#aiModal').classList.remove('open')}
 $('#focusAI').onclick=()=>openAI();$('#aiBrief').onclick=()=>openAI('dispatcher','Составь короткий план на сегодня по сохранённым задачам: три главных дела, просроченные сроки, что требует моего решения и какие данные нужно уточнить.');$('#closeAI').onclick=closeAI;$('#aiModal').onclick=e=>{if(e.target.id==='aiModal')closeAI()};
-$('#aiForm').onsubmit=async e=>{
- e.preventDefault();const message=$('#aiPrompt').value.trim();if(!message||aiBusy)return;
+$('#aiForm').onsubmit=e=>{e.preventDefault();requestAI($('#aiPrompt').value.trim())};$('#testAI').onclick=()=>requestAI('Проверка связи с GigaChat',true);
+async function requestAI(message,check=false){
+ if(!message||aiBusy)return;
  if(!cloudUser){closeAI();openAuth();return}const epoch=accountEpoch,agent=aiAgent,history=aiHistory.get(agent)||[];const button=$('#sendAI');aiBusy=true;button.disabled=true;button.textContent='GigaChat думает…';$('#aiError').textContent='';const controller=new AbortController();aiRequest=controller;const timeout=setTimeout(()=>controller.abort(),65000);
  try{
   const {data,error}=await sb.auth.getSession();if(error||!data.session?.access_token)throw new Error('Сессия закончилась. Войди в аккаунт ещё раз.');
   if(epoch!==accountEpoch)return;
-  const response=await fetch('/api/factory-ai',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+data.session.access_token},body:JSON.stringify({agent,message,history:history.slice(-8).map(m=>({role:m.role,content:m.content.slice(0,1400)}))}),signal:controller.signal});const result=await response.json();
+  const response=await fetch('/api/factory-ai',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+data.session.access_token},body:JSON.stringify(check?{mode:'check'}:{agent,message,history:history.slice(-8).map(m=>({role:m.role,content:m.content.slice(0,1400)}))}),signal:controller.signal});const result=await response.json();
   if(epoch!==accountEpoch)return;if(!response.ok)throw new Error(result.error||'Не удалось получить ответ AI.');if(typeof result.reply!=='string')throw new Error('AI вернул некорректный ответ.');
-  aiHistory.set(agent,[...history,{role:'user',content:message},{role:'assistant',content:result.reply}].slice(-8));$('#aiPrompt').value='';$('#aiMeta').textContent='GigaChat ответил · задач в контексте: '+result.contextCount;aiConfigured=true;renderAIChat();
+  aiHistory.set(agent,[...history,{role:'user',content:message},{role:'assistant',content:result.reply}].slice(-8));$('#aiPrompt').value='';$('#aiMeta').textContent=check?'Связь с GigaChat проверена. Задачи не передавались.':'GigaChat ответил · задач в контексте: '+result.contextCount;aiConfigured=true;renderAIChat();
  }catch(error){if(epoch===accountEpoch)$('#aiError').textContent=error.name==='AbortError'?'Ответ задержался. Попробуй ещё раз.':error.message}
  finally{clearTimeout(timeout);if(epoch===accountEpoch){aiBusy=false;aiRequest=null;button.disabled=false;button.textContent='Спросить GigaChat'}}
 };

@@ -39,6 +39,7 @@ async function run(){
  const oauth=calls.find(c=>c.url.includes('/api/v2/oauth'));assert.equal(oauth.options.headers.Authorization,'Basic FAKE_BASE64_CREDENTIALS');
  const completion=calls.find(c=>c.url.includes('/chat/completions'));assert.equal(completion.options.headers.Authorization,'Bearer FAKE_PROVIDER_ACCESS_TOKEN');assert(!completion.options.body.includes('FAKE_USER_TOKEN'));assert(!completion.options.body.includes('FAKE_BASE64_CREDENTIALS'));assert(completion.options.body.includes('Task supplied by verified owner'));
  user='other-user';calls.length=0;await request('POST',{...input,agent:'dispatcher'});assert(!new URL(calls.find(c=>c.url.includes('/rest/v1/')).url).searchParams.has('agent'));assert(!calls.some(c=>c.url.includes('/api/v2/oauth')));
+ user='check-user';calls.length=0;res=await request('POST',{mode:'check'});assert.equal(res.code,200);assert.equal(res.body.contextCount,0);assert(!calls.some(c=>c.url.includes('/rest/v1/')));assert.equal(JSON.parse(calls.find(c=>c.url.includes('/chat/completions')).options.body).max_tokens,32);
  user='rate-test';for(let i=0;i<6;i++)assert.equal((await request('POST',input)).code,200);assert.equal((await request('POST',input)).code,429);
  user='failure-test';mode='provider-failure';res=await request('POST',input);assert.equal(res.code,502);assert(!JSON.stringify(res.body).includes('FAKE'));
  user='empty-test';mode='empty-reply';assert.equal((await request('POST',input)).code,502);

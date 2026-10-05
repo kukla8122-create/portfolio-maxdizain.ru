@@ -25,6 +25,7 @@ async function gigaAccess(key){
 }
 function rateLimit(user){const now=Date.now();for(const[id,b]of buckets)if(now-b.since>120000)buckets.delete(id);let bucket=buckets.get(user);if(!bucket||now-bucket.since>=60000){bucket={since:now,count:0,active:false};buckets.set(user,bucket)}if(bucket.active||bucket.count>=6)return null;bucket.count++;bucket.active=true;return bucket}
 function validate(body){
+ if(body?.mode==='check')return{message:'Ответь одним словом: подключено',agent:'dispatcher',history:[],check:true};
  if(!body||typeof body.message!=='string'||!body.message.trim()||body.message.length>3000||!ROLES[body.agent])return null;
  const history=body.history??[];if(!Array.isArray(history)||history.length>8)return null;
  if(history.some(m=>!m||!['user','assistant'].includes(m.role)||typeof m.content!=='string'||m.content.length>3000)||history.reduce((n,m)=>n+m.content.length,0)>12000)return null;
@@ -47,7 +48,7 @@ module.exports=async function factoryAI(req,res){
   if(!config.configured)return answer(res,503,{error:'AI ещё не активирован. Требуется настройка серверного подключения.',code:'AI_NOT_CONFIGURED'});
   bucket=rateLimit(user);if(!bucket){res.setHeader('Retry-After','15');return answer(res,429,{error:'Подожди немного перед следующим запросом.'})}
   const query=new URLSearchParams({select:'title,project,agent,priority,due,notes,katya,status',owner_id:'eq.'+user,status:'eq.open',order:'due.asc.nullslast',limit:'40'});if(input.agent!=='dispatcher')query.set('agent','eq.'+input.agent);
-  const tasks=await requestJson(SUPABASE_URL+'/rest/v1/factory_tasks?'+query,{headers:{apikey:SUPABASE_KEY,Authorization:authorization}});
+  const tasks=input.check?{ok:true,data:[]}:await requestJson(SUPABASE_URL+'/rest/v1/factory_tasks?'+query,{headers:{apikey:SUPABASE_KEY,Authorization:authorization}});
   if(!tasks.ok||!Array.isArray(tasks.data))return answer(res,503,{error:'Не удалось прочитать задачи. Попробуй позже.'});
   const context=tasks.data.map(t=>({title:String(t.title||'').slice(0,250),project:String(t.project||'').slice(0,150),priority:t.priority,due:t.due,notes:String(t.notes||'').slice(0,500),requiresKatya:!!t.katya}));
   const day=new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',dateStyle:'full'}).format(new Date());
@@ -55,7 +56,7 @@ module.exports=async function factoryAI(req,res){
   const messages=[{role:'system',content:system},...input.history,{role:'user',content:input.message}];
   const token=await gigaAccess(config.key);
   const endpoint='https://api.giga.chat/v1/chat/completions';
-  const completion=await requestJson(endpoint,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({model:config.model,messages,temperature:.3,max_tokens:1200,stream:false})});
+  const completion=await requestJson(endpoint,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({model:config.model,messages,temperature:.3,max_tokens:input.check?32:1200,stream:false})});
   if(!completion.ok){if(config.provider==='gigachat'&&completion.status===401)gigaToken=null;return answer(res,completion.status===429?429:502,{error:completion.status===429?'AI достиг лимита запросов. Попробуй позже.':'AI временно не ответил. Попробуй позже.'})}
   const reply=completion.data?.choices?.[0]?.message?.content;
   if(typeof reply!=='string'||!reply.trim())return answer(res,502,{error:'AI вернул пустой ответ. Попробуй ещё раз.'});

@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.3</title>
+<title>МАКСимум мебель — цифровая фабрика v3.4</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <style>
 :root{
   --bg:#07110d;--panel:rgba(9,25,19,.94);--panel2:#0b1e17;--line:rgba(255,255,255,.10);
@@ -85,6 +85,9 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 .account-btn{border:1px solid var(--line);background:rgba(255,255,255,.04);color:white;border-radius:11px;padding:8px 10px;font-size:10px}
 .auth-state{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.025);font-size:10px;color:var(--muted);margin-bottom:10px}
 .auth-state strong{color:white}.auth-note{font-size:9px;color:var(--muted);line-height:1.45;margin-top:8px}
+
+.mobile-account-btn{display:none}.flat-world{height:100%;padding:76px 18px 180px;overflow:auto;background:radial-gradient(ellipse at 50% 30%,#214e3b,#0e211a 75%)}.flat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.flat-zone{border:1px solid rgba(211,175,105,.23);border-radius:18px;padding:12px;background:rgba(7,20,15,.6)}.flat-zone h3{margin:0 0 9px;font-size:12px;color:var(--gold)}.flat-person{display:flex;align-items:center;gap:8px;width:100%;padding:8px;border:1px solid transparent;border-radius:10px;margin-top:6px;color:var(--text);background:rgba(255,255,255,.04);text-align:left}.flat-person.active{border-color:var(--emerald2);background:rgba(34,167,126,.18)}.flat-person span{font-size:22px}.flat-person b{font-size:12px}.flat-person small{display:block;font-size:9px;color:var(--muted);margin-top:2px}.flat-caption{font-size:10px;color:var(--muted);margin:0 0 12px}
+@media(max-width:900px){.mobile-account-btn{display:block}.brand{flex:1}.brand h1{max-width:calc(100vw - 130px)}.flat-world{padding:76px 12px 180px}.flat-grid{gap:8px}.flat-zone{padding:10px}.flat-person{padding:7px 4px}.flat-person small{font-size:10px}}
 </style>
 <style id="webGateStyle">
 #webGate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#07110d;color:#fff;font-family:Inter,Segoe UI,system-ui,sans-serif;padding:20px}
@@ -94,10 +97,11 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 #webGate button{width:100%;margin-top:10px;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#22a77e,#0f7d63);color:white;font-weight:800}
 #webGate .err{min-height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
 </style></head>
-<body data-mobile-view="work"><div id="webGate"><div class="g"><h2>МАКСимум · цифровая фабрика</h2><p>Введите код доступа. После этого откроется рабочий интерфейс.</p><input id="webGateCode" type="password" inputmode="text" autocomplete="off" placeholder="Код доступа"><button id="webGateBtn">Открыть фабрику</button><div id="webGateErr" class="err"></div></div></div>
+<body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><div id="webGateErr" class="err" role="status"></div></form></div>
 <div id="app">
 <header class="glass">
-  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.3</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.4</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <button id="mobileAccountBtn" class="account-btn mobile-account-btn">Войти</button>
   <div class="header-actions">
     <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
     <div class="header-stat"><small>Активных задач</small><b id="activeTasks">0</b></div>
@@ -247,14 +251,15 @@ const SEED=[
  {id:'t8',title:'Исправить причину неудачного деплоя Vercel',project:'Катя AI',agent:'dispatcher',priority:'mid',due:plusDays(3),notes:'Последняя известная причина: deployment actor не состоял в Vercel team.',katya:false,status:'open',source:'service'}
 ];
 function defaultState(){return{version:3,tasks:SEED.map(x=>({...x})),logs:[],paused:false,speed:1,selected:'dispatcher',createdAt:Date.now(),taskFilter:'open',search:''}}
-function normalize(s){s.version=3;s.tasks=(s.tasks||[]).map(t=>({...t,status:t.status||'open',priority:t.priority||'mid',katya:!!t.katya}));s.logs=s.logs||[];s.taskFilter=s.taskFilter||'open';s.search=s.search||'';return s}
+function normalize(s){if(!s||!Array.isArray(s.tasks))throw new Error('Некорректная резервная копия');s.version=3;s.tasks=s.tasks.map(t=>({...t,id:String(t.id),status:t.status||'open',priority:t.priority||'mid',katya:!!t.katya}));s.logs=s.logs||[];s.taskFilter=s.taskFilter||'open';s.search=s.search||'';s.pendingCloud=s.pendingCloud||{owner:null,updates:{},deleted:{},logs:{}};return s}
 function load(){
  try{const raw=localStorage.getItem(STORAGE);if(raw)return normalize(JSON.parse(raw))}catch(e){}
  try{const old=localStorage.getItem(OLD_STORAGE);if(old){const s=normalize(JSON.parse(old));localStorage.setItem(STORAGE,JSON.stringify(s));return s}}catch(e){}
  try{const older=localStorage.getItem(OLDER_STORAGE);if(older){const s=normalize(JSON.parse(older));localStorage.setItem(STORAGE,JSON.stringify(s));return s}}catch(e){}
  return defaultState()
 }
-let state=load();
+let state=normalize(load());
+let taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)])),taskSyncRunning=null,cloudConnecting=null,lastSettingsValue='';
 let activeTab='today';
 const agentBy=id=>AGENTS.find(a=>a.id===id)||AGENTS[0];
 const prioText={high:'Высокий',mid:'Средний',low:'Низкий'};
@@ -271,7 +276,7 @@ function scoreTask(t){let s=t.priority==='high'?100:t.priority==='mid'?55:20;if(
 function openTasks(){return state.tasks.filter(t=>t.status!=='done')}
 function overdue(){return openTasks().filter(t=>dueDiff(t)<0)}
 function fmtTime(ts){return new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'}).format(new Date(ts))}
-function addLog(kind,agent,msg){const item={id:Date.now()+Math.random(),time:Date.now(),kind,agent,msg};state.logs.unshift(item);state.logs=state.logs.slice(0,180);save();pushLogToCloud(item);if(activeTab==='log')renderTab()}
+function addLog(kind,agent,msg){const item={id:Date.now()+Math.random(),time:Date.now(),kind,agent,msg};state.logs.unshift(item);state.logs=state.logs.slice(0,180);state.pendingCloud.logs[String(item.id)]=item;save();pushLogToCloud(item);if(activeTab==='log')renderTab()}
 
 
 function setCloudStatus(mode,label){
@@ -282,33 +287,40 @@ function setCloudStatus(mode,label){
 }
 function cloudTaskRow(t){return{owner_id:cloudUser.id,client_id:String(t.id),title:t.title,project:t.project||null,agent:t.agent||'dispatcher',priority:t.priority||'mid',due:t.due||null,notes:t.notes||null,katya:!!t.katya,status:t.status||'open',source:t.source||null,completed_at:t.completedAt?new Date(t.completedAt).toISOString():null}}
 function localTaskRow(r){return{id:r.client_id,title:r.title,project:r.project||'',agent:r.agent||'dispatcher',priority:r.priority||'mid',due:r.due||'',notes:r.notes||'',katya:!!r.katya,status:r.status||'open',source:r.source||'cloud',...(r.completed_at?{completedAt:new Date(r.completed_at).getTime()}:{})}}
-function scheduleTaskSync(){if(!cloudUser||cloudPulling||!sb)return;clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(pushTasksToCloud,700)}
-function scheduleSettingsSync(){if(!cloudUser||cloudPulling||!sb)return;clearTimeout(settingsSyncTimer);settingsSyncTimer=setTimeout(pushSettingsToCloud,900)}
-async function pushTasksToCloud(){if(!cloudUser||cloudPulling||!sb)return;try{setCloudStatus('syncing','синхр...');const rows=state.tasks.map(cloudTaskRow);if(rows.length){const {error}=await sb.from('factory_tasks').upsert(rows,{onConflict:'owner_id,client_id'});if(error)throw error}setCloudStatus('online','облако')}catch(e){console.warn(e);setCloudStatus('offline','ошибка')}}
-async function pushLogToCloud(l){if(!cloudUser||cloudPulling||!sb||!l)return;try{const row={owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''};const {error}=await sb.from('factory_logs').upsert(row,{onConflict:'owner_id,client_id'});if(error)throw error}catch(e){console.warn('cloud log',e)}}
-async function pushAllLogsToCloud(){if(!cloudUser||cloudPulling||!sb||!state.logs.length)return;try{const rows=state.logs.map(l=>({owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id'});if(error)throw error}catch(e){console.warn('cloud logs',e)}}
-async function pushSettingsToCloud(){if(!cloudUser||cloudPulling||!sb)return;try{const row={owner_id:cloudUser.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error}catch(e){console.warn(e)}}
-async function deleteCloudTask(id){if(!cloudUser||!sb)return;try{await sb.from('factory_tasks').delete().eq('owner_id',cloudUser.id).eq('client_id',String(id))}catch(e){console.warn(e)}}
-async function pullCloud(){if(!cloudUser||!sb||cloudPulling)return;cloudPulling=true;setCloudStatus('syncing','загрузка');try{
+function persistQueue(){try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(e){$('#savedState').textContent='без сохранения'}}
+function rememberTaskChanges(){const now=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));for(const t of state.tasks)if(taskSnapshot.get(t.id)!==now.get(t.id)){state.pendingCloud.updates[t.id]={...t};delete state.pendingCloud.deleted[t.id]}for(const id of taskSnapshot.keys())if(!now.has(id)){state.pendingCloud.deleted[id]=Date.now()+Math.random();delete state.pendingCloud.updates[id]}taskSnapshot=now;persistQueue()}
+function scheduleTaskSync(){rememberTaskChanges();if(!cloudUser||cloudPulling||!sb)return;clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),700)}
+function scheduleSettingsSync(){if(!cloudUser||cloudPulling||!sb)return;const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);if(key===lastSettingsValue)return;clearTimeout(settingsSyncTimer);settingsSyncTimer=setTimeout(pushSettingsToCloud,900)}
+async function pushTasksToCloud(){if(!cloudUser||!sb)return;if(taskSyncRunning)return taskSyncRunning;const user=cloudUser;taskSyncRunning=(async()=>{try{const pending=state.pendingCloud;if(pending.owner&&pending.owner!==user.id)throw new Error('Очередь принадлежит другому аккаунту');pending.owner=user.id;const updates=Object.entries(pending.updates),deletions=Object.entries(pending.deleted);if(!updates.length&&!deletions.length)return;setCloudStatus('syncing','синхр...');if(updates.length){const {error}=await sb.from('factory_tasks').upsert(updates.map(([,t])=>({...cloudTaskRow(t),owner_id:user.id})),{onConflict:'owner_id,client_id'});if(error)throw error;for(const [id,t]of updates)if(pending.updates[id]===t)delete pending.updates[id]}for(const [id,mark]of deletions){const {error}=await sb.from('factory_tasks').delete().eq('owner_id',user.id).eq('client_id',id);if(error)throw error;if(pending.deleted[id]===mark)delete pending.deleted[id]}persistQueue();setCloudStatus('online','облако')}catch(e){persistQueue();setCloudStatus('offline','ждёт сети');throw e}})();try{await taskSyncRunning}finally{taskSyncRunning=null}}
+async function pushLogToCloud(l){if(!cloudUser||cloudPulling||!sb||!l)return;return pushAllLogsToCloud()}
+async function pushAllLogsToCloud(){if(!cloudUser||!sb)return;const pending=state.pendingCloud,entries=Object.entries(pending.logs);if(!entries.length)return;try{const rows=entries.map(([,l])=>({owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id',ignoreDuplicates:true});if(error)throw error;for(const [id,l]of entries)if(pending.logs[id]===l)delete pending.logs[id];persistQueue()}catch(e){setCloudStatus('offline','ждёт сети')}}
+async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);const row={owner_id:cloudUser.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error;lastSettingsValue=key}catch(e){setCloudStatus('offline','ждёт сети')}}
+function deleteCloudTask(id){state.pendingCloud.deleted[String(id)]=Date.now()+Math.random();delete state.pendingCloud.updates[String(id)];persistQueue()}
+async function pullCloud(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskChanges();cloudPulling=true;setCloudStatus('syncing','загрузка');try{
+ await pushTasksToCloud();
  const [tr,sr,lr]=await Promise.all([
   sb.from('factory_tasks').select('*').eq('owner_id',cloudUser.id).order('created_at',{ascending:true}),
   sb.from('factory_settings').select('*').eq('owner_id',cloudUser.id).maybeSingle(),
   sb.from('factory_logs').select('*').eq('owner_id',cloudUser.id).order('event_time',{ascending:false}).limit(180)
  ]);
- if(tr.error)throw tr.error;if(tr.data&&tr.data.length)state.tasks=tr.data.map(localTaskRow);else await pushTasksToCloud();
- if(sr.data){state.paused=!!sr.data.paused;state.speed=Number(sr.data.speed||1);state.selected=sr.data.selected||'dispatcher';state.taskFilter=sr.data.task_filter||'open';state.search=sr.data.search||''}else await pushSettingsToCloud();
- if(lr.data&&lr.data.length)state.logs=lr.data.map(x=>({id:x.client_id,time:new Date(x.event_time).getTime(),kind:x.kind,agent:x.agent,msg:x.msg}));else await pushAllLogsToCloud();
- localStorage.setItem(STORAGE,JSON.stringify(state));renderHeader();renderAgents();renderFocus();renderTab();$('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';setCloudStatus('online','облако');
- }catch(e){console.warn(e);setCloudStatus('offline','ошибка');toast('Не удалось синхронизировать облако')}finally{cloudPulling=false}}
+ if(tr.error||sr.error||lr.error)throw tr.error||sr.error||lr.error;
+ if(!sr.data){const remoteIds=new Set(tr.data.map(t=>t.client_id));for(const t of state.tasks)if(!remoteIds.has(t.id)&&!state.pendingCloud.deleted[t.id])state.pendingCloud.updates[t.id]={...t};await pushTasksToCloud();await pushSettingsToCloud(true);const map=new Map(state.tasks.map(t=>[t.id,t]));for(const row of tr.data){const t=localTaskRow(row);if(!state.pendingCloud.updates[t.id])map.set(t.id,t)}state.tasks=[...map.values()]}else{const pending=state.pendingCloud;const map=new Map(tr.data.map(r=>{const t=localTaskRow(r);return[t.id,t]}));for(const id of Object.keys(pending.deleted))map.delete(id);for(const[id,t]of Object.entries(pending.updates))map.set(id,t);state.tasks=[...map.values()]}
+ taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));
+ if(sr.data){state.paused=!!sr.data.paused;state.speed=Number(sr.data.speed||1);state.selected=sr.data.selected||'dispatcher';state.taskFilter=sr.data.task_filter||'open';state.search=sr.data.search||'';lastSettingsValue=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search])}
+ const logs=new Map((lr.data||[]).map(x=>[String(x.client_id),{id:x.client_id,time:new Date(x.event_time).getTime(),kind:x.kind,agent:x.agent,msg:x.msg}]));for(const[id,l]of Object.entries(state.pendingCloud.logs))logs.set(id,l);state.logs=[...logs.values()].sort((a,b)=>b.time-a.time).slice(0,180);await pushAllLogsToCloud();
+ persistQueue();renderHeader();renderAgents();renderFocus();renderTab();$('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';setCloudStatus('online','облако');if(!renderer)renderFlatWorld();
+ }catch(e){setCloudStatus('offline','ждёт сети');toast('Изменения сохранены на устройстве. Повторим синхронизацию при подключении.')}finally{cloudPulling=false;scheduleSettingsSync();if(Object.keys(state.pendingCloud.updates).length||Object.keys(state.pendingCloud.deleted).length){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}}
 function subscribeCloud(){if(!sb||!cloudUser)return;if(cloudChannel)sb.removeChannel(cloudChannel);let rt=null;cloudChannel=sb.channel('digital-factory-'+cloudUser.id).on('postgres_changes',{event:'*',schema:'public',table:'factory_tasks',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_settings',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_logs',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).subscribe()}
-async function connectCloud(user){cloudUser=user;setCloudStatus('syncing','подключение');await pullCloud();subscribeCloud()}
-async function initCloud(){if(!sb){setCloudStatus('offline','локально');return}try{const {data}=await sb.auth.getSession();if(data?.session?.user)await connectCloud(data.session.user);else setCloudStatus('offline','локально');sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user&&!cloudUser)connectCloud(session.user);if(event==='SIGNED_OUT'){cloudUser=null;if(cloudChannel){sb.removeChannel(cloudChannel);cloudChannel=null}setCloudStatus('offline','локально');renderAuthState()}})}catch(e){setCloudStatus('offline','локально')}}
+function refreshGate(){$('#webGate').classList.toggle('hidden',!!cloudUser);$('#mobileAccountBtn').textContent=cloudUser?'Облако':'Войти'}
+async function connectCloud(user){if(cloudUser?.id===user.id&&cloudConnecting)return cloudConnecting;cloudUser=user;refreshGate();setCloudStatus('syncing','подключение');cloudConnecting=(async()=>{await pullCloud();subscribeCloud();renderAuthState()})();try{await cloudConnecting}finally{cloudConnecting=null}}
+async function initCloud(){if(!sb){setCloudStatus('offline','локально');$('#webGateErr').textContent='Не загрузился модуль входа. Проверь интернет и обнови страницу.';return}try{sb.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{if(event==='SIGNED_IN'&&session?.user&&!cloudUser)connectCloud(session.user);if(event==='SIGNED_OUT'){cloudUser=null;clearTimeout(taskSyncTimer);clearTimeout(settingsSyncTimer);if(cloudChannel){sb.removeChannel(cloudChannel);cloudChannel=null}setCloudStatus('offline','локально');renderAuthState();refreshGate()}},0)});const {data,error}=await sb.auth.getSession();if(error)throw error;if(data?.session?.user)await connectCloud(data.session.user);else setCloudStatus('offline','локально')}catch(e){setCloudStatus('offline','локально')}}
+window.addEventListener('online',()=>{if(cloudUser)pullCloud()});window.addEventListener('offline',()=>setCloudStatus('offline','ждёт сети'));document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudUser)pullCloud()});
 function renderAuthState(){const box=$('#authStateBox'),fields=$('#authFields'),ib=$('#signInBtn'),ob=$('#signOutBtn');if(!box)return;if(cloudUser){box.innerHTML='<strong>Сейчас:</strong> вход выполнен. Общая база активна.';fields.classList.add('hidden');ib.classList.add('hidden');ob.classList.remove('hidden')}else{box.innerHTML='<strong>Сейчас:</strong> локальный режим. Для общей базы нужно войти.';fields.classList.remove('hidden');ib.classList.remove('hidden');ob.classList.add('hidden')}}
 function openAuth(){renderAuthState();$('#authModal').classList.add('open')}function closeAuth(){$('#authModal').classList.remove('open')}
 
 function renderHeader(){const o=openTasks();$('#activeTasks').textContent=o.length;$('#needKatya').textContent=o.filter(t=>t.katya).length;$('#overdueTasks').textContent=overdue().length}
 function renderAgents(){const box=$('#agents');box.innerHTML='';AGENTS.forEach(a=>{const tasks=openTasks().filter(t=>t.agent===a.id);const top=[...tasks].sort((x,y)=>scoreTask(y)-scoreTask(x))[0];const div=document.createElement('div');div.className='agent'+(state.selected===a.id?' active':'');div.innerHTML=`<div class="avatar" style="--avatar:${a.color}">${a.emoji}</div><div><strong>${a.name}</strong><small>${a.role}${top?' · '+escapeHtml(top.project||'задача'):''}</small></div><div class="state">${top?'●':'○'}</div>`;div.onclick=()=>selectAgent(a.id,true);box.appendChild(div)})}
-function selectAgent(id,focus=false){state.selected=id;save();renderAgents();renderFocus();if(focus&&worldAgents[id]){cameraTarget.copy(worldAgents[id].group.position);toast(agentBy(id).role)}}
+function selectAgent(id,focus=false){state.selected=id;save();renderAgents();renderFocus();if(!renderer)renderFlatWorld();if(focus&&worldAgents[id]){cameraTarget.copy(worldAgents[id].group.position);toast(agentBy(id).role)}}
 function renderFocus(){const a=agentBy(state.selected),tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0];$('#focusName').textContent=a.emoji+' '+a.name;$('#focusRole').textContent=a.role;$('#focusGoal').textContent=a.goal;$('#focusNow').textContent=top?'Сейчас: '+top.title:'Сейчас: свободен, проверяет очередь';$('#focusProgress').style.width=Math.min(100,tasks.length?Math.max(12,100-tasks.length*12):100)+'%'}
 function projectGroups(){
  const map=new Map();
@@ -375,7 +387,7 @@ function wireTaskButtons(){
  $$('[data-edit]').forEach(b=>b.onclick=()=>openTaskModal(state.tasks.find(x=>x.id===b.dataset.edit)));
  $$('[data-select-agent]').forEach(b=>b.onclick=()=>selectAgent(b.dataset.selectAgent,true));
 }
-function renderAll(){renderHeader();renderAgents();renderFocus();renderTab();save();scheduleTaskSync()}
+function renderAll(){renderHeader();renderAgents();renderFocus();renderTab();if(!renderer)renderFlatWorld();save();scheduleTaskSync()}
 
 function switchTab(tab){
  activeTab=tab;$$('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));document.body.dataset.mobileView='work';$$('.mobile-nav button').forEach(x=>x.classList.toggle('active',x.dataset.tabTarget===tab&&x.dataset.mob==='work'));renderTab()
@@ -412,7 +424,8 @@ function showBrief(){
 $('#dailyBrief').onclick=showBrief;$('#closeBrief').onclick=()=>$('#briefModal').classList.remove('open');$('#briefModal').onclick=e=>{if(e.target.id==='briefModal')$('#briefModal').classList.remove('open')};
 
 
-$('#accountBtn').onclick=openAuth;$('#syncBtn').onclick=()=>cloudUser?pullCloud():openAuth();$('#closeAuth').onclick=closeAuth;$('#authModal').onclick=e=>{if(e.target.id==='authModal')closeAuth()};
+$('#accountBtn').onclick=openAuth;$('#mobileAccountBtn').onclick=openAuth;$('#syncBtn').onclick=()=>cloudUser?pullCloud():openAuth();$('#closeAuth').onclick=closeAuth;$('#authModal').onclick=e=>{if(e.target.id==='authModal')closeAuth()};
+$('#gateForm').onsubmit=async e=>{e.preventDefault();if(!sb){$('#webGateErr').textContent='Не загрузился модуль входа. Обнови страницу с интернетом.';return}const button=$('#webGateBtn');button.disabled=true;button.textContent='Вхожу…';$('#webGateErr').textContent='';try{const{data,error}=await sb.auth.signInWithPassword({email:$('#gateEmail').value.trim(),password:$('#gatePassword').value});if(error)throw error;await connectCloud(data.user);$('#gatePassword').value=''}catch(err){$('#webGateErr').textContent=err.status===400?'Проверь email и пароль аккаунта приложения.':'Не удалось войти. Проверь интернет и попробуй ещё раз.'}finally{button.disabled=false;button.textContent='Войти в фабрику'}};
 $('#signInBtn').onclick=async()=>{if(!sb){toast('Supabase не загрузился');return}const email=$('#authEmail').value.trim(),password=$('#authPassword').value;if(!email||!password){toast('Введи email и пароль');return}$('#signInBtn').disabled=true;$('#signInBtn').textContent='Вхожу…';try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(data?.user){await connectCloud(data.user);renderAuthState();toast('Общая база подключена')}}catch(e){console.warn(e);toast('Не удалось войти: проверь почту и пароль')}finally{$('#signInBtn').disabled=false;$('#signInBtn').textContent='Войти и синхронизировать'}};
 $('#signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();cloudUser=null;renderAuthState();setCloudStatus('offline','локально');toast('Облачная сессия отключена')};
 
@@ -430,8 +443,11 @@ $$('.mobile-nav button').forEach(b=>b.onclick=()=>{
 });
 
 // ---------- Three.js world ----------
-let renderer,scene,camera,cameraTarget=new THREE.Vector3(0,0,0),worldAgents={},zonePos={};
+let renderer,scene,camera,cameraTarget=null,worldAgents={},zonePos={};
+function renderFlatWorld(){const zones=[['clients','👥 Клиенты'],['design','📐 Дизайн'],['production','🔧 Производство'],['marketing','📣 Маркетинг'],['documents','📄 Документы'],['meeting','☕ Диспетчерская']];$('#world').innerHTML='<div class="flat-world"><p class="flat-caption">Карта команды · все задачи доступны</p><div class="flat-grid">'+zones.map(([id,title])=>'<section class="flat-zone"><h3>'+title+'</h3>'+AGENTS.filter(a=>a.zone===id).map(a=>'<button class="flat-person '+(a.id===state.selected?'active':'')+'" data-flat-agent="'+a.id+'"><span>'+a.emoji+'</span><div><b>'+a.name+'</b><small>'+a.role+' · '+openTasks().filter(t=>t.agent===a.id).length+' задач</small></div></button>').join('')+'</section>').join('')+'</div></div>';$$('[data-flat-agent]').forEach(b=>b.onclick=()=>selectAgent(b.dataset.flatAgent))}
+
 function initWorld(){
+ if(!window.THREE)throw new Error("3D библиотека недоступна");cameraTarget=new THREE.Vector3(0,0,0);$("#world").innerHTML="";
  const host=$('#world');scene=new THREE.Scene();scene.background=new THREE.Color(0x0e211a);scene.fog=new THREE.Fog(0x0e211a,30,70);camera=new THREE.PerspectiveCamera(47,Math.max(host.clientWidth,1)/Math.max(host.clientHeight,1),.1,120);camera.position.set(24,23,27);
  renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(Math.max(host.clientWidth,1),Math.max(host.clientHeight,1));renderer.shadowMap.enabled=true;host.appendChild(renderer.domElement);
  scene.add(new THREE.HemisphereLight(0xd8fff0,0x1a2b23,1.7));const sun=new THREE.DirectionalLight(0xffebc2,2.2);sun.position.set(18,30,14);sun.castShadow=true;scene.add(sun);
@@ -450,38 +466,28 @@ let last=performance.now(),simMinutes=9*60,decisionTimer=0;const speeds=[.5,1,2,
 $('#pause').onclick=()=>{state.paused=!state.paused;$('#pause').textContent=state.paused?'Продолжить':'Пауза';$('#worldStatus').textContent=state.paused?'Фабрика на паузе':'Фабрика работает';save()};
 $('#speed').onclick=()=>{let i=speeds.indexOf(state.speed||1);state.speed=speeds[(i+1)%speeds.length];$('#speed').textContent='Скорость '+state.speed+'×';save()};
 function animateWorld(now){
- requestAnimationFrame(animateWorld);const raw=Math.min(.05,(now-last)/1000);last=now,dt=state.paused?0:raw*(state.speed||1);simMinutes=(simMinutes+dt*5)%1440;$('#simClock').textContent=String(Math.floor(simMinutes/60)).padStart(2,'0')+':'+String(Math.floor(simMinutes%60)).padStart(2,'0');$('#simDay').textContent='Рабочий день · режим '+(state.speed||1)+'×';decisionTimer+=dt;if(decisionTimer>6){decisionTimer=0;agentDecision()}
+ requestAnimationFrame(animateWorld);const raw=Math.min(.05,(now-last)/1000);last=now;const dt=state.paused?0:raw*(state.speed||1);simMinutes=(simMinutes+dt*5)%1440;$('#simClock').textContent=String(Math.floor(simMinutes/60)).padStart(2,'0')+':'+String(Math.floor(simMinutes%60)).padStart(2,'0');$('#simDay').textContent='Рабочий день · режим '+(state.speed||1)+'×';decisionTimer+=dt;if(decisionTimer>6){decisionTimer=0;agentDecision()}
  Object.entries(worldAgents).forEach(([id,w])=>{const to=w.target.clone().sub(w.group.position);to.y=0;const d=to.length();if(d>.25){to.normalize();w.group.position.addScaledVector(to,dt*(1.05+((id.charCodeAt(0)%4)*.08)));w.group.rotation.y=Math.atan2(to.x,to.z)}w.group.position.y=1+Math.sin(now*.004+w.phase)*.025});
- cameraTarget.lerp(new THREE.Vector3(0,0,0),.003);const desired=new THREE.Vector3(cameraTarget.x+24,23,cameraTarget.z+27);camera.position.lerp(desired,.025);camera.lookAt(cameraTarget.x,0,cameraTarget.z);if(renderer.domElement.clientWidth>0)renderer.render(scene,camera)
+ if(renderer&&cameraTarget){cameraTarget.lerp(new THREE.Vector3(0,0,0),.003);const desired=new THREE.Vector3(cameraTarget.x+24,23,cameraTarget.z+27);camera.position.lerp(desired,.025);camera.lookAt(cameraTarget.x,0,cameraTarget.z);if(renderer.domElement.clientWidth>0)renderer.render(scene,camera)}
 }
 function agentDecision(){
- AGENTS.forEach((a,idx)=>{const tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0],w=worldAgents[a.id];if(top){const home=zonePos[a.zone].clone();home.x+=((idx%3)-1)*1.2;home.z+=((idx%2)-.5)*1.3;w.target.copy(home);if(Math.random()<.26)addLog('decision',a.id,`Выбираю «${top.title}»: ${top.katya?'нужно решение Кати; ':''}${prioText[top.priority].toLowerCase()}, срок — ${dueText(top)}.`)}else{const m=zonePos.meeting.clone();m.x+=Math.random()*5-2.5;m.z+=Math.random()*5-2.5;w.target.copy(m)}})
- const t=openTasks().find(t=>t.priority==='high'&&t.agent==='designer');if(t&&Math.random()<.22){worldAgents.designer.target.copy(zonePos.meeting).add(new THREE.Vector3(-1,0,0));worldAgents.technologist.target.copy(zonePos.meeting).add(new THREE.Vector3(1,0,0));addLog('ai','technologist',`Запрашиваю у дизайнера контекст по «${t.project}», чтобы проверить технологические риски.`)}
+ AGENTS.forEach((a,idx)=>{const tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0],w=worldAgents[a.id];if(top){if(w){const home=zonePos[a.zone].clone();home.x+=((idx%3)-1)*1.2;home.z+=((idx%2)-.5)*1.3;w.target.copy(home)}if(Math.random()<.26)addLog('decision',a.id,`Выбираю «${top.title}»: ${top.katya?'нужно решение Кати; ':''}${prioText[top.priority].toLowerCase()}, срок — ${dueText(top)}.`)}else if(w){const m=zonePos.meeting.clone();m.x+=Math.random()*5-2.5;m.z+=Math.random()*5-2.5;w.target.copy(m)}})
+ const t=openTasks().find(t=>t.priority==='high'&&t.agent==='designer');if(t&&worldAgents.designer&&worldAgents.technologist&&Math.random()<.22){worldAgents.designer.target.copy(zonePos.meeting).add(new THREE.Vector3(-1,0,0));worldAgents.technologist.target.copy(zonePos.meeting).add(new THREE.Vector3(1,0,0));addLog('ai','technologist',`Запрашиваю у дизайнера контекст по «${t.project}», чтобы проверить технологические риски.`)}
 }
-initWorld();
-
 // ---------- PWA / install ----------
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBanner').classList.add('show')});
 $('#installBtn').onclick=async()=>{if(!deferredPrompt){toast('Установка станет доступна после размещения приложения по защищённой ссылке');return}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBanner').classList.remove('show')};
 $('#installClose').onclick=()=>$('#installBanner').classList.remove('show');
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=4',{updateViaCache:'none'}).catch(()=>{});
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=34',{updateViaCache:'none'}).catch(()=>{});
 
 // startup
 if(!state.logs.length){addLog('decision','dispatcher','Цифровая фабрика v3 запущена. После входа включается общая база ПК ↔ Android.');addLog('alert','dispatcher','Экран «Сегодня» показывает только ближайшие приоритеты, чтобы не перегружать тебя всей очередью сразу.')}
 $('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';
 renderAll();
 initCloud();
+try{initWorld()}catch(e){if(renderer){try{renderer.dispose()}catch(err){}}renderer=null;worldAgents={};renderFlatWorld();$("#worldStatus").textContent="Фабрика · карта команды";requestAnimationFrame(animateWorld)}
 })();
 </script>
-<script>
-(function(){
- const CODE='MF-7Q9K-52XT',KEY='mf_factory_gate_v1';
- const g=document.getElementById('webGate'),i=document.getElementById('webGateCode'),b=document.getElementById('webGateBtn'),e=document.getElementById('webGateErr');
- function open(){sessionStorage.setItem(KEY,'1');g.remove();}
- if(sessionStorage.getItem(KEY)==='1'){g.remove();return;}
- function check(){if(i.value.trim()===CODE)open();else{e.textContent='Код неверный';i.select();}}
- b.addEventListener('click',check);i.addEventListener('keydown',x=>{if(x.key==='Enter')check()});setTimeout(()=>i.focus(),100);
-})();
-</script></body>
+</body>
 </html>

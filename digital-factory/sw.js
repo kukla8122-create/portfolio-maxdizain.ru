@@ -1,4 +1,4 @@
-const CACHE='maksimum-factory-v35';
+const CACHE='maksimum-factory-v36';
 const SCOPE=new URL('./',self.location.href);
 const CORE=['./','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'].map(p=>new URL(p,SCOPE).href);
 const SCRIPTS=['https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2'];

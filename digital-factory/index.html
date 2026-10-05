@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.5</title>
+<title>МАКСимум мебель — цифровая фабрика v3.6</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -102,7 +102,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 <body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><a class="recovery-link" href="./recover.html">Забыли пароль?</a><div id="webGateErr" class="err" role="status"></div></form></div>
 <div id="app">
 <header class="glass">
-  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.5</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.6</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
   <button id="mobileAccountBtn" class="account-btn mobile-account-btn">Войти</button>
   <div class="header-actions">
     <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
@@ -122,7 +122,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
     <div id="world" class="world"></div>
     <div class="world-overlay">
       <div class="world-card"><b id="simClock">09:00</b><small id="simDay">Рабочий день · режим 1×</small></div>
-      <div class="world-card"><b id="worldStatus">Фабрика работает</b><small>нажми на сотрудника</small></div>
+      <div class="world-card"><b id="worldStatus">Карта задач · AI не подключён</b><small>нажми на сотрудника</small></div>
     </div>
     <div class="legend"><span>👥 Клиенты</span><span>📐 Дизайн</span><span>🔧 Производство</span><span>📣 Маркетинг</span><span>📄 Документы</span><span>☕ Совещание</span></div>
     <div class="focus-panel">
@@ -242,33 +242,32 @@ const AGENTS=[
 ];
 const iso=d=>{const x=new Date(d); const y=x.getFullYear(),m=String(x.getMonth()+1).padStart(2,'0'),day=String(x.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`};
 const plusDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
-const SEED=[
- {id:'t1',title:'Проверить актуальный статус кухни SEA-22 и этап производства',project:'Ольга · SEA-22 «Биланчино»',agent:'production',priority:'high',due:plusDays(0),notes:'Последнее известное состояние: заказ в производстве. Подтвердить текущий этап, не считать старый статус актуальным без проверки.',katya:true,status:'open',source:'known'},
- {id:'t2',title:'Проверить, был ли ответ после отправленного расчёта',project:'Светлана Викторовна',agent:'manager',priority:'high',due:plusDays(0),notes:'Сначала показать найденный статус Кате. Ничего клиенту автоматически не отправлять.',katya:true,status:'open',source:'known'},
- {id:'t3',title:'Сверить текущую версию проекта и список оставшихся правок',project:'Елена · кухня',agent:'designer',priority:'mid',due:plusDays(1),notes:'Последнее известное состояние: проект в работе. Требуется актуализация.',katya:false,status:'open',source:'known'},
- {id:'t4',title:'Проверить статус проекта №2 и финальных рендеров',project:'Танзиля · кухня-гостиная',agent:'designer',priority:'high',due:plusDays(0),notes:'Не менять конструктив без явного указания. Проверить, что осталось после последней серии правок.',katya:true,status:'open',source:'known'},
- {id:'t5',title:'Довести рекламное видео для MAX и Telega.in',project:'Маркетинг',agent:'marketing',priority:'mid',due:plusDays(2),notes:'Последнее известное состояние — в работе.',katya:false,status:'open',source:'known'},
- {id:'t6',title:'Проверить состояние проектов Katya-AI и MAXIMUM-AI в Supabase',project:'Катя AI',agent:'dispatcher',priority:'high',due:plusDays(0),notes:'Ранее проекты были автоматически приостановлены. Проверить текущее состояние перед любыми изменениями.',katya:true,status:'open',source:'service'},
- {id:'t7',title:'Разобраться с доступом к Mistral API',project:'Катя AI',agent:'dispatcher',priority:'mid',due:plusDays(3),notes:'Ранее API-ключи были недоступны до завершения проверки подписки/оплаты.',katya:false,status:'open',source:'service'},
- {id:'t8',title:'Исправить причину неудачного деплоя Vercel',project:'Катя AI',agent:'dispatcher',priority:'mid',due:plusDays(3),notes:'Последняя известная причина: deployment actor не состоял в Vercel team.',katya:false,status:'open',source:'service'}
-];
+const SEED=[];
 function defaultState(){return{version:3,tasks:SEED.map(x=>({...x})),logs:[],paused:false,speed:1,selected:'dispatcher',createdAt:Date.now(),taskFilter:'open',search:''}}
-function normalize(s){if(!s||!Array.isArray(s.tasks))throw new Error('Некорректная резервная копия');s.version=3;s.tasks=s.tasks.map(t=>({...t,id:String(t.id),status:t.status||'open',priority:t.priority||'mid',katya:!!t.katya}));s.logs=s.logs||[];s.taskFilter=s.taskFilter||'open';s.search=s.search||'';s.pendingCloud=s.pendingCloud||{owner:null,updates:{},deleted:{},logs:{}};return s}
-function load(){
- try{const raw=localStorage.getItem(STORAGE);if(raw)return normalize(JSON.parse(raw))}catch(e){}
- try{const old=localStorage.getItem(OLD_STORAGE);if(old){const s=normalize(JSON.parse(old));localStorage.setItem(STORAGE,JSON.stringify(s));return s}}catch(e){}
- try{const older=localStorage.getItem(OLDER_STORAGE);if(older){const s=normalize(JSON.parse(older));localStorage.setItem(STORAGE,JSON.stringify(s));return s}}catch(e){}
- return defaultState()
+function normalize(s){
+ if(!s||!Array.isArray(s.tasks)||s.tasks.length>10000)throw new Error('Некорректная резервная копия');
+ const ids=new Set();s.tasks=s.tasks.map(t=>{
+  if(!t||typeof t.title!=='string'||!t.title.trim()||typeof t.id!=='string'||!/^[a-zA-Z0-9_.:-]{1,160}$/.test(t.id)||['__proto__','constructor','prototype'].includes(t.id)||ids.has(t.id))throw new Error('Проверь названия и уникальные ID задач');ids.add(t.id);
+  for(const key of ['project','notes'])if(t[key]!=null&&typeof t[key]!=='string')throw new Error('Некорректные поля задачи');
+  if(t.due&&(!/^\d{4}-\d{2}-\d{2}$/.test(t.due)||!Number.isFinite(new Date(t.due+'T00:00:00').getTime())||iso(new Date(t.due+'T00:00:00'))!==t.due))throw new Error('Некорректный срок');
+  return{id:t.id,title:t.title.trim(),project:t.project||'',notes:t.notes||'',agent:AGENTS.some(a=>a.id===t.agent)?t.agent:'dispatcher',status:t.status==='done'?'done':'open',priority:['high','mid','low'].includes(t.priority)?t.priority:'mid',due:t.due||'',katya:!!t.katya,source:typeof t.source==='string'?t.source:'user',...(Number.isFinite(t.completedAt)?{completedAt:t.completedAt}:{})};
+ });
+ s.version=3;s.logs=Array.isArray(s.logs)?s.logs.filter(l=>l&&typeof l.msg==='string'&&Number.isFinite(l.time)).slice(0,180):[];
+ s.taskFilter=['open','all','done'].includes(s.taskFilter)?s.taskFilter:'open';s.search=typeof s.search==='string'?s.search:'';
+ s.speed=[.5,1,2,4].includes(s.speed)?s.speed:1;s.selected=AGENTS.some(a=>a.id===s.selected)?s.selected:'dispatcher';
+ s.pendingCloud=s.pendingCloud||{};for(const key of ['updates','deleted','logs'])if(!s.pendingCloud[key]||typeof s.pendingCloud[key]!=='object'||Array.isArray(s.pendingCloud[key]))s.pendingCloud[key]={};
+ s.pendingCloud.owner=s.pendingCloud.owner||null;s.cloudBase=s.cloudBase||{};return s;
 }
-let state=normalize(load());
+let storageKey=STORAGE+'_guest',accountEpoch=0,cloudConfirmed=false,cloudPullPromise=null,accountSwitchPromise=Promise.resolve();
+function load(key=storageKey){const raw=localStorage.getItem(key);return raw?normalize(JSON.parse(raw)):normalize(defaultState())}
+let state;try{state=load()}catch(e){state=normalize(defaultState())}
 let taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)])),taskSyncRunning=null,cloudConnecting=null,lastSettingsValue='';
 let activeTab='today';
 const agentBy=id=>AGENTS.find(a=>a.id===id)||AGENTS[0];
 const prioText={high:'Высокий',mid:'Средний',low:'Низкий'};
-function save(){
- try{localStorage.setItem(STORAGE,JSON.stringify(state));$('#savedState').textContent=cloudUser?'сохранено · облако':'сохранено';scheduleSettingsSync()}
- catch(e){$('#savedState').textContent='без сохранения'}
-}
+function save(){cloudConfirmed=false;persistQueue();scheduleSettingsSync()}
+function savedLabel(){const pending=state.pendingCloud;$('#savedState').textContent=cloudUser&&cloudConfirmed&&!Object.keys(pending.updates).length&&!Object.keys(pending.deleted).length&&!Object.keys(pending.logs).length?'подтверждено облаком':cloudUser?'на устройстве · ожидает синхронизации':'сохранено на устройстве'}
+
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function toast(t){const n=$('#toast');n.textContent=t;n.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>n.classList.remove('show'),1800)}
 function startOfToday(){const d=new Date();d.setHours(0,0,0,0);return d}
@@ -285,20 +284,56 @@ function setCloudStatus(mode,label){
  const dot=$('#cloudDot'),txt=$('#cloudStatus'),foot=$('#footerSyncText');
  if(dot)dot.className='cloud-dot '+mode;if(txt)txt.textContent=label;
  if(foot)foot.textContent=mode==='online'?'ПК и Android синхронизируются через Supabase':'Данные пока хранятся только в этом браузере';
- const b=$('#accountBtn');if(b)b.textContent=cloudUser?'Облако ✓':'Войти';
+ const b=$('#accountBtn');if(b)b.textContent=cloudUser?(mode==='online'?'Облако ✓':'Аккаунт · '+label):'Войти';cloudConfirmed=mode==='online';savedLabel();
 }
 function cloudTaskRow(t){return{owner_id:cloudUser.id,client_id:String(t.id),title:t.title,project:t.project||null,agent:t.agent||'dispatcher',priority:t.priority||'mid',due:t.due||null,notes:t.notes||null,katya:!!t.katya,status:t.status||'open',source:t.source||null,completed_at:t.completedAt?new Date(t.completedAt).toISOString():null}}
+function baselineRow(r){const keys=['owner_id','client_id','title','project','agent','priority','due','notes','katya','status','source','completed_at'];return Object.fromEntries(keys.map(k=>[k,r[k]??null]))}
 function localTaskRow(r){return{id:r.client_id,title:r.title,project:r.project||'',agent:r.agent||'dispatcher',priority:r.priority||'mid',due:r.due||'',notes:r.notes||'',katya:!!r.katya,status:r.status||'open',source:r.source||'cloud',...(r.completed_at?{completedAt:new Date(r.completed_at).getTime()}:{})}}
-function persistQueue(){try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(e){$('#savedState').textContent='без сохранения'}}
+function persistQueue(){try{localStorage.setItem(storageKey,JSON.stringify(state));savedLabel()}catch(e){$('#savedState').textContent='ошибка: данные не сохранены'}}
 function rememberTaskChanges(){const now=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));for(const t of state.tasks)if(taskSnapshot.get(t.id)!==now.get(t.id)){state.pendingCloud.updates[t.id]={...t};delete state.pendingCloud.deleted[t.id]}for(const id of taskSnapshot.keys())if(!now.has(id)){state.pendingCloud.deleted[id]=Date.now()+Math.random();delete state.pendingCloud.updates[id]}taskSnapshot=now;persistQueue()}
 function scheduleTaskSync(){rememberTaskChanges();if(!cloudUser||cloudPulling||!sb)return;clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),700)}
 function scheduleSettingsSync(){if(!cloudUser||cloudPulling||!sb)return;const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);if(key===lastSettingsValue)return;clearTimeout(settingsSyncTimer);settingsSyncTimer=setTimeout(pushSettingsToCloud,900)}
-async function pushTasksToCloud(){if(!cloudUser||!sb)return;if(taskSyncRunning)return taskSyncRunning;const user=cloudUser;taskSyncRunning=(async()=>{try{const pending=state.pendingCloud;if(pending.owner&&pending.owner!==user.id)throw new Error('Очередь принадлежит другому аккаунту');pending.owner=user.id;const updates=Object.entries(pending.updates),deletions=Object.entries(pending.deleted);if(!updates.length&&!deletions.length)return;setCloudStatus('syncing','синхр...');if(updates.length){const {error}=await sb.from('factory_tasks').upsert(updates.map(([,t])=>({...cloudTaskRow(t),owner_id:user.id})),{onConflict:'owner_id,client_id'});if(error)throw error;for(const [id,t]of updates)if(pending.updates[id]===t)delete pending.updates[id]}for(const [id,mark]of deletions){const {error}=await sb.from('factory_tasks').delete().eq('owner_id',user.id).eq('client_id',id);if(error)throw error;if(pending.deleted[id]===mark)delete pending.deleted[id]}persistQueue();setCloudStatus('online','облако')}catch(e){persistQueue();setCloudStatus('offline','ждёт сети');throw e}})();try{await taskSyncRunning}finally{taskSyncRunning=null}}
+function matchingRow(query,row){for(const [key,value]of Object.entries(row))if(!['owner_id','client_id'].includes(key))query=value===null?query.is(key,null):query.eq(key,value);return query}
+async function resolveConflict(id,task,user,pending){
+ const {data,error}=await sb.from('factory_tasks').select('*').eq('owner_id',user.id).eq('client_id',id).maybeSingle();if(error)throw error;
+ if(cloudUser?.id!==user.id)return;
+ if(task){const copy={...task,id:crypto.randomUUID(),title:task.title+' — конфликт: моя версия',katya:true};state.tasks.push(copy);pending.updates[copy.id]=copy;}
+ state.tasks=state.tasks.filter(t=>t.id!==id);if(data){state.tasks.push(localTaskRow(data));state.cloudBase[id]=baselineRow(data)}else delete state.cloudBase[id];
+ delete pending.updates[id];delete pending.deleted[id];persistQueue();toast(task?'Обе версии сохранены. Проверь задачу с пометкой «конфликт».':'Удаление отменено: задача изменилась на другом устройстве.');
+}
+async function pushTasksToCloud(){
+ if(!cloudUser||!sb)return;if(taskSyncRunning)return taskSyncRunning;const user=cloudUser,epoch=accountEpoch,pending=state.pendingCloud;
+ taskSyncRunning=(async()=>{try{
+  if(pending.owner!==user.id)throw new Error('Очередь принадлежит другому аккаунту');
+  const updates=Object.entries(pending.updates),deletions=Object.entries(pending.deleted);if(!updates.length&&!deletions.length)return;
+  setCloudStatus('syncing','отправка');
+  for(const[id,t]of updates){
+   if(epoch!==accountEpoch)return;const row={...cloudTaskRow(t),owner_id:user.id},base=state.cloudBase[id];
+   const result=base?await matchingRow(sb.from('factory_tasks').update(row).eq('owner_id',user.id).eq('client_id',id),base).select('client_id'):await sb.from('factory_tasks').insert(row).select('client_id');
+   if(epoch!==accountEpoch)return;
+   if(result.error&&result.error.code!=='23505')throw result.error;
+   if(result.error||!result.data?.length){await resolveConflict(id,pending.updates[id]||t,user,pending);continue;}
+   state.cloudBase[id]=row;if(pending.updates[id]===t)delete pending.updates[id];persistQueue();
+  }
+  for(const[id,mark]of deletions){
+   if(epoch!==accountEpoch)return;const base=state.cloudBase[id];
+   if(!base){await resolveConflict(id,null,user,pending);continue;}
+   const result=await matchingRow(sb.from('factory_tasks').delete().eq('owner_id',user.id).eq('client_id',id),base).select('client_id');
+   if(epoch!==accountEpoch)return;if(result.error)throw result.error;
+   if(!result.data?.length){await resolveConflict(id,null,user,pending);continue;}
+   delete state.cloudBase[id];if(pending.deleted[id]===mark)delete pending.deleted[id];persistQueue();
+  }
+  taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));persistQueue();renderHeader();renderAgents();renderFocus();renderTab();setCloudStatus('online','облако');
+ }catch(e){if(epoch===accountEpoch){persistQueue();setCloudStatus('offline','ошибка синхронизации')}throw e}})();
+ try{await taskSyncRunning}finally{taskSyncRunning=null;if(epoch===accountEpoch&&(Object.keys(pending.updates).length||Object.keys(pending.deleted).length)){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}
+}
+
 async function pushLogToCloud(l){if(!cloudUser||cloudPulling||!sb||!l)return;return pushAllLogsToCloud()}
 async function pushAllLogsToCloud(){if(!cloudUser||!sb)return;const pending=state.pendingCloud,entries=Object.entries(pending.logs);if(!entries.length)return;try{const rows=entries.map(([,l])=>({owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id',ignoreDuplicates:true});if(error)throw error;for(const [id,l]of entries)if(pending.logs[id]===l)delete pending.logs[id];persistQueue()}catch(e){setCloudStatus('offline','ждёт сети')}}
-async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);const row={owner_id:cloudUser.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error;lastSettingsValue=key}catch(e){setCloudStatus('offline','ждёт сети')}}
+async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);const row={owner_id:cloudUser.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error;lastSettingsValue=key;setCloudStatus('online','облако')}catch(e){setCloudStatus('offline','ждёт сети')}}
 function deleteCloudTask(id){state.pendingCloud.deleted[String(id)]=Date.now()+Math.random();delete state.pendingCloud.updates[String(id)];persistQueue()}
-async function pullCloud(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskChanges();cloudPulling=true;setCloudStatus('syncing','загрузка');try{
+function pullCloud(){if(cloudPullPromise)return cloudPullPromise;cloudPullPromise=pullCloudInner().finally(()=>{cloudPullPromise=null});return cloudPullPromise}
+async function pullCloudInner(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskChanges();cloudPulling=true;setCloudStatus('syncing','загрузка');try{
  await pushTasksToCloud();
  const [tr,sr,lr]=await Promise.all([
   sb.from('factory_tasks').select('*').eq('owner_id',cloudUser.id).order('created_at',{ascending:true}),
@@ -307,23 +342,43 @@ async function pullCloud(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskC
  ]);
  if(tr.error||sr.error||lr.error)throw tr.error||sr.error||lr.error;
  if(!sr.data){const remoteIds=new Set(tr.data.map(t=>t.client_id));for(const t of state.tasks)if(!remoteIds.has(t.id)&&!state.pendingCloud.deleted[t.id])state.pendingCloud.updates[t.id]={...t};await pushTasksToCloud();await pushSettingsToCloud(true);const map=new Map(state.tasks.map(t=>[t.id,t]));for(const row of tr.data){const t=localTaskRow(row);if(!state.pendingCloud.updates[t.id])map.set(t.id,t)}state.tasks=[...map.values()]}else{const pending=state.pendingCloud;const map=new Map(tr.data.map(r=>{const t=localTaskRow(r);return[t.id,t]}));for(const id of Object.keys(pending.deleted))map.delete(id);for(const[id,t]of Object.entries(pending.updates))map.set(id,t);state.tasks=[...map.values()]}
- taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));
+ for(const row of tr.data){const id=row.client_id;if(!state.pendingCloud.updates[id]&&!state.pendingCloud.deleted[id])state.cloudBase[id]=baselineRow(row)}taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));
  if(sr.data){state.paused=!!sr.data.paused;state.speed=Number(sr.data.speed||1);state.selected=sr.data.selected||'dispatcher';state.taskFilter=sr.data.task_filter||'open';state.search=sr.data.search||'';lastSettingsValue=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search])}
  const logs=new Map((lr.data||[]).map(x=>[String(x.client_id),{id:x.client_id,time:new Date(x.event_time).getTime(),kind:x.kind,agent:x.agent,msg:x.msg}]));for(const[id,l]of Object.entries(state.pendingCloud.logs))logs.set(id,l);state.logs=[...logs.values()].sort((a,b)=>b.time-a.time).slice(0,180);await pushAllLogsToCloud();
  persistQueue();renderHeader();renderAgents();renderFocus();renderTab();$('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';setCloudStatus('online','облако');if(!renderer)renderFlatWorld();
  }catch(e){setCloudStatus('offline','ждёт сети');toast('Изменения сохранены на устройстве. Повторим синхронизацию при подключении.')}finally{cloudPulling=false;scheduleSettingsSync();if(Object.keys(state.pendingCloud.updates).length||Object.keys(state.pendingCloud.deleted).length){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}}
 function subscribeCloud(){if(!sb||!cloudUser)return;if(cloudChannel)sb.removeChannel(cloudChannel);let rt=null;cloudChannel=sb.channel('digital-factory-'+cloudUser.id).on('postgres_changes',{event:'*',schema:'public',table:'factory_tasks',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_settings',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_logs',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).subscribe()}
 function refreshGate(){$('#webGate').classList.toggle('hidden',!!cloudUser);$('#mobileAccountBtn').textContent=cloudUser?'Облако':'Войти'}
-async function connectCloud(user){if(cloudUser?.id===user.id&&cloudConnecting)return cloudConnecting;cloudUser=user;refreshGate();setCloudStatus('syncing','подключение');cloudConnecting=(async()=>{await pullCloud();subscribeCloud();renderAuthState()})();try{await cloudConnecting}finally{cloudConnecting=null}}
-async function initCloud(){if(!sb){setCloudStatus('offline','локально');$('#webGateErr').textContent='Не загрузился модуль входа. Проверь интернет и обнови страницу.';return}try{sb.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{if(event==='SIGNED_IN'&&session?.user&&!cloudUser)connectCloud(session.user);if(event==='SIGNED_OUT'){cloudUser=null;clearTimeout(taskSyncTimer);clearTimeout(settingsSyncTimer);if(cloudChannel){sb.removeChannel(cloudChannel);cloudChannel=null}setCloudStatus('offline','локально');renderAuthState();refreshGate()}},0)});const {data,error}=await sb.auth.getSession();if(error)throw error;if(data?.session?.user)await connectCloud(data.session.user);else setCloudStatus('offline','локально')}catch(e){setCloudStatus('offline','локально')}}
+function switchAccount(user){const job=accountSwitchPromise.then(()=>switchAccountInner(user));accountSwitchPromise=job.catch(()=>{});return job}
+async function switchAccountInner(user){
+ if(cloudUser?.id===user?.id)return;localStorage.setItem(storageKey,JSON.stringify(state));accountEpoch++;clearTimeout(taskSyncTimer);clearTimeout(settingsSyncTimer);clearTimeout(renderTab.searchT);
+ if(cloudChannel){await sb.removeChannel(cloudChannel);cloudChannel=null}
+ await Promise.allSettled([taskSyncRunning,cloudConnecting,cloudPullPromise]);cloudUser=user;cloudConfirmed=false;storageKey=user?STORAGE+'_user_'+user.id:STORAGE+'_guest';
+ let next;
+ const existing=localStorage.getItem(storageKey);
+ if(existing)next=normalize(JSON.parse(existing));
+ else if(user){const legacy=localStorage.getItem(STORAGE);if(legacy){const old=normalize(JSON.parse(legacy));if(old.pendingCloud.owner===user.id)next=old;}}
+ state=next||normalize(defaultState());state.pendingCloud.owner=user?.id||null;taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));lastSettingsValue='';activeTab='today';
+ refreshGate();renderAll();renderAuthState();
+}
+async function connectCloud(user){
+ if(cloudUser?.id===user.id&&cloudConnecting)return cloudConnecting;
+ await switchAccount(user);setCloudStatus('syncing','подключение');
+ cloudConnecting=(async()=>{await pullCloud();subscribeCloud();renderAuthState()})();try{await cloudConnecting}finally{cloudConnecting=null}
+}
+async function initCloud(){if(!sb){setCloudStatus('offline','локально');$('#webGateErr').textContent='Не загрузился модуль входа. Проверь интернет и обнови страницу.';return}
+ try{sb.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{if(event==='SIGNED_IN'&&session?.user&&cloudUser?.id!==session.user.id)connectCloud(session.user).catch(()=>setCloudStatus('offline','ошибка подключения'));if(event==='SIGNED_OUT')switchAccount(null).then(()=>setCloudStatus('offline','локально')).catch(()=>refreshGate())},0)});
+ const {data,error}=await sb.auth.getSession();if(error)throw error;if(data?.session?.user)await connectCloud(data.session.user);else setCloudStatus('offline','локально')
+ }catch(e){setCloudStatus('offline','ошибка подключения');$('#webGateErr').textContent='Не удалось прочитать сохранённые данные. Они не удалены. Попробуй обновить страницу.'}}
+
 window.addEventListener('online',()=>{if(cloudUser)pullCloud()});window.addEventListener('offline',()=>setCloudStatus('offline','ждёт сети'));document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloudUser)pullCloud()});
-function renderAuthState(){const box=$('#authStateBox'),fields=$('#authFields'),ib=$('#signInBtn'),ob=$('#signOutBtn');if(!box)return;if(cloudUser){box.innerHTML='<strong>Сейчас:</strong> вход выполнен. Общая база активна.';fields.classList.add('hidden');ib.classList.add('hidden');ob.classList.remove('hidden')}else{box.innerHTML='<strong>Сейчас:</strong> локальный режим. Для общей базы нужно войти.';fields.classList.remove('hidden');ib.classList.remove('hidden');ob.classList.add('hidden')}}
+function renderAuthState(){const box=$('#authStateBox'),fields=$('#authFields'),ib=$('#signInBtn'),ob=$('#signOutBtn');if(!box)return;if(cloudUser){box.innerHTML='<strong>Сейчас:</strong> вход выполнен. Состояние обмена показано в статусе синхронизации.';fields.classList.add('hidden');ib.classList.add('hidden');ob.classList.remove('hidden')}else{box.innerHTML='<strong>Сейчас:</strong> локальный режим. Для общей базы нужно войти.';fields.classList.remove('hidden');ib.classList.remove('hidden');ob.classList.add('hidden')}}
 function openAuth(){renderAuthState();$('#authModal').classList.add('open')}function closeAuth(){$('#authModal').classList.remove('open')}
 
 function renderHeader(){const o=openTasks();$('#activeTasks').textContent=o.length;$('#needKatya').textContent=o.filter(t=>t.katya).length;$('#overdueTasks').textContent=overdue().length}
 function renderAgents(){const box=$('#agents');box.innerHTML='';AGENTS.forEach(a=>{const tasks=openTasks().filter(t=>t.agent===a.id);const top=[...tasks].sort((x,y)=>scoreTask(y)-scoreTask(x))[0];const div=document.createElement('div');div.className='agent'+(state.selected===a.id?' active':'');div.innerHTML=`<div class="avatar" style="--avatar:${a.color}">${a.emoji}</div><div><strong>${a.name}</strong><small>${a.role}${top?' · '+escapeHtml(top.project||'задача'):''}</small></div><div class="state">${top?'●':'○'}</div>`;div.onclick=()=>selectAgent(a.id,true);box.appendChild(div)})}
 function selectAgent(id,focus=false){state.selected=id;save();renderAgents();renderFocus();if(!renderer)renderFlatWorld();if(focus&&worldAgents[id]){cameraTarget.copy(worldAgents[id].group.position);toast(agentBy(id).role)}}
-function renderFocus(){const a=agentBy(state.selected),tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0];$('#focusName').textContent=a.emoji+' '+a.name;$('#focusRole').textContent=a.role;$('#focusGoal').textContent=a.goal;$('#focusNow').textContent=top?'Сейчас: '+top.title:'Сейчас: свободен, проверяет очередь';$('#focusProgress').style.width=Math.min(100,tasks.length?Math.max(12,100-tasks.length*12):100)+'%'}
+function renderFocus(){const a=agentBy(state.selected),tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0];$('#focusName').textContent=a.emoji+' '+a.name;$('#focusRole').textContent=a.role;$('#focusGoal').textContent=a.goal;$('#focusNow').textContent=top?'Сейчас: '+top.title:'Сейчас: нет назначенных задач';$('#focusProgress').style.width=Math.min(100,tasks.length?Math.max(12,100-tasks.length*12):100)+'%'}
 function projectGroups(){
  const map=new Map();
  state.tasks.forEach(t=>{const p=(t.project||'Без проекта').trim()||'Без проекта';if(!map.has(p))map.set(p,[]);map.get(p).push(t)});
@@ -336,9 +391,9 @@ function taskCard(t,attention=false){
   <div class="task-meta">${escapeHtml(t.project||'Без проекта')} · ${a.emoji} ${a.role}<br>Срок: ${dueText(t)}${t.katya&&!isDone?' · <b style="color:#f1d08c">нужно решение Кати</b>':''}</div>
   ${t.notes?`<div class="task-meta" style="color:#c9d3ce">${escapeHtml(t.notes)}</div>`:''}
   <div class="task-actions">
-   ${isDone?`<button data-reopen="${t.id}">↩ Вернуть</button>`:`<button class="done" data-done="${t.id}">✓ Выполнено</button><button data-day="${t.id}">+1 день</button><button data-katya="${t.id}">${t.katya?'Снять «Кате»':'Нужно Кате'}</button>`}
-   <button data-edit="${t.id}">Изменить</button>
-   <button data-select-agent="${t.agent}">Сотрудник</button>
+   ${isDone?`<button data-reopen="${escapeHtml(t.id)}">↩ Вернуть</button>`:`<button class="done" data-done="${escapeHtml(t.id)}">✓ Выполнено</button><button data-day="${escapeHtml(t.id)}">+1 день</button><button data-katya="${escapeHtml(t.id)}">${t.katya?'Снять «Кате»':'Нужно Кате'}</button>`}
+   <button data-edit="${escapeHtml(t.id)}">Изменить</button>
+   <button data-select-agent="${escapeHtml(t.agent)}">Сотрудник</button>
   </div></div>`
 }
 function todayView(){
@@ -356,6 +411,7 @@ function projectCard([name,tasks]){
  return `<div class="project-card" data-project="${escapeHtml(name)}"><div class="project-head"><h4>${escapeHtml(name)}</h4><span class="pct">${pct}%</span></div><div class="progress"><i style="width:${pct}%"></i></div><div class="project-line"><span class="mini">${open} активн.</span><span class="mini">${done} выполн.</span>${need?`<span class="mini" style="color:#f1d08c">${need} требует Кати</span>`:''}</div></div>`
 }
 function renderTab(){
+ const typing=document.activeElement?.id==='taskSearch'?{start:document.activeElement.selectionStart,end:document.activeElement.selectionEnd}:null;
  const v=$('#tabview');$('#workTitle').textContent={today:'Сегодня',attention:'Требует внимания',tasks:'Все задачи',projects:'Проекты',log:'Журнал решений',connections:'Связи'}[activeTab]||'Рабочий центр';
  if(activeTab==='today')v.innerHTML=todayView();
  else if(activeTab==='attention'){const tasks=openTasks().filter(t=>t.katya||scoreTask(t)>=90).sort((a,b)=>scoreTask(b)-scoreTask(a));v.innerHTML=tasks.length?tasks.map(t=>taskCard(t,true)).join(''):'<div class="empty">Сейчас нет задач, требующих твоего решения 🎉</div>'}
@@ -365,7 +421,7 @@ function renderTab(){
   if(q)tasks=tasks.filter(t=>[t.title,t.project,t.notes,agentBy(t.agent).role].join(' ').toLowerCase().includes(q));
   tasks.sort((a,b)=>a.status===b.status?scoreTask(b)-scoreTask(a):(a.status==='done'?1:-1));
   v.innerHTML=`<div class="searchbar"><input id="taskSearch" value="${escapeHtml(state.search||'')}" placeholder="Поиск по задачам и проектам"><button data-filter="open">Активные</button><button data-filter="done">Готово</button><button data-filter="all">Все</button></div>${tasks.length?tasks.map(t=>taskCard(t)).join(''):'<div class="empty">Ничего не найдено.</div>'}`;
-  const inp=$('#taskSearch'); if(inp)inp.oninput=e=>{state.search=e.target.value;save();clearTimeout(renderTab.searchT);renderTab.searchT=setTimeout(renderTab,250)};
+  const inp=$('#taskSearch'); if(inp)inp.oninput=e=>{state.search=e.target.value;save();clearTimeout(renderTab.searchT);renderTab.searchT=setTimeout(()=>{if(activeTab!=='tasks')return;const focused=document.activeElement===inp,start=inp.selectionStart,end=inp.selectionEnd;renderTab();const next=$('#taskSearch');if(focused&&next){next.focus();next.setSelectionRange(start,end)}},250)};
   $$('[data-filter]').forEach(b=>{if(b.dataset.filter===status)b.style.background='rgba(34,167,126,.16)';b.onclick=()=>{state.taskFilter=b.dataset.filter;save();renderTab()}})
  }
  else if(activeTab==='projects')v.innerHTML=projectGroups().map(projectCard).join('')||'<div class="empty">Проектов пока нет.</div>';
@@ -374,12 +430,12 @@ function renderTab(){
   <div class="connection-card"><div><strong>📱 Android / PWA</strong><small>Онлайн-версия работает по HTTPS и подготовлена для установки на главный экран.</small></div><span class="conn-state local">HTTPS ✓</span></div>
   <div class="connection-card"><div><strong>📧 Gmail</strong><small>Следующий этап: новые письма, ответы и ожидания клиентов.</small></div><span class="conn-state off">не подключено</span></div>
   <div class="connection-card"><div><strong>📅 Google Calendar</strong><small>Следующий этап: замеры, встречи, производство и дедлайны.</small></div><span class="conn-state off">не подключено</span></div>
-  <div class="connection-card"><div><strong>🗄 Supabase</strong><small>Общая база подготовлена. После входа задачи синхронизируются между ПК и Android.</small></div><span class="conn-state local">готово ✓</span></div>
+  <div class="connection-card"><div><strong>🗄 Supabase</strong><small>Вход подключает Supabase. Результат обмена показан в статусе синхронизации.</small></div><span class="conn-state local">настроено</span></div>
   <div class="connection-card"><div><strong>🤖 AI-мозг</strong><small>После подключения агенты смогут анализировать реальные сообщения, проекты и документы.</small></div><span class="conn-state off">не подключено</span></div>
   <div class="section-title">ДАННЫЕ</div><div class="task-actions"><button id="connExport">Резервная копия</button><button id="connImport">Импорт</button><button id="connBrief">Что делать сейчас?</button></div>`;
  wireTaskButtons();
  $('#connExport')?.addEventListener('click',exportData);$('#connImport')?.addEventListener('click',()=>$('#importFile').click());$('#connBrief')?.addEventListener('click',showBrief);
- $$('.project-card[data-project]').forEach(c=>c.onclick=()=>{state.search=c.dataset.project;state.taskFilter='all';switchTab('tasks')})
+ $$('.project-card[data-project]').forEach(c=>c.onclick=()=>{state.search=c.dataset.project;state.taskFilter='all';switchTab('tasks')});if(typing&&activeTab==='tasks'){const field=$('#taskSearch');if(field){field.focus();field.setSelectionRange(typing.start,typing.end)}}
 }
 function wireTaskButtons(){
  $$('[data-done]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.done);if(!t)return;t.status='done';t.completedAt=Date.now();addLog('decision',t.agent,`Задача закрыта: ${t.title}`);renderAll();toast('Задача закрыта')});
@@ -406,15 +462,22 @@ $('#saveTask').onclick=()=>{
  const title=$('#fTitle').value.trim();if(!title){toast('Напиши задачу');return}
  const id=$('#fId').value,t=id?state.tasks.find(x=>x.id===id):null;
  const data={title,project:$('#fProject').value.trim(),agent:$('#fAgent').value,priority:$('#fPriority').value,due:$('#fDue').value,notes:$('#fNotes').value.trim(),katya:$('#fKatya').checked};
- if(t){Object.assign(t,data);addLog('decision',t.agent,`Задача обновлена: ${t.title}`)}else{const n={id:'u'+Date.now(),...data,status:'open',source:'user',createdAt:Date.now()};state.tasks.push(n);addLog('decision',n.agent,`Получена новая задача: ${n.title}`)}
+ if(t){Object.assign(t,data);addLog('decision',t.agent,`Задача обновлена: ${t.title}`)}else{const n={id:crypto.randomUUID(),...data,status:'open',source:'user',createdAt:Date.now()};state.tasks.push(n);addLog('decision',n.agent,`Получена новая задача: ${n.title}`)}
  closeTaskModal();renderAll();toast(t?'Изменения сохранены':'Задача добавлена')
 };
 $('#deleteTask').onclick=()=>{const id=$('#fId').value,t=state.tasks.find(x=>x.id===id);if(!t)return;if(confirm(`Удалить задачу «${t.title}»?`)){state.tasks=state.tasks.filter(x=>x.id!==id);deleteCloudTask(id);addLog('alert','dispatcher',`Удалена задача: ${t.title}`);closeTaskModal();renderAll();toast('Задача удалена')}};
-$('#focusAttention').onclick=()=>{state.search='';state.taskFilter='open';switchTab('tasks');toast('Задачи: '+agentBy(state.selected).role)};
+$('#focusAttention').onclick=()=>{state.search=agentBy(state.selected).role;state.taskFilter='open';switchTab('tasks');toast('Задачи: '+agentBy(state.selected).role)};
 
-function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='МАКСимум_фабрика_v3_'+iso(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия создана')}
+function exportData(){const blob=new Blob([JSON.stringify({version:3,tasks:state.tasks,logs:state.logs,paused:state.paused,speed:state.speed,selected:state.selected},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='МАКСимум_фабрика_v3_'+iso(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия создана')}
 $('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();
-$('#importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=normalize(JSON.parse(await f.text()));if(!Array.isArray(data.tasks))throw new Error();state=data;renderAll();toast('Данные импортированы')}catch(err){toast('Не удалось прочитать файл')}e.target.value=''};
+$('#importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
+ if(f.size>5*1024*1024)throw new Error('Файл больше 5 МБ');const parsed=JSON.parse(await f.text());const data=normalize({tasks:parsed.tasks,logs:parsed.logs});
+ if(!confirm('Добавить '+data.tasks.length+' задач из копии? Совпадающие задачи будут пропущены, отличающиеся сохранены отдельными копиями. Текущие задачи не удаляются.'))return;
+ localStorage.setItem(storageKey+'_before_import_'+Date.now(),JSON.stringify(state));
+ const current=new Map(state.tasks.map(t=>[t.id,t]));let count=0;for(const t of data.tasks){const old=current.get(t.id);if(old&&JSON.stringify(old)===JSON.stringify(t))continue;const added=old?{...t,id:crypto.randomUUID(),title:t.title+' — импортированная копия'}:t;state.tasks.push(added);current.set(added.id,added);count++}
+ renderAll();toast('Добавлено задач: '+count+'. Резервная копия сохранена на устройстве.')
+ }catch(err){toast(err.message||'Не удалось прочитать файл')}finally{e.target.value=''}};
+
 
 function showBrief(){
  const top=[...openTasks()].sort((a,b)=>scoreTask(b)-scoreTask(a)).slice(0,5),late=overdue().length,need=openTasks().filter(t=>t.katya).length;
@@ -428,8 +491,8 @@ $('#dailyBrief').onclick=showBrief;$('#closeBrief').onclick=()=>$('#briefModal')
 
 $('#accountBtn').onclick=openAuth;$('#mobileAccountBtn').onclick=openAuth;$('#syncBtn').onclick=()=>cloudUser?pullCloud():openAuth();$('#closeAuth').onclick=closeAuth;$('#authModal').onclick=e=>{if(e.target.id==='authModal')closeAuth()};
 $('#gateForm').onsubmit=async e=>{e.preventDefault();if(!sb){$('#webGateErr').textContent='Не загрузился модуль входа. Обнови страницу с интернетом.';return}const button=$('#webGateBtn');button.disabled=true;button.textContent='Вхожу…';$('#webGateErr').textContent='';try{const{data,error}=await sb.auth.signInWithPassword({email:$('#gateEmail').value.trim(),password:$('#gatePassword').value});if(error)throw error;await connectCloud(data.user);$('#gatePassword').value=''}catch(err){$('#webGateErr').textContent=err.status===400?'Проверь email и пароль аккаунта приложения.':'Не удалось войти. Проверь интернет и попробуй ещё раз.'}finally{button.disabled=false;button.textContent='Войти в фабрику'}};
-$('#signInBtn').onclick=async()=>{if(!sb){toast('Supabase не загрузился');return}const email=$('#authEmail').value.trim(),password=$('#authPassword').value;if(!email||!password){toast('Введи email и пароль');return}$('#signInBtn').disabled=true;$('#signInBtn').textContent='Вхожу…';try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(data?.user){await connectCloud(data.user);renderAuthState();toast('Общая база подключена')}}catch(e){console.warn(e);toast('Не удалось войти: проверь почту и пароль')}finally{$('#signInBtn').disabled=false;$('#signInBtn').textContent='Войти и синхронизировать'}};
-$('#signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();cloudUser=null;renderAuthState();setCloudStatus('offline','локально');toast('Облачная сессия отключена')};
+$('#signInBtn').onclick=async()=>{if(!sb){toast('Supabase не загрузился');return}const email=$('#authEmail').value.trim(),password=$('#authPassword').value;if(!email||!password){toast('Введи email и пароль');return}$('#signInBtn').disabled=true;$('#signInBtn').textContent='Вхожу…';try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(data?.user){await connectCloud(data.user);renderAuthState();toast(cloudConfirmed?'Общая база подключена':'Вход выполнен. Облако пока не подтвердило синхронизацию.')}}catch(e){console.warn(e);toast('Не удалось войти: проверь почту и пароль')}finally{$('#signInBtn').disabled=false;$('#signInBtn').textContent='Войти и синхронизировать'}};
+$('#signOutBtn').onclick=async()=>{if(sb){const {error}=await sb.auth.signOut();if(error){toast('Не удалось выйти. Попробуй ещё раз.');return}}await switchAccount(null);setCloudStatus('offline','локально');toast('Выход выполнен')};
 
 function voiceCapture(){
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -465,7 +528,7 @@ function pickPerson(e){const r=renderer.domElement.getBoundingClientRect(),m=new
 function resizeWorld(){const h=$('#world');if(!renderer||!h.clientWidth||!h.clientHeight)return;camera.aspect=h.clientWidth/h.clientHeight;camera.updateProjectionMatrix();renderer.setSize(h.clientWidth,h.clientHeight)}
 $('#focusCamera').onclick=()=>{const w=worldAgents[state.selected];if(w){cameraTarget.copy(w.group.position);toast('Камера: '+agentBy(state.selected).name)}};
 let last=performance.now(),simMinutes=9*60,decisionTimer=0;const speeds=[.5,1,2,4];
-$('#pause').onclick=()=>{state.paused=!state.paused;$('#pause').textContent=state.paused?'Продолжить':'Пауза';$('#worldStatus').textContent=state.paused?'Фабрика на паузе':'Фабрика работает';save()};
+$('#pause').onclick=()=>{state.paused=!state.paused;$('#pause').textContent=state.paused?'Продолжить':'Пауза';$('#worldStatus').textContent=state.paused?'Фабрика на паузе':'Карта задач · AI не подключён';save()};
 $('#speed').onclick=()=>{let i=speeds.indexOf(state.speed||1);state.speed=speeds[(i+1)%speeds.length];$('#speed').textContent='Скорость '+state.speed+'×';save()};
 function animateWorld(now){
  requestAnimationFrame(animateWorld);const raw=Math.min(.05,(now-last)/1000);last=now;const dt=state.paused?0:raw*(state.speed||1);simMinutes=(simMinutes+dt*5)%1440;$('#simClock').textContent=String(Math.floor(simMinutes/60)).padStart(2,'0')+':'+String(Math.floor(simMinutes%60)).padStart(2,'0');$('#simDay').textContent='Рабочий день · режим '+(state.speed||1)+'×';decisionTimer+=dt;if(decisionTimer>6){decisionTimer=0;agentDecision()}
@@ -473,15 +536,17 @@ function animateWorld(now){
  if(renderer&&cameraTarget){cameraTarget.lerp(new THREE.Vector3(0,0,0),.003);const desired=new THREE.Vector3(cameraTarget.x+24,23,cameraTarget.z+27);camera.position.lerp(desired,.025);camera.lookAt(cameraTarget.x,0,cameraTarget.z);if(renderer.domElement.clientWidth>0)renderer.render(scene,camera)}
 }
 function agentDecision(){
- AGENTS.forEach((a,idx)=>{const tasks=openTasks().filter(t=>t.agent===a.id).sort((x,y)=>scoreTask(y)-scoreTask(x)),top=tasks[0],w=worldAgents[a.id];if(top){if(w){const home=zonePos[a.zone].clone();home.x+=((idx%3)-1)*1.2;home.z+=((idx%2)-.5)*1.3;w.target.copy(home)}if(Math.random()<.26)addLog('decision',a.id,`Выбираю «${top.title}»: ${top.katya?'нужно решение Кати; ':''}${prioText[top.priority].toLowerCase()}, срок — ${dueText(top)}.`)}else if(w){const m=zonePos.meeting.clone();m.x+=Math.random()*5-2.5;m.z+=Math.random()*5-2.5;w.target.copy(m)}})
- const t=openTasks().find(t=>t.priority==='high'&&t.agent==='designer');if(t&&worldAgents.designer&&worldAgents.technologist&&Math.random()<.22){worldAgents.designer.target.copy(zonePos.meeting).add(new THREE.Vector3(-1,0,0));worldAgents.technologist.target.copy(zonePos.meeting).add(new THREE.Vector3(1,0,0));addLog('ai','technologist',`Запрашиваю у дизайнера контекст по «${t.project}», чтобы проверить технологические риски.`)}
+ // Visual movement only. The journal records user actions, never simulated AI work.
+ AGENTS.forEach((a,idx)=>{const w=worldAgents[a.id];if(!w)return;const home=zonePos[a.zone].clone();home.x+=((idx%3)-1)*1.2;home.z+=((idx%2)-.5)*1.3;w.target.copy(home)});
 }
+
+
 // ---------- PWA / install ----------
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBanner').classList.add('show')});
 $('#installBtn').onclick=async()=>{if(!deferredPrompt){toast('Установка станет доступна после размещения приложения по защищённой ссылке');return}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBanner').classList.remove('show')};
 $('#installClose').onclick=()=>$('#installBanner').classList.remove('show');
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=35',{updateViaCache:'none'}).catch(()=>{});
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=36',{updateViaCache:'none'}).catch(()=>toast('Офлайн-режим не подключён. Проверь сеть и обнови страницу.'));
 
 // startup
 if(!state.logs.length){addLog('decision','dispatcher','Цифровая фабрика v3 запущена. После входа включается общая база ПК ↔ Android.');addLog('alert','dispatcher','Экран «Сегодня» показывает только ближайшие приоритеты, чтобы не перегружать тебя всей очередью сразу.')}

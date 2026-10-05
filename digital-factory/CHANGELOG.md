@@ -1,3 +1,10 @@
+# v3.8
+
+- Add Google Calendar page and task-to-event navigation, with separate Google consent and short-lived in-memory tokens.
+- Show primary-calendar upcoming events and create reviewed drafts only on explicit submission; no invitations, AI calendar context or automatic task changes.
+- Validate dates, bound reads, escape event text, clear account state and preserve insert IDs for retries in the same page.
+- Validation: calendar mock suite plus existing sync and AI suites. Live access requires authorized origin, enabled Calendar API and Google consent.
+
 # v3.7
 
 - Add GigaChat chat for the selected employee and an AI daily-plan button.

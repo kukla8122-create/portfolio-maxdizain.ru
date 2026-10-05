@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.7</title>
+<title>МАКСимум мебель — цифровая фабрика v3.8</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -103,7 +103,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 <body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><a class="recovery-link" href="./recover.html">Забыли пароль?</a><div id="webGateErr" class="err" role="status"></div></form></div>
 <div id="app">
 <header class="glass">
-  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.7</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.8</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
   <button id="mobileAccountBtn" class="account-btn mobile-account-btn">Войти</button>
   <div class="header-actions">
     <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
@@ -408,7 +408,7 @@ function taskCard(t,attention=false){
   ${t.notes?`<div class="task-meta" style="color:#c9d3ce">${escapeHtml(t.notes)}</div>`:''}
   <div class="task-actions">
    ${isDone?`<button data-reopen="${escapeHtml(t.id)}">↩ Вернуть</button>`:`<button class="done" data-done="${escapeHtml(t.id)}">✓ Выполнено</button><button data-day="${escapeHtml(t.id)}">+1 день</button><button data-katya="${escapeHtml(t.id)}">${t.katya?'Снять «Кате»':'Нужно Кате'}</button>`}
-   <button data-edit="${escapeHtml(t.id)}">Изменить</button>
+   <button data-edit="${escapeHtml(t.id)}">Изменить</button><button data-calendar="${escapeHtml(t.id)}">📅 В календарь</button>
    <button data-select-agent="${escapeHtml(t.agent)}">Сотрудник</button>
   </div></div>`
 }
@@ -445,7 +445,7 @@ function renderTab(){
  else v.innerHTML=`<div class="connection-card"><div><strong>💾 Локальная база</strong><small>Задачи, проекты и журнал сохраняются в браузере этого устройства.</small></div><span class="conn-state local">работает</span></div>
   <div class="connection-card"><div><strong>📱 Android / PWA</strong><small>Онлайн-версия работает по HTTPS и подготовлена для установки на главный экран.</small></div><span class="conn-state local">HTTPS ✓</span></div>
   <div class="connection-card"><div><strong>📧 Gmail</strong><small>Следующий этап: новые письма, ответы и ожидания клиентов.</small></div><span class="conn-state off">не подключено</span></div>
-  <div class="connection-card"><div><strong>📅 Google Calendar</strong><small>Следующий этап: замеры, встречи, производство и дедлайны.</small></div><span class="conn-state off">не подключено</span></div>
+  <div class="connection-card"><div><strong>📅 Google Calendar</strong><small>Ближайшие встречи и создание события из задачи. Подключение через Google на отдельном экране.</small><a href="./calendar.html">Открыть календарь →</a></div><span class="conn-state off">войти через Google</span></div>
   <div class="connection-card"><div><strong>🗄 Supabase</strong><small>Вход подключает Supabase. Результат обмена показан в статусе синхронизации.</small></div><span class="conn-state local">настроено</span></div>
   <div class="connection-card"><div><strong>🤖 GigaChat</strong><small>Анализ сохранённых задач и черновики по запросу. Почта и файлы проектов пока не подключены.</small></div><span class="conn-state ${aiConfigured?'local':'off'}">${aiConfigured?'настроен':'ожидает активации'}</span></div>
   <div class="section-title">ДАННЫЕ</div><div class="task-actions"><button id="connExport">Резервная копия</button><button id="connImport">Импорт</button><button id="connBrief">Что делать сейчас?</button></div>`;
@@ -454,6 +454,7 @@ function renderTab(){
  $$('.project-card[data-project]').forEach(c=>c.onclick=()=>{state.search=c.dataset.project;state.taskFilter='all';switchTab('tasks')});if(typing&&activeTab==='tasks'){const field=$('#taskSearch');if(field){field.focus();field.setSelectionRange(typing.start,typing.end)}}
 }
 function wireTaskButtons(){
+ $$('[data-calendar]').forEach(b=>b.onclick=()=>{location.href='./calendar.html?'+new URLSearchParams({task:b.dataset.calendar})});
  $$('[data-done]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.done);if(!t)return;t.status='done';t.completedAt=Date.now();addLog('decision',t.agent,`Задача закрыта: ${t.title}`);renderAll();toast('Задача закрыта')});
  $$('[data-reopen]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.reopen);if(!t)return;t.status='open';delete t.completedAt;addLog('decision',t.agent,`Задача возвращена в работу: ${t.title}`);renderAll();toast('Вернула в работу')});
  $$('[data-katya]').forEach(b=>b.onclick=()=>{const t=state.tasks.find(x=>x.id===b.dataset.katya);if(!t)return;t.katya=!t.katya;save();renderAll()});

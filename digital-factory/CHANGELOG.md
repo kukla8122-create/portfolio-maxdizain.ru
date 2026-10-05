@@ -1,3 +1,12 @@
+# v3.7
+
+- Add GigaChat chat for the selected employee and an AI daily-plan button.
+- Authenticate requests with Supabase and load only the verified user's saved tasks.
+- Keep provider credentials on the server; no model output can change tasks or send messages.
+- Add OAuth token reuse, request bounds, timeouts and best-effort per-instance rate limits.
+- Activation steps are in `AI-SETUP.md`. A saved key and a successful real request are required before claiming GigaChat is working.
+- Validation: `node digital-factory/tests/ai.cjs` and the v3.6 sync suite. External services are simulated in tests.
+
 # v3.6
 
 - Separate browser storage and pending queues for each authenticated account.

@@ -258,7 +258,7 @@ function normalize(s){
  s.pendingCloud=s.pendingCloud||{};for(const key of ['updates','deleted','logs'])if(!s.pendingCloud[key]||typeof s.pendingCloud[key]!=='object'||Array.isArray(s.pendingCloud[key]))s.pendingCloud[key]={};
  s.pendingCloud.owner=s.pendingCloud.owner||null;s.cloudBase=s.cloudBase||{};return s;
 }
-let storageKey=STORAGE+'_guest',accountEpoch=0,cloudConfirmed=false,cloudPullPromise=null,accountSwitchPromise=Promise.resolve();
+let storageKey=STORAGE+'_guest',accountEpoch=0,cloudConfirmed=false,storageHealthy=true,cloudPullPromise=null,accountSwitchPromise=Promise.resolve(),volatileAccountStates=new Map();
 function load(key=storageKey){const raw=localStorage.getItem(key);return raw?normalize(JSON.parse(raw)):normalize(defaultState())}
 let state;try{state=load()}catch(e){state=normalize(defaultState())}
 let taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)])),taskSyncRunning=null,cloudConnecting=null,lastSettingsValue='';
@@ -266,7 +266,7 @@ let activeTab='today';
 const agentBy=id=>AGENTS.find(a=>a.id===id)||AGENTS[0];
 const prioText={high:'Высокий',mid:'Средний',low:'Низкий'};
 function save(){cloudConfirmed=false;persistQueue();scheduleSettingsSync()}
-function savedLabel(){const pending=state.pendingCloud;$('#savedState').textContent=cloudUser&&cloudConfirmed&&!Object.keys(pending.updates).length&&!Object.keys(pending.deleted).length&&!Object.keys(pending.logs).length?'подтверждено облаком':cloudUser?'на устройстве · ожидает синхронизации':'сохранено на устройстве'}
+function savedLabel(){if(!storageHealthy){$('#savedState').textContent='ошибка: данные не сохранены на устройстве';return}const pending=state.pendingCloud;$('#savedState').textContent=cloudUser&&cloudConfirmed&&!Object.keys(pending.updates).length&&!Object.keys(pending.deleted).length&&!Object.keys(pending.logs).length?'подтверждено облаком':cloudUser?'на устройстве · ожидает синхронизации':'сохранено на устройстве'}
 
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function toast(t){const n=$('#toast');n.textContent=t;n.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>n.classList.remove('show'),1800)}
@@ -289,7 +289,7 @@ function setCloudStatus(mode,label){
 function cloudTaskRow(t){return{owner_id:cloudUser.id,client_id:String(t.id),title:t.title,project:t.project||null,agent:t.agent||'dispatcher',priority:t.priority||'mid',due:t.due||null,notes:t.notes||null,katya:!!t.katya,status:t.status||'open',source:t.source||null,completed_at:t.completedAt?new Date(t.completedAt).toISOString():null}}
 function baselineRow(r){const keys=['owner_id','client_id','title','project','agent','priority','due','notes','katya','status','source','completed_at'];return Object.fromEntries(keys.map(k=>[k,r[k]??null]))}
 function localTaskRow(r){return{id:r.client_id,title:r.title,project:r.project||'',agent:r.agent||'dispatcher',priority:r.priority||'mid',due:r.due||'',notes:r.notes||'',katya:!!r.katya,status:r.status||'open',source:r.source||'cloud',...(r.completed_at?{completedAt:new Date(r.completed_at).getTime()}:{})}}
-function persistQueue(){try{localStorage.setItem(storageKey,JSON.stringify(state));savedLabel()}catch(e){$('#savedState').textContent='ошибка: данные не сохранены'}}
+function persistQueue(){try{localStorage.setItem(storageKey,JSON.stringify(state));storageHealthy=true;savedLabel()}catch(e){storageHealthy=false;savedLabel()}}
 function rememberTaskChanges(){const now=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));for(const t of state.tasks)if(taskSnapshot.get(t.id)!==now.get(t.id)){state.pendingCloud.updates[t.id]={...t};delete state.pendingCloud.deleted[t.id]}for(const id of taskSnapshot.keys())if(!now.has(id)){state.pendingCloud.deleted[id]=Date.now()+Math.random();delete state.pendingCloud.updates[id]}taskSnapshot=now;persistQueue()}
 function scheduleTaskSync(){rememberTaskChanges();if(!cloudUser||cloudPulling||!sb)return;clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),700)}
 function scheduleSettingsSync(){if(!cloudUser||cloudPulling||!sb)return;const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);if(key===lastSettingsValue)return;clearTimeout(settingsSyncTimer);settingsSyncTimer=setTimeout(pushSettingsToCloud,900)}
@@ -329,8 +329,8 @@ async function pushTasksToCloud(){
 }
 
 async function pushLogToCloud(l){if(!cloudUser||cloudPulling||!sb||!l)return;return pushAllLogsToCloud()}
-async function pushAllLogsToCloud(){if(!cloudUser||!sb)return;const pending=state.pendingCloud,entries=Object.entries(pending.logs);if(!entries.length)return;try{const rows=entries.map(([,l])=>({owner_id:cloudUser.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id',ignoreDuplicates:true});if(error)throw error;for(const [id,l]of entries)if(pending.logs[id]===l)delete pending.logs[id];persistQueue()}catch(e){setCloudStatus('offline','ждёт сети')}}
-async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);const row={owner_id:cloudUser.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error;lastSettingsValue=key;setCloudStatus('online','облако')}catch(e){setCloudStatus('offline','ждёт сети')}}
+async function pushAllLogsToCloud(){if(!cloudUser||!sb)return;const user=cloudUser,epoch=accountEpoch,pending=state.pendingCloud,entries=Object.entries(pending.logs);if(!entries.length||pending.owner!==user.id)return;try{const rows=entries.map(([,l])=>({owner_id:user.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id',ignoreDuplicates:true});if(error)throw error;if(epoch!==accountEpoch)return;for(const [id,l]of entries)if(pending.logs[id]===l)delete pending.logs[id];persistQueue()}catch(e){if(epoch===accountEpoch)setCloudStatus('offline','ошибка синхронизации')}}
+async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;const user=cloudUser,epoch=accountEpoch;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);const row={owner_id:user.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error;if(epoch!==accountEpoch)return;lastSettingsValue=key;setCloudStatus('online','облако')}catch(e){if(epoch===accountEpoch)setCloudStatus('offline','ошибка синхронизации')}}
 function deleteCloudTask(id){state.pendingCloud.deleted[String(id)]=Date.now()+Math.random();delete state.pendingCloud.updates[String(id)];persistQueue()}
 function pullCloud(){if(cloudPullPromise)return cloudPullPromise;cloudPullPromise=pullCloudInner().finally(()=>{cloudPullPromise=null});return cloudPullPromise}
 async function pullCloudInner(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskChanges();cloudPulling=true;setCloudStatus('syncing','загрузка');try{
@@ -349,15 +349,15 @@ async function pullCloudInner(){if(!cloudUser||!sb||cloudPulling)return;remember
  }catch(e){setCloudStatus('offline','ждёт сети');toast('Изменения сохранены на устройстве. Повторим синхронизацию при подключении.')}finally{cloudPulling=false;scheduleSettingsSync();if(Object.keys(state.pendingCloud.updates).length||Object.keys(state.pendingCloud.deleted).length){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}}
 function subscribeCloud(){if(!sb||!cloudUser)return;if(cloudChannel)sb.removeChannel(cloudChannel);let rt=null;cloudChannel=sb.channel('digital-factory-'+cloudUser.id).on('postgres_changes',{event:'*',schema:'public',table:'factory_tasks',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_settings',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_logs',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).subscribe()}
 function refreshGate(){$('#webGate').classList.toggle('hidden',!!cloudUser);$('#mobileAccountBtn').textContent=cloudUser?'Облако':'Войти'}
-function switchAccount(user){const job=accountSwitchPromise.then(()=>switchAccountInner(user));accountSwitchPromise=job.catch(()=>{});return job}
+function switchAccount(user){const job=accountSwitchPromise.then(()=>switchAccountInner(user)).catch(e=>{cloudUser=null;storageKey=STORAGE+'_guest';state=normalize(defaultState());taskSnapshot=new Map();refreshGate();renderHeader();renderAgents();renderFocus();renderTab();throw e});accountSwitchPromise=job.catch(()=>{});return job}
 async function switchAccountInner(user){
- if(cloudUser?.id===user?.id)return;localStorage.setItem(storageKey,JSON.stringify(state));accountEpoch++;clearTimeout(taskSyncTimer);clearTimeout(settingsSyncTimer);clearTimeout(renderTab.searchT);
+ if(cloudUser?.id===user?.id)return;volatileAccountStates.set(cloudUser?.id||'guest',state);localStorage.setItem(storageKey,JSON.stringify(state));accountEpoch++;clearTimeout(taskSyncTimer);clearTimeout(settingsSyncTimer);clearTimeout(renderTab.searchT);
  if(cloudChannel){await sb.removeChannel(cloudChannel);cloudChannel=null}
  await Promise.allSettled([taskSyncRunning,cloudConnecting,cloudPullPromise]);cloudUser=user;cloudConfirmed=false;storageKey=user?STORAGE+'_user_'+user.id:STORAGE+'_guest';
- let next;
+ let next=volatileAccountStates.get(user?.id||'guest');
  const existing=localStorage.getItem(storageKey);
- if(existing)next=normalize(JSON.parse(existing));
- else if(user){const legacy=localStorage.getItem(STORAGE);if(legacy){const old=normalize(JSON.parse(legacy));if(old.pendingCloud.owner===user.id)next=old;}}
+ if(!next&&existing)next=normalize(JSON.parse(existing));
+ else if(!next&&user){const legacy=localStorage.getItem(STORAGE);if(legacy){const old=normalize(JSON.parse(legacy));if(old.pendingCloud.owner===user.id)next=old;}}
  state=next||normalize(defaultState());state.pendingCloud.owner=user?.id||null;taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));lastSettingsValue='';activeTab='today';
  refreshGate();renderAll();renderAuthState();
 }

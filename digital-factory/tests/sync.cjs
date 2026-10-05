@@ -42,6 +42,7 @@ async function run(){
  setup(task(),base,true);await api.pushTasksToCloud();assert.equal(data.size,0);
  setup(task('Offline'),base);fail=true;await assert.rejects(api.pushTasksToCloud());assert.equal(Object.keys(api.get().pendingCloud.updates).length,1);fail=false;await api.pushTasksToCloud();assert.equal(data.get('task-1').title,'Offline');
  setup(task('Private A'),base);await api.switchAccount({id:'B'});assert.equal(api.get().tasks.length,0);assert.equal(api.get().pendingCloud.owner,'B');await api.switchAccount({id:'A'});assert.equal(api.get().tasks[0].title,'Private A');await api.switchAccount(null);assert.equal(api.get().tasks.length,0);
+ setup(task('Preserve on corrupt account'),base);storage.set('maksimum_digital_factory_v3_user_B','broken JSON');await assert.rejects(api.switchAccount({id:'B'}));assert.equal(api.get().tasks.length,0);await api.switchAccount({id:'A'});assert.equal(api.get().tasks[0].title,'Preserve on corrupt account');
  assert(!html.includes('SEA-22'));assert(!script.slice(script.indexOf('function agentDecision'),script.indexOf('// ---------- PWA')).includes('addLog'));
  console.log('PASS: syntax, import validation, insert, update, edit conflict, deletion conflict, deletion, offline retry, account isolation, public seed removal, simulated journal removal');
 }

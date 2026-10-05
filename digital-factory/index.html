@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.8</title>
+<title>МАКСимум мебель — цифровая фабрика v3.9</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -47,7 +47,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 .mobile-nav,.mobile-fab,.install-banner{display:none}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:999px}
 @media(max-width:1160px){.main{grid-template-columns:240px minmax(360px,1fr) 340px}.focus-panel{width:230px}.legend{right:250px}}
-@media(max-width:900px){
+@media(max-width:1100px){
  html,body{overflow:auto;background:#07110d}
  #app{height:auto;min-height:100dvh;display:block;padding:0 0 84px}
  header{height:72px;border-radius:0;border-left:0;border-right:0;border-top:0;padding:0 14px;position:sticky;top:0;z-index:30}
@@ -88,8 +88,31 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 .auth-state strong{color:white}.auth-note{font-size:9px;color:var(--muted);line-height:1.45;margin-top:8px}
 
 .mobile-account-btn{display:none}.flat-world{height:100%;padding:76px 18px 180px;overflow:auto;background:radial-gradient(ellipse at 50% 30%,#214e3b,#0e211a 75%)}.flat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.flat-zone{border:1px solid rgba(211,175,105,.23);border-radius:18px;padding:12px;background:rgba(7,20,15,.6)}.flat-zone h3{margin:0 0 9px;font-size:12px;color:var(--gold)}.flat-person{display:flex;align-items:center;gap:8px;width:100%;padding:8px;border:1px solid transparent;border-radius:10px;margin-top:6px;color:var(--text);background:rgba(255,255,255,.04);text-align:left}.flat-person.active{border-color:var(--emerald2);background:rgba(34,167,126,.18)}.flat-person span{font-size:22px}.flat-person b{font-size:12px}.flat-person small{display:block;font-size:9px;color:var(--muted);margin-top:2px}.flat-caption{font-size:10px;color:var(--muted);margin:0 0 12px}
-@media(max-width:900px){.mobile-account-btn{display:block}.brand{flex:1}.brand h1{max-width:calc(100vw - 130px)}.flat-world{padding:76px 12px 180px}.flat-grid{gap:8px}.flat-zone{padding:10px}.flat-person{padding:7px 4px}.flat-person small{font-size:10px}}
+@media(max-width:1100px){.mobile-account-btn{display:block}.brand{flex:1}.brand h1{max-width:calc(100vw - 130px)}.flat-world{padding:76px 12px 180px}.flat-grid{gap:8px}.flat-zone{padding:10px}.flat-person{padding:7px 4px}.flat-person small{font-size:10px}}
 .ai-chat{display:flex;flex-direction:column;gap:10px;min-height:100px;max-height:42dvh;overflow:auto;margin:14px 0}.ai-message{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1c16;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;line-height:1.5}.ai-message.user{background:rgba(34,167,126,.12)}.ai-message b{display:block;font-size:10px;margin-bottom:6px;color:var(--muted)}#aiError{color:#ffbcaa;font-size:12px;margin-top:8px}#aiPrompt{width:100%;box-sizing:border-box;font:inherit;font-size:14px}.ai-intro{font-size:12px!important;line-height:1.5}#aiMeta{font-size:11px;color:var(--muted)}
+.mobile-tools{display:none}
+@media(max-width:1100px){
+ html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+ #app{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+ header{height:auto;min-height:72px;padding:12px;position:relative;align-items:flex-start}
+ .brand{min-width:0}.brand>div:last-child{min-width:0}.brand h1{white-space:normal;overflow:visible;max-width:none;font-size:14px;line-height:1.35}.brand p{white-space:normal;line-height:1.4}
+ .mobile-account-btn{flex-shrink:0;min-height:44px}
+ body[data-mobile-view="team"] .panel.left,body[data-mobile-view="work"] .panel.right{height:auto;min-height:calc(100dvh - 180px);overflow:visible}
+ .agents,.tabview{height:auto;overflow:visible}.tabview{padding-bottom:26px}
+ .panel-head{height:auto;min-height:62px;flex-wrap:wrap}.panel-head .pill{max-width:100%;white-space:normal}
+ .right-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}.tab{min-height:44px;font-size:12px;padding:9px 3px}
+ .task-title,.project-card h4{overflow-wrap:anywhere;font-size:14px}.task-meta{font-size:12px;overflow-wrap:anywhere}.task-actions button{font-size:12px;min-height:44px}
+ .searchbar{flex-wrap:wrap}.searchbar input{flex-basis:100%;font-size:16px;min-height:44px}.searchbar button{flex:1;min-height:44px;font-size:12px}
+ .connection-card{grid-template-columns:minmax(0,1fr);gap:10px}.connection-card strong{font-size:14px}.connection-card small{font-size:12px}.connection-card a{display:inline-block;padding:10px 0;color:#9fe4c7}.conn-state{justify-self:start}
+ .metric{padding:9px 6px}.metric small{font-size:9px}.mini{font-size:10px}.log-entry{font-size:12px;overflow-wrap:anywhere;padding-left:34px}
+ body[data-mobile-view="world"] .center{height:auto;overflow:visible}.world{position:relative;height:380px}.world-overlay{flex-wrap:wrap;gap:6px}.world-card{max-width:100%;min-width:0}.world-card b{font-size:11px;overflow-wrap:anywhere}
+ .focus-panel{position:relative;inset:auto;width:auto;margin:10px}.focus-panel p{font-size:12px}.focus-actions{flex-wrap:wrap}.focus-actions button{min-height:44px;font-size:12px}.flat-world{padding:92px 10px 16px}.flat-grid{grid-template-columns:1fr 1fr}.flat-person{min-width:0}.flat-person b,.flat-person small{overflow-wrap:anywhere}
+ .mobile-nav{height:calc(72px + env(safe-area-inset-bottom));padding-bottom:calc(6px + env(safe-area-inset-bottom))}.mobile-nav button{min-width:0;font-size:11px}
+ .mobile-fab{bottom:calc(84px + env(safe-area-inset-bottom));width:48px;height:48px;right:10px}
+ .mobile-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:18px}.mobile-tools button,.mobile-tools a{min-height:48px;padding:12px 8px;font-size:13px;text-align:center;border:1px solid var(--line);background:#12392b;color:white;border-radius:10px;text-decoration:none}
+ .modal-back{overflow-y:auto;padding:8px;align-items:flex-start}.modal{margin:auto 0;width:100%;max-height:calc(100dvh - 16px);border-radius:18px}.modal-actions button{min-height:44px;font-size:13px}.modal p{font-size:12px}.ai-chat{max-height:35dvh}#aiPrompt{font-size:16px}
+ #webGate{overflow-y:auto;align-items:start}#webGate .g{margin:auto 0;width:100%;padding:20px}
+}
 </style>
 <style id="webGateStyle">
 #webGate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#07110d;color:#fff;font-family:Inter,Segoe UI,system-ui,sans-serif;padding:20px}
@@ -103,7 +126,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 <body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><a class="recovery-link" href="./recover.html">Забыли пароль?</a><div id="webGateErr" class="err" role="status"></div></form></div>
 <div id="app">
 <header class="glass">
-  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.8</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.9</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
   <button id="mobileAccountBtn" class="account-btn mobile-account-btn">Войти</button>
   <div class="header-actions">
     <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
@@ -442,7 +465,7 @@ function renderTab(){
  }
  else if(activeTab==='projects')v.innerHTML=projectGroups().map(projectCard).join('')||'<div class="empty">Проектов пока нет.</div>';
  else if(activeTab==='log')v.innerHTML=state.logs.length?state.logs.map(l=>`<div class="log-entry ${l.kind}"><span class="ico">${l.kind==='alert'?'⚠️':l.kind==='decision'?'🧠':'💬'}</span><div class="time">${fmtTime(l.time)} · ${escapeHtml(agentBy(l.agent).name)}</div>${escapeHtml(l.msg)}</div>`).join(''):'<div class="empty">Лог пока пуст.</div>';
- else v.innerHTML=`<div class="connection-card"><div><strong>💾 Локальная база</strong><small>Задачи, проекты и журнал сохраняются в браузере этого устройства.</small></div><span class="conn-state local">работает</span></div>
+ else v.innerHTML=`<div class="mobile-tools"><button data-mobile-action="aiBrief">🧠 План с AI</button><button data-mobile-action="dailyBrief">Что делать сейчас?</button><a href="./calendar.html">📅 Календарь</a><button data-mobile-action="syncBtn">☁ Синхронизация</button><button data-mobile-action="voiceTask">🎙 Задача голосом</button><button data-mobile-action="pause">${state.paused?'Продолжить фабрику':'Пауза фабрики'}</button><button data-mobile-action="speed">Скорость ${state.speed||1}×</button><button data-mobile-action="accountBtn">Мой аккаунт</button></div><div class="connection-card"><div><strong>💾 Локальная база</strong><small>Задачи, проекты и журнал сохраняются в браузере этого устройства.</small></div><span class="conn-state local">работает</span></div>
   <div class="connection-card"><div><strong>📱 Android / PWA</strong><small>Онлайн-версия работает по HTTPS и подготовлена для установки на главный экран.</small></div><span class="conn-state local">HTTPS ✓</span></div>
   <div class="connection-card"><div><strong>📧 Gmail</strong><small>Следующий этап: новые письма, ответы и ожидания клиентов.</small></div><span class="conn-state off">не подключено</span></div>
   <div class="connection-card"><div><strong>📅 Google Calendar</strong><small>Ближайшие встречи и создание события из задачи. Подключение через Google на отдельном экране.</small><a href="./calendar.html">Открыть календарь →</a></div><span class="conn-state off">войти через Google</span></div>
@@ -450,6 +473,7 @@ function renderTab(){
   <div class="connection-card"><div><strong>🤖 GigaChat</strong><small>Анализ сохранённых задач и черновики по запросу. Почта и файлы проектов пока не подключены.</small></div><span class="conn-state ${aiConfigured?'local':'off'}">${aiConfigured?'настроен':'ожидает активации'}</span></div>
   <div class="section-title">ДАННЫЕ</div><div class="task-actions"><button id="connExport">Резервная копия</button><button id="connImport">Импорт</button><button id="connBrief">Что делать сейчас?</button></div>`;
  wireTaskButtons();
+ $$('[data-mobile-action]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.mobileAction)?.click();if(activeTab==='connections')renderTab()});
  $('#connExport')?.addEventListener('click',exportData);$('#connImport')?.addEventListener('click',()=>$('#importFile').click());$('#connBrief')?.addEventListener('click',showBrief);
  $$('.project-card[data-project]').forEach(c=>c.onclick=()=>{state.search=c.dataset.project;state.taskFilter='all';switchTab('tasks')});if(typing&&activeTab==='tasks'){const field=$('#taskSearch');if(field){field.focus();field.setSelectionRange(typing.start,typing.end)}}
 }

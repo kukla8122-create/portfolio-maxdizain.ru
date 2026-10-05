@@ -1,3 +1,10 @@
+# v3.9
+
+- Let mobile task and team pages scroll naturally instead of using clipped fixed-height panels.
+- Wrap all six workspace tabs, enlarge touch targets and text, and put the employee controls below the factory map.
+- Restore footer actions in the mobile More page, including AI plan, calendar, voice, sync, account and simulation controls.
+- Extend mobile layout to narrow tablets and account for bottom safe areas and short screens in dialogs.
+
 # v3.8
 
 - Add Google Calendar page and task-to-event navigation, with separate Google consent and short-lived in-memory tokens.

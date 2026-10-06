@@ -1,0 +1,22 @@
+name: KEDR AI CI
+
+on:
+  pull_request:
+    branches: [maxbot-production]
+    paths:
+      - 'kedr/**'
+      - 'tests/test_kedr_ai_router.py'
+      - '.github/workflows/kedr-ai-ci.yml'
+
+jobs:
+  kedr-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile isolated KEDR AI router
+        run: python -m py_compile kedr/ai_router.py
+      - name: Run isolated KEDR AI tests
+        run: python -m unittest -v tests.test_kedr_ai_router

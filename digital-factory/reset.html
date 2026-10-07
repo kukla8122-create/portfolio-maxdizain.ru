@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07110d">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Обновление · МАКСимум мебель</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#07110d;color:#f5f8f5;font-family:Inter,Segoe UI,system-ui,sans-serif;padding:22px}
+.card{width:min(520px,100%);padding:24px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:#0b1e17;box-shadow:0 24px 70px #0008}
+.logo{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#22a77e,#0f5f4d);display:grid;place-items:center;font-size:28px;font-weight:900;border:1px solid #d3af69;margin-bottom:18px}
+h1{font-size:22px;margin:0 0 8px}.gold{color:#d3af69}p{color:#b9c9c0;line-height:1.5}button{width:100%;height:48px;border:0;border-radius:13px;background:#15906f;color:white;font:700 16px system-ui;display:none}
+small{display:block;color:#8fa39a;margin-top:12px}
+</style>
+</head>
+<body><main class="card"><div class="logo">М</div><h1><span class="gold">МАКС</span>имум · обновление фабрики</h1><p id="status">Обновляю мобильное приложение и удаляю только старый технический кэш…</p><button id="retry">Повторить</button><small>Задачи, локальные данные и аккаунт не удаляются.</small></main>
+<script>
+(async()=>{
+ const status=document.getElementById('status'),retry=document.getElementById('retry');
+ async function run(){
+  retry.style.display='none';
+  try{
+   if('serviceWorker' in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    for(const r of regs)if(r.scope.includes('/digital-factory/'))await r.unregister();
+   }
+   if('caches' in window){
+    for(const k of await caches.keys())if(k.startsWith('maksimum-factory-'))await caches.delete(k);
+   }
+   status.textContent='Готово. Открываю свежую версию фабрики…';
+   setTimeout(()=>location.replace('./?fresh='+Date.now()),350);
+  }catch(e){
+   status.textContent='Не получилось обновить автоматически. Проверь интернет и нажми «Повторить».';
+   retry.style.display='block';
+  }
+ }
+ retry.onclick=run;run();
+})();
+</script></body></html>

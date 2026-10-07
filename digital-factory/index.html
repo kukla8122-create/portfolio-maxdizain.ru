@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.9</title>
+<title>МАКСимум мебель — цифровая фабрика v3.10</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -126,7 +126,7 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 <body data-mobile-view="work"><div id="webGate"><form class="g" id="gateForm"><h2>МАКСимум мебель</h2><p>Твоя цифровая фабрика. Войди в аккаунт приложения — задачи будут доступны на компьютере и Android.</p><label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="username" required placeholder="Email" style="margin:6px 0 12px"><label for="gatePassword">Пароль</label><input id="gatePassword" type="password" autocomplete="current-password" required placeholder="Пароль"><button id="webGateBtn" type="submit">Войти в фабрику</button><a class="recovery-link" href="./recover.html">Забыли пароль?</a><div id="webGateErr" class="err" role="status"></div></form></div>
 <div id="app">
 <header class="glass">
-  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.9</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
+  <div class="brand"><div class="logo">М</div><div><h1><span class="gold">МАКС</span>имум мебель · цифровая фабрика <small style="color:var(--muted)">v3.10</small></h1><p>задачи · клиенты · проекты · цифровая команда</p></div></div>
   <button id="mobileAccountBtn" class="account-btn mobile-account-btn">Войти</button>
   <div class="header-actions">
     <div class="header-stat"><small>Требует Кати</small><b id="needKatya">0</b></div>
@@ -265,6 +265,7 @@ const SUPABASE_URL="https://uhyaigqizvwtsbtmvkdr.supabase.co";
 const SUPABASE_KEY="sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8";
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
 let cloudUser=null,cloudChannel=null,cloudPulling=false,taskSyncTimer=null,settingsSyncTimer=null;
+const FACTORY_SYNC_URL=SUPABASE_URL+"/functions/v1/factory-sync-api";
 
 const AGENTS=[
  {id:'dispatcher',name:'Катя AI',emoji:'🧠',role:'Диспетчер',color:'#2faa84',zone:'meeting',goal:'Следить, чтобы ни одна важная задача, клиент и срок не потерялись.'},
@@ -332,66 +333,71 @@ function persistQueue(){try{localStorage.setItem(storageKey,JSON.stringify(state
 function rememberTaskChanges(){const now=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));for(const t of state.tasks)if(taskSnapshot.get(t.id)!==now.get(t.id)){state.pendingCloud.updates[t.id]={...t};delete state.pendingCloud.deleted[t.id]}for(const id of taskSnapshot.keys())if(!now.has(id)){state.pendingCloud.deleted[id]=Date.now()+Math.random();delete state.pendingCloud.updates[id]}taskSnapshot=now;persistQueue()}
 function scheduleTaskSync(){rememberTaskChanges();if(!cloudUser||cloudPulling||!sb)return;clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),700)}
 function scheduleSettingsSync(){if(!cloudUser||cloudPulling||!sb)return;const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);if(key===lastSettingsValue)return;clearTimeout(settingsSyncTimer);settingsSyncTimer=setTimeout(pushSettingsToCloud,900)}
-function matchingRow(query,row){for(const [key,value]of Object.entries(row))if(!['owner_id','client_id'].includes(key))query=value===null?query.is(key,null):query.eq(key,value);return query}
-async function resolveConflict(id,task,user,pending){
- const {data,error}=await sb.from('factory_tasks').select('*').eq('owner_id',user.id).eq('client_id',id).maybeSingle();if(error)throw error;
- if(cloudUser?.id!==user.id)return;
- if(task){const copy={...task,id:crypto.randomUUID(),title:task.title+' — конфликт: моя версия',katya:true};state.tasks.push(copy);pending.updates[copy.id]=copy;}
- state.tasks=state.tasks.filter(t=>t.id!==id);if(data){state.tasks.push(localTaskRow(data));state.cloudBase[id]=baselineRow(data)}else delete state.cloudBase[id];
- delete pending.updates[id];delete pending.deleted[id];persistQueue();toast(task?'Обе версии сохранены. Проверь задачу с пометкой «конфликт».':'Удаление отменено: задача изменилась на другом устройстве.');
+
+async function factoryApi(action,payload={},retry=true){
+ if(!sb)throw new Error('Сервис входа не загрузился');
+ let {data,error}=await sb.auth.getSession();
+ if(error||!data.session?.access_token)throw new Error('Сессия закончилась. Войди в аккаунт ещё раз.');
+ const send=token=>fetch(FACTORY_SYNC_URL,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_KEY},body:JSON.stringify({action,...payload}),signal:AbortSignal.timeout(25000)});
+ let response=await send(data.session.access_token);
+ if(response.status===401&&retry){
+   const refreshed=await sb.auth.refreshSession();
+   if(refreshed.error||!refreshed.data.session?.access_token)throw new Error('Сессия закончилась. Войди в аккаунт ещё раз.');
+   response=await send(refreshed.data.session.access_token);
+ }
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(result.error==='session_invalid'?'Сессия закончилась. Войди в аккаунт ещё раз.':'Облачная синхронизация временно недоступна.');
+ return result;
 }
+function currentSettings(){return{paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''}}
+
 async function pushTasksToCloud(){
- if(!cloudUser||!sb)return;if(taskSyncRunning)return taskSyncRunning;const user=cloudUser,epoch=accountEpoch,pending=state.pendingCloud;
+ if(!cloudUser||!sb)return;if(taskSyncRunning)return taskSyncRunning;const epoch=accountEpoch,pending=state.pendingCloud;
  taskSyncRunning=(async()=>{try{
-  if(pending.owner!==user.id)throw new Error('Очередь принадлежит другому аккаунту');
+  if(pending.owner!==cloudUser.id)throw new Error('Очередь принадлежит другому аккаунту');
   const updates=Object.entries(pending.updates),deletions=Object.entries(pending.deleted);if(!updates.length&&!deletions.length)return;
   setCloudStatus('syncing','отправка');
-  for(const[id,t]of updates){
-   if(epoch!==accountEpoch)return;const row={...cloudTaskRow(t),owner_id:user.id},base=state.cloudBase[id];
-   const result=base?await matchingRow(sb.from('factory_tasks').update(row).eq('owner_id',user.id).eq('client_id',id),base).select('client_id'):await sb.from('factory_tasks').insert(row).select('client_id');
-   if(epoch!==accountEpoch)return;
-   if(result.error&&result.error.code!=='23505')throw result.error;
-   if(result.error||!result.data?.length){await resolveConflict(id,pending.updates[id]||t,user,pending);continue;}
-   state.cloudBase[id]=row;if(pending.updates[id]===t)delete pending.updates[id];persistQueue();
-  }
-  for(const[id,mark]of deletions){
-   if(epoch!==accountEpoch)return;const base=state.cloudBase[id];
-   if(!base){await resolveConflict(id,null,user,pending);continue;}
-   const result=await matchingRow(sb.from('factory_tasks').delete().eq('owner_id',user.id).eq('client_id',id),base).select('client_id');
-   if(epoch!==accountEpoch)return;if(result.error)throw result.error;
-   if(!result.data?.length){await resolveConflict(id,null,user,pending);continue;}
-   delete state.cloudBase[id];if(pending.deleted[id]===mark)delete pending.deleted[id];persistQueue();
-  }
-  taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));persistQueue();renderHeader();renderAgents();renderFocus();renderTab();setCloudStatus('online','облако');
+  await factoryApi('sync',{updates:updates.map(([,t])=>t),deleted:deletions.map(([id])=>id)});
+  if(epoch!==accountEpoch)return;
+  for(const[id,t]of updates)if(pending.updates[id]===t)delete pending.updates[id];
+  for(const[id,mark]of deletions)if(pending.deleted[id]===mark)delete pending.deleted[id];
+  taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));persistQueue();setCloudStatus('online','облако');
  }catch(e){if(epoch===accountEpoch){persistQueue();setCloudStatus('offline','ошибка синхронизации')}throw e}})();
  try{await taskSyncRunning}finally{taskSyncRunning=null;if(epoch===accountEpoch&&(Object.keys(pending.updates).length||Object.keys(pending.deleted).length)){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}
 }
 
 async function pushLogToCloud(l){if(!cloudUser||cloudPulling||!sb||!l)return;return pushAllLogsToCloud()}
-async function pushAllLogsToCloud(){if(!cloudUser||!sb)return;const user=cloudUser,epoch=accountEpoch,pending=state.pendingCloud,entries=Object.entries(pending.logs);if(!entries.length||pending.owner!==user.id)return;try{const rows=entries.map(([,l])=>({owner_id:user.id,client_id:String(l.id),event_time:new Date(l.time).toISOString(),kind:l.kind||'decision',agent:l.agent||'dispatcher',msg:l.msg||''}));const {error}=await sb.from('factory_logs').upsert(rows,{onConflict:'owner_id,client_id',ignoreDuplicates:true});if(error)throw error;if(epoch!==accountEpoch)return;for(const [id,l]of entries)if(pending.logs[id]===l)delete pending.logs[id];persistQueue()}catch(e){if(epoch===accountEpoch)setCloudStatus('offline','ошибка синхронизации')}}
-async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;const user=cloudUser,epoch=accountEpoch;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);const row={owner_id:user.id,paused:!!state.paused,speed:Number(state.speed||1),selected:state.selected||'dispatcher',task_filter:state.taskFilter||'open',search:state.search||''};const {error}=await sb.from('factory_settings').upsert(row,{onConflict:'owner_id'});if(error)throw error;if(epoch!==accountEpoch)return;lastSettingsValue=key;setCloudStatus('online','облако')}catch(e){if(epoch===accountEpoch)setCloudStatus('offline','ошибка синхронизации')}}
+async function pushAllLogsToCloud(){if(!cloudUser||!sb)return;const epoch=accountEpoch,pending=state.pendingCloud,entries=Object.entries(pending.logs);if(!entries.length||pending.owner!==cloudUser.id)return;try{await factoryApi('sync',{logs:entries.map(([,l])=>l)});if(epoch!==accountEpoch)return;for(const[id,l]of entries)if(pending.logs[id]===l)delete pending.logs[id];persistQueue()}catch(e){if(epoch===accountEpoch)setCloudStatus('offline','ошибка синхронизации')}}
+async function pushSettingsToCloud(force=false){if(!cloudUser||(cloudPulling&&!force)||!sb)return;const epoch=accountEpoch;try{const key=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search]);await factoryApi('sync',{settings:currentSettings()});if(epoch!==accountEpoch)return;lastSettingsValue=key;setCloudStatus('online','облако')}catch(e){if(epoch===accountEpoch)setCloudStatus('offline','ошибка синхронизации')}}
 function deleteCloudTask(id){state.pendingCloud.deleted[String(id)]=Date.now()+Math.random();delete state.pendingCloud.updates[String(id)];persistQueue()}
 function pullCloud(){if(cloudPullPromise)return cloudPullPromise;cloudPullPromise=pullCloudInner().finally(()=>{cloudPullPromise=null});return cloudPullPromise}
-async function pullCloudInner(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskChanges();cloudPulling=true;setCloudStatus('syncing','загрузка');try{
- await pushTasksToCloud();
- const [tr,sr,lr]=await Promise.all([
-  sb.from('factory_tasks').select('*').eq('owner_id',cloudUser.id).order('created_at',{ascending:true}),
-  sb.from('factory_settings').select('*').eq('owner_id',cloudUser.id).maybeSingle(),
-  sb.from('factory_logs').select('*').eq('owner_id',cloudUser.id).order('event_time',{ascending:false}).limit(180)
- ]);
- if(tr.error||sr.error||lr.error)throw tr.error||sr.error||lr.error;
- if(!sr.data){const remoteIds=new Set(tr.data.map(t=>t.client_id));for(const t of state.tasks)if(!remoteIds.has(t.id)&&!state.pendingCloud.deleted[t.id])state.pendingCloud.updates[t.id]={...t};await pushTasksToCloud();await pushSettingsToCloud(true);const map=new Map(state.tasks.map(t=>[t.id,t]));for(const row of tr.data){const t=localTaskRow(row);if(!state.pendingCloud.updates[t.id])map.set(t.id,t)}state.tasks=[...map.values()]}else{const pending=state.pendingCloud;const map=new Map(tr.data.map(r=>{const t=localTaskRow(r);return[t.id,t]}));for(const id of Object.keys(pending.deleted))map.delete(id);for(const[id,t]of Object.entries(pending.updates))map.set(id,t);state.tasks=[...map.values()]}
- for(const row of tr.data){const id=row.client_id;if(!state.pendingCloud.updates[id]&&!state.pendingCloud.deleted[id])state.cloudBase[id]=baselineRow(row)}taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));
- if(sr.data){state.paused=!!sr.data.paused;state.speed=Number(sr.data.speed||1);state.selected=sr.data.selected||'dispatcher';state.taskFilter=sr.data.task_filter||'open';state.search=sr.data.search||'';lastSettingsValue=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search])}
- const logs=new Map((lr.data||[]).map(x=>[String(x.client_id),{id:x.client_id,time:new Date(x.event_time).getTime(),kind:x.kind,agent:x.agent,msg:x.msg}]));for(const[id,l]of Object.entries(state.pendingCloud.logs))logs.set(id,l);state.logs=[...logs.values()].sort((a,b)=>b.time-a.time).slice(0,180);await pushAllLogsToCloud();
+async function pullCloudInner(){if(!cloudUser||!sb||cloudPulling)return;rememberTaskChanges();cloudPulling=true;setCloudStatus('syncing','загрузка');const epoch=accountEpoch;try{
+ const pending=state.pendingCloud;
+ const sentUpdates=Object.entries(pending.updates),sentDeleted=Object.entries(pending.deleted),sentLogs=Object.entries(pending.logs);
+ const result=await factoryApi('sync',{updates:sentUpdates.map(([,t])=>t),deleted:sentDeleted.map(([id])=>id),logs:sentLogs.map(([,l])=>l),settings:currentSettings()});
+ if(epoch!==accountEpoch)return;
+ for(const[id,t]of sentUpdates)if(pending.updates[id]===t)delete pending.updates[id];
+ for(const[id,mark]of sentDeleted)if(pending.deleted[id]===mark)delete pending.deleted[id];
+ for(const[id,l]of sentLogs)if(pending.logs[id]===l)delete pending.logs[id];
+
+ const map=new Map((result.tasks||[]).map(r=>{const t=localTaskRow(r);return[t.id,t]}));
+ for(const id of Object.keys(pending.deleted))map.delete(id);
+ for(const[id,t]of Object.entries(pending.updates))map.set(id,t);
+ state.tasks=[...map.values()];
+ state.cloudBase={};for(const row of result.tasks||[])state.cloudBase[row.client_id]=baselineRow(row);
+ taskSnapshot=new Map(state.tasks.map(t=>[t.id,JSON.stringify(t)]));
+
+ const sr=result.settings;if(sr){state.paused=!!sr.paused;state.speed=Number(sr.speed||1);state.selected=sr.selected||'dispatcher';state.taskFilter=sr.task_filter||'open';state.search=sr.search||'';lastSettingsValue=JSON.stringify([state.paused,state.speed,state.selected,state.taskFilter,state.search])}
+ const logs=new Map((result.logs||[]).map(x=>[String(x.client_id),{id:x.client_id,time:new Date(x.event_time).getTime(),kind:x.kind,agent:x.agent,msg:x.msg}]));
+ for(const[id,l]of Object.entries(pending.logs))logs.set(id,l);state.logs=[...logs.values()].sort((a,b)=>b.time-a.time).slice(0,180);
  persistQueue();renderHeader();renderAgents();renderFocus();renderTab();$('#speed').textContent='Скорость '+(state.speed||1)+'×';$('#pause').textContent=state.paused?'Продолжить':'Пауза';setCloudStatus('online','облако');if(!renderer)renderFlatWorld();
- }catch(e){setCloudStatus('offline','ждёт сети');toast('Изменения сохранены на устройстве. Повторим синхронизацию при подключении.')}finally{cloudPulling=false;scheduleSettingsSync();if(Object.keys(state.pendingCloud.updates).length||Object.keys(state.pendingCloud.deleted).length){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}}
-function subscribeCloud(){if(!sb||!cloudUser)return;if(cloudChannel)sb.removeChannel(cloudChannel);let rt=null;cloudChannel=sb.channel('digital-factory-'+cloudUser.id).on('postgres_changes',{event:'*',schema:'public',table:'factory_tasks',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_settings',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).on('postgres_changes',{event:'*',schema:'public',table:'factory_logs',filter:'owner_id=eq.'+cloudUser.id},()=>{clearTimeout(rt);rt=setTimeout(pullCloud,500)}).subscribe()}
+ }catch(e){setCloudStatus('offline','ждёт сети');toast(e.message||'Изменения сохранены на устройстве. Повторим синхронизацию при подключении.')}finally{cloudPulling=false;if(Object.keys(state.pendingCloud.updates).length||Object.keys(state.pendingCloud.deleted).length){clearTimeout(taskSyncTimer);taskSyncTimer=setTimeout(()=>pushTasksToCloud().catch(()=>{}),3000)}}}
+function subscribeCloud(){if(cloudChannel)clearInterval(cloudChannel);cloudChannel=setInterval(()=>{if(!document.hidden&&cloudUser&&!cloudPulling)pullCloud()},60000)}
 function refreshGate(){$('#webGate').classList.toggle('hidden',!!cloudUser);$('#mobileAccountBtn').textContent=cloudUser?'Облако':'Войти'}
 function switchAccount(user){const job=accountSwitchPromise.then(()=>switchAccountInner(user)).catch(e=>{cloudUser=null;storageKey=STORAGE+'_guest';state=normalize(defaultState());taskSnapshot=new Map();refreshGate();renderHeader();renderAgents();renderFocus();renderTab();throw e});accountSwitchPromise=job.catch(()=>{});return job}
 async function switchAccountInner(user){
  if(cloudUser?.id===user?.id)return;aiRequest?.abort();aiRequest=null;aiBusy=false;aiHistory.clear();$('#aiModal').classList.remove('open');volatileAccountStates.set(cloudUser?.id||'guest',state);localStorage.setItem(storageKey,JSON.stringify(state));accountEpoch++;clearTimeout(taskSyncTimer);clearTimeout(settingsSyncTimer);clearTimeout(renderTab.searchT);
- if(cloudChannel){await sb.removeChannel(cloudChannel);cloudChannel=null}
+ if(cloudChannel){clearInterval(cloudChannel);cloudChannel=null}
  await Promise.allSettled([taskSyncRunning,cloudConnecting,cloudPullPromise]);cloudUser=user;cloudConfirmed=false;storageKey=user?STORAGE+'_user_'+user.id:STORAGE+'_guest';
  let next=volatileAccountStates.get(user?.id||'guest');
  const existing=localStorage.getItem(storageKey);
@@ -587,7 +593,7 @@ let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBanner').classList.add('show')});
 $('#installBtn').onclick=async()=>{if(!deferredPrompt){toast('Установка станет доступна после размещения приложения по защищённой ссылке');return}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBanner').classList.remove('show')};
 $('#installClose').onclick=()=>$('#installBanner').classList.remove('show');
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=37',{updateViaCache:'none'}).catch(()=>toast('Офлайн-режим не подключён. Проверь сеть и обнови страницу.'));
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=40',{updateViaCache:'none'}).catch(()=>toast('Офлайн-режим не подключён. Проверь сеть и обнови страницу.'));
 
 
 // ---------- Real AI, only on explicit request ----------

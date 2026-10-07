@@ -1,7 +1,7 @@
 'use strict';
 
 const OPENAI_URL = 'https://api.openai.com/v1/responses';
-const DEFAULT_MODEL = 'gpt-6-luna';
+const ALICE_MODEL = 'gpt-6-luna';
 const MAX_INPUT_CHARS = 1800;
 const MAX_REPLY_CHARS = 700;
 const OPENAI_TIMEOUT_MS = 3400;
@@ -72,7 +72,7 @@ module.exports = async function aliceChatGPT(req, res) {
     return send(res, 200, {
       ok: true,
       configured: Boolean(process.env.ALICE_OPENAI_API_KEY || process.env.OPENAI_API_KEY),
-      model: process.env.ALICE_OPENAI_MODEL || DEFAULT_MODEL
+      model: ALICE_MODEL
     });
   }
 
@@ -124,7 +124,7 @@ module.exports = async function aliceChatGPT(req, res) {
   }
 
   const payload = {
-    model: process.env.ALICE_OPENAI_MODEL || DEFAULT_MODEL,
+    model: ALICE_MODEL,
     instructions: SYSTEM_PROMPT,
     input: userText,
     max_output_tokens: 160,

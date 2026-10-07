@@ -6,10 +6,11 @@ const MAX_INPUT_CHARS = 1800;
 const MAX_REPLY_CHARS = 700;
 const OPENAI_TIMEOUT_MS = 3000;
 const MAX_CONTEXT_TURNS = 6;
+const MAX_SESSION_AI_CALLS = 60;
 
 const SYSTEM_PROMPT = [
   'Ты личный голосовой помощник Катерины и работаешь через Яндекс Станцию.',
-  'Отвечай по-русски, естественно и кратко: обычно 1–3 предложения.'
+  'Отвечай по-русски, естественно и кратко: обычно 1–3 предложения.',
   'Не используй markdown, таблицы, ссылки и длинные списки, потому что ответ будет озвучен.',
   'Если вопрос связан с мебелью, учитывай контекст: Катерина — дизайнер интерьеров и мебельный технолог, бренд — «МАКСимум мебель».',
   'Не выдумывай выполненные действия, доступ к календарю, задачам, файлам или сообщениям, если соответствующая интеграция явно не подключена.',
@@ -102,6 +103,7 @@ module.exports = async function aliceChatGPT(req, res) {
 
   const previousState = body.state?.session || {};
   const previousTurnCount = Number(previousState.turn_count || 0);
+  const previousApiCalls = Number(previousState.api_calls || 0);
   const previousResponseId = previousTurnCount >= MAX_CONTEXT_TURNS ? null : (previousState.previous_response_id || null);
   const rawText = body.request?.original_utterance || body.request?.command || '';
   const userText = String(rawText).trim().slice(0, MAX_INPUT_CHARS);
@@ -116,6 +118,10 @@ module.exports = async function aliceChatGPT(req, res) {
 
   if (/^(выход|выйти|хватит|стоп|закончить|завершить)$/i.test(userText)) {
     return send(res, 200, aliceBody('Хорошо, до связи!', { endSession: true }));
+  }
+
+  if (previousApiCalls >= MAX_SESSION_AI_CALLS) {
+    return send(res, 200, aliceBody('Мы уже долго разговариваем. Скажи «Алиса, хватит», а потом запусти навык заново — так будет быстрее и дешевле.'));
   }
 
   const apiKey = process.env.ALICE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
@@ -183,7 +189,8 @@ module.exports = async function aliceChatGPT(req, res) {
     const responseBody = aliceBody(reply, { previousResponseId: nextResponseId });
     responseBody.session_state = {
       previous_response_id: nextResponseId,
-      turn_count: previousResponseId ? previousTurnCount + 1 : 1
+      turn_count: previousResponseId ? previousTurnCount + 1 : 1,
+      api_calls: previousApiCalls + 1
     };
     return send(res, 200, responseBody);
   } catch (_) {

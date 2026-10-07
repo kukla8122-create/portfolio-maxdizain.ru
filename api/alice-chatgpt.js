@@ -17,7 +17,7 @@ const KOSTYA_CALENDAR_BRIDGE_URL = SUPABASE_URL + '/functions/v1/kostya-calendar
 const BRIDGE_TIMEOUT_MS = 2800;
 
 const SYSTEM_PROMPT = [
-  'Ты личный голосовой помощник Катерины и работаешь через Яндекс Станцию.',
+  'Ты Костя, личный голосовой помощник Катерины, и работаешь через Яндекс Станцию. Представляйся Костей, не Алисой.',
   'Отвечай по-русски, естественно и кратко: обычно 1–3 предложения.',
   'Не используй markdown, таблицы, ссылки и длинные списки, потому что ответ будет озвучен.',
   'Если вопрос связан с мебелью, учитывай контекст: Катерина — дизайнер интерьеров и мебельный технолог, бренд — «МАКСимум мебель».',
@@ -486,7 +486,7 @@ module.exports = async function aliceChatGPT(req, res) {
   const userText = String(rawText).trim().slice(0, MAX_INPUT_CHARS);
 
   if (body.session?.new && !userText) {
-    return send(res, 200, aliceBody('Привет, Катя! Я на связи. Что нужно сделать?'));
+    return send(res, 200, aliceBody('Привет, Катя! Костя на связи. Что нужно сделать?'));
   }
 
   if (!userText) {

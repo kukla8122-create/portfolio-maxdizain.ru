@@ -143,6 +143,11 @@ async function rememberMemory(content) {
   return result === true;
 }
 
+async function forgetMemory(query) {
+  const result = await memoryRpc('alice_forget_voice', { p_query: query });
+  return Number(result || 0);
+}
+
 function attachLocalSessionState(body, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount) {
   body.session_state = {
     previous_response_id: previousResponseId,
@@ -218,6 +223,14 @@ module.exports = async function aliceChatGPT(req, res) {
 
   if (/^(выход|выйти|хватит|стоп|закончить|завершить)$/i.test(userText)) {
     return send(res, 200, aliceBody('Хорошо, до связи!', { endSession: true }));
+  }
+
+  const forgetMatch = userText.match(/^забудь(?:,|:)?\s+(.{2,300})$/i);
+  if (forgetMatch) {
+    const removed = await forgetMemory(forgetMatch[1].trim());
+    const local = aliceBody(removed > 0 ? 'Забыла.' : 'Не нашла это в сохранённой памяти.', { previousResponseId });
+    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+    return send(res, 200, local);
   }
 
   const rememberMatch = userText.match(/^запомни(?:,|:)?\s+(?:что\s+)?(.{2,500})$/i);

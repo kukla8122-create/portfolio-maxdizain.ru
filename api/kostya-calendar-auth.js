@@ -58,7 +58,7 @@ module.exports = async function handler(req, res) {
       });
       const answer = await check.json().catch(() => ({}));
       if (check.ok && answer.ok) return page(res, 'Сервер Кости готов', 'Соединение с сервером памяти работает. Можно повторить авторизацию Google.');
-      return page(res, 'Сервер Кости: ошибка', 'Проверка подключения к памяти: HTTP ' + check.status + ', код ' + String(answer.error || 'неизвестно').replace(/[^a-z0-9_]/gi, '').slice(0, 30) + '.', 200);
+      return page(res, 'Сервер Кости: ошибка', 'Проверка подключения к памяти: HTTP ' + check.status + ', код ' + String(answer.reason || answer.error || 'неизвестно').replace(/[^a-z0-9_]/gi, '').slice(0, 30) + '.', 200);
     } catch (e) {
       console.error('Kostya calendar bridge health:', String(e.message || 'failed').slice(0, 100));
       return page(res, 'Сервер Кости недоступен', 'Не удалось подключиться к серверу памяти (сеть или тайм-аут).', 200);

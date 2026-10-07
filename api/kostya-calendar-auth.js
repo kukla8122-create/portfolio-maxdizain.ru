@@ -5,7 +5,7 @@
 const crypto = require('node:crypto');
 const BASE_URL = 'https://portfolio-maxdizainru.vercel.app';
 const CALLBACK = BASE_URL + '/api/kostya-calendar-auth';
-const SUPABASE_BRIDGE = 'https://uhyaigqizvwtsbtmvkdr.supabase.co/functions/v1/alice-bridge';
+const SUPABASE_BRIDGE = 'https://uhyaigqizvwtsbtmvkdr.supabase.co/functions/v1/kostya-calendar-bridge';
 const COOKIE_NAME = '__Host-kostya_calendar_oauth';
 const SCOPE = 'openid email https://www.googleapis.com/auth/calendar.events';
 

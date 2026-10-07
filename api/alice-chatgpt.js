@@ -12,6 +12,8 @@ const MAX_CALLS_PER_MINUTE = 12;
 const MEMORY_TIMEOUT_MS = 350;
 const SUPABASE_URL = 'https://uhyaigqizvwtsbtmvkdr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8';
+const ALICE_BRIDGE_URL = SUPABASE_URL + '/functions/v1/alice-bridge';
+const BRIDGE_TIMEOUT_MS = 2800;
 
 const SYSTEM_PROMPT = [
   'Ты личный голосовой помощник Катерины и работаешь через Яндекс Станцию.',
@@ -148,13 +150,280 @@ async function forgetMemory(query) {
   return Number(result || 0);
 }
 
-function attachLocalSessionState(body, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount) {
+
+function pad2(value) {
+  return String(value).padStart(2, '0');
+}
+
+function moscowNowParts(epoch = Date.now()) {
+  const local = new Date(epoch + 3 * 3600000);
+  return {
+    year: local.getUTCFullYear(),
+    month: local.getUTCMonth() + 1,
+    day: local.getUTCDate(),
+    hour: local.getUTCHours(),
+    minute: local.getUTCMinutes()
+  };
+}
+
+function dateStringFromEpoch(epoch) {
+  const p = moscowNowParts(epoch);
+  return p.year + '-' + pad2(p.month) + '-' + pad2(p.day);
+}
+
+function timeStringFromEpoch(epoch) {
+  const p = moscowNowParts(epoch);
+  return pad2(p.hour) + ':' + pad2(p.minute);
+}
+
+function moscowDateEpoch(year, month, day, hour = 0, minute = 0) {
+  return Date.UTC(year, month - 1, day, hour - 3, minute, 0, 0);
+}
+
+function addDaysToDate(date, days) {
+  const [y, m, d] = String(date).split('-').map(Number);
+  return dateStringFromEpoch(moscowDateEpoch(y, m, d) + Number(days || 0) * 86400000);
+}
+
+function isoFromMoscow(date, time) {
+  return date + 'T' + time + ':00+03:00';
+}
+
+function endIsoFromStart(startIso, minutes = 30) {
+  const epoch = Date.parse(startIso) + minutes * 60000;
+  const p = moscowNowParts(epoch);
+  return p.year + '-' + pad2(p.month) + '-' + pad2(p.day) + 'T' + pad2(p.hour) + ':' + pad2(p.minute) + ':00+03:00';
+}
+
+function formatRuDate(date, time) {
+  if (!date) return '';
+  const [y, m, d] = date.split('-').map(Number);
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  return d + ' ' + months[m - 1] + (time ? ' в ' + time : '');
+}
+
+function normalizeHour(hour, suffix) {
+  let h = Number(hour);
+  const s = String(suffix || '').toLowerCase();
+  if ((s.includes('веч') || s.includes('дн')) && h < 12) h += 12;
+  if (s.includes('ноч') && h === 12) h = 0;
+  if (s.includes('утр') && h === 12) h = 0;
+  return Math.max(0, Math.min(23, h));
+}
+
+function parseYandexDateTime(nlu) {
+  const entities = Array.isArray(nlu?.entities) ? nlu.entities : [];
+  const entity = entities.find(e => e?.type === 'YANDEX.DATETIME' && e?.value);
+  if (!entity) return null;
+  const v = entity.value || {};
+  const nowEpoch = Date.now();
+  const now = moscowNowParts(nowEpoch);
+
+  if (v.hour_is_relative || v.minute_is_relative) {
+    const delta = Number(v.hour || 0) * 3600000 + Number(v.minute || 0) * 60000;
+    if (delta > 0) {
+      const epoch = nowEpoch + delta;
+      return { date: dateStringFromEpoch(epoch), time: timeStringFromEpoch(epoch), hasDate: true, hasTime: true };
+    }
+  }
+
+  let baseDate = dateStringFromEpoch(nowEpoch);
+  let hasDate = false;
+  if (v.day_is_relative) {
+    baseDate = addDaysToDate(baseDate, Number(v.day || 0));
+    hasDate = true;
+  } else if (Number.isFinite(Number(v.day)) && Number(v.day) > 0) {
+    let year = Number(v.year) || now.year;
+    const month = Number(v.month) || now.month;
+    const day = Number(v.day);
+    let epoch = moscowDateEpoch(year, month, day);
+    if (!v.year && epoch < moscowDateEpoch(now.year, now.month, now.day)) {
+      year += 1;
+      epoch = moscowDateEpoch(year, month, day);
+    }
+    baseDate = dateStringFromEpoch(epoch);
+    hasDate = true;
+  }
+
+  let time = null;
+  let hasTime = false;
+  if (!v.hour_is_relative && Number.isFinite(Number(v.hour))) {
+    const hour = Math.max(0, Math.min(23, Number(v.hour)));
+    const minute = Math.max(0, Math.min(59, Number(v.minute || 0)));
+    time = pad2(hour) + ':' + pad2(minute);
+    hasTime = true;
+  }
+
+  if (hasTime && !hasDate) {
+    const candidate = moscowDateEpoch(now.year, now.month, now.day, Number(time.slice(0,2)), Number(time.slice(3,5)));
+    baseDate = dateStringFromEpoch(candidate <= nowEpoch + 60000 ? candidate + 86400000 : candidate);
+    hasDate = true;
+  }
+
+  return { date: hasDate ? baseDate : null, time, hasDate, hasTime };
+}
+
+function parseFallbackDateTime(text) {
+  const value = String(text || '').toLowerCase().replace(/ё/g, 'е');
+  const nowEpoch = Date.now();
+  const now = moscowNowParts(nowEpoch);
+
+  let match = value.match(/через\s+(\d+)\s*(минут(?:у|ы)?|мин|час(?:а|ов)?|дн(?:я|ей)?)/i);
+  if (match) {
+    const amount = Number(match[1]);
+    const unit = match[2];
+    const delta = /мин/.test(unit) ? amount * 60000 : /час/.test(unit) ? amount * 3600000 : amount * 86400000;
+    const epoch = nowEpoch + delta;
+    return { date: dateStringFromEpoch(epoch), time: timeStringFromEpoch(epoch), hasDate: true, hasTime: true };
+  }
+
+  let date = null;
+  let hasDate = false;
+  if (/\bпослезавтра\b/.test(value)) { date = addDaysToDate(dateStringFromEpoch(nowEpoch), 2); hasDate = true; }
+  else if (/\bзавтра\b/.test(value)) { date = addDaysToDate(dateStringFromEpoch(nowEpoch), 1); hasDate = true; }
+  else if (/\bсегодня\b/.test(value)) { date = dateStringFromEpoch(nowEpoch); hasDate = true; }
+
+  const numericDate = value.match(/\b(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{2,4}))?\b/);
+  if (numericDate) {
+    let year = numericDate[3] ? Number(numericDate[3]) : now.year;
+    if (year < 100) year += 2000;
+    let epoch = moscowDateEpoch(year, Number(numericDate[2]), Number(numericDate[1]));
+    if (!numericDate[3] && epoch < moscowDateEpoch(now.year, now.month, now.day)) epoch = moscowDateEpoch(year + 1, Number(numericDate[2]), Number(numericDate[1]));
+    date = dateStringFromEpoch(epoch); hasDate = true;
+  }
+
+  const monthNames = {января:1,февраля:2,марта:3,апреля:4,мая:5,июня:6,июля:7,августа:8,сентября:9,октября:10,ноября:11,декабря:12};
+  const wordDate = value.match(/\b(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+(\d{4}))?\b/);
+  if (wordDate) {
+    let year = wordDate[3] ? Number(wordDate[3]) : now.year;
+    let epoch = moscowDateEpoch(year, monthNames[wordDate[2]], Number(wordDate[1]));
+    if (!wordDate[3] && epoch < moscowDateEpoch(now.year, now.month, now.day)) epoch = moscowDateEpoch(year + 1, monthNames[wordDate[2]], Number(wordDate[1]));
+    date = dateStringFromEpoch(epoch); hasDate = true;
+  }
+
+  const timeMatch = value.match(/\bв\s+(\d{1,2})(?::(\d{2}))?\s*(утра|дня|вечера|ночи)?\b/);
+  let time = null;
+  let hasTime = false;
+  if (timeMatch) {
+    const hour = normalizeHour(timeMatch[1], timeMatch[3]);
+    const minute = Number(timeMatch[2] || 0);
+    time = pad2(hour) + ':' + pad2(Math.max(0, Math.min(59, minute)));
+    hasTime = true;
+    if (!hasDate) {
+      const candidate = moscowDateEpoch(now.year, now.month, now.day, hour, minute);
+      date = dateStringFromEpoch(candidate <= nowEpoch + 60000 ? candidate + 86400000 : candidate);
+      hasDate = true;
+    }
+  }
+
+  return { date, time, hasDate, hasTime };
+}
+
+function parseDateTime(text, nlu) {
+  return parseYandexDateTime(nlu) || parseFallbackDateTime(text);
+}
+
+function cleanActionTitle(text) {
+  return String(text || '')
+    .replace(/^\s*(?:пожалуйста[,\s]*)?(?:напомни(?:\s+мне)?|поставь\s+(?:мне\s+)?напоминание|создай\s+(?:мне\s+)?напоминание|добавь\s+(?:мне\s+)?(?:задачу|дело)|создай\s+(?:мне\s+)?(?:задачу|дело)|запиши\s+(?:мне\s+)?(?:задачу|дело)|добавь\s+в\s+задачи|задача)\s*[:,-]?\s*/i, '')
+    .replace(/\bчерез\s+\d+\s*(?:минут(?:у|ы)?|мин|час(?:а|ов)?|дн(?:я|ей)?)\b/gi, ' ')
+    .replace(/\b(?:сегодня|завтра|послезавтра)\b/gi, ' ')
+    .replace(/\b\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?\b/g, ' ')
+    .replace(/\b\d{1,2}\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+\d{4})?\b/gi, ' ')
+    .replace(/\bв\s+\d{1,2}(?::\d{2})?\s*(?:утра|дня|вечера|ночи)?\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[,.;:\s-]+|[,.;:\s-]+$/g, '')
+    .trim();
+}
+
+function actionKind(text) {
+  const t = String(text || '');
+  if (/^\s*(?:пожалуйста[,\s]*)?(?:напомни(?:\s+мне)?|поставь\s+(?:мне\s+)?напоминание|создай\s+(?:мне\s+)?напоминание)\b/i.test(t)) return 'reminder';
+  if (/^\s*(?:пожалуйста[,\s]*)?(?:добавь|создай|запиши)(?:\s+мне)?\s+(?:задачу|дело)\b/i.test(t) || /^\s*добавь\s+в\s+задачи\b/i.test(t) || /^\s*задача\b/i.test(t)) return 'task';
+  return '';
+}
+
+async function aliceBridge(action, payload = {}) {
+  const secret = process.env.ALICE_MEMORY_SECRET;
+  if (!secret) return { ok: false, error: 'bridge_not_configured' };
+  try {
+    const response = await fetch(ALICE_BRIDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Alice-Secret': secret },
+      body: JSON.stringify({ action, ...payload }),
+      signal: AbortSignal.timeout(BRIDGE_TIMEOUT_MS)
+    });
+    const data = await response.json().catch(() => ({}));
+    return response.ok ? data : { ok: false, error: data?.error || 'bridge_error', status: response.status };
+  } catch (_) {
+    return { ok: false, error: 'bridge_timeout' };
+  }
+}
+
+function actionRequestId(body) {
+  const sessionId = String(body?.session?.session_id || 'session').slice(0, 160);
+  const messageId = String(body?.session?.message_id ?? '0').slice(0, 40);
+  return sessionId + ':' + messageId;
+}
+
+async function createVoiceAction({ kind, title, date, time, body }) {
+  const requestId = actionRequestId(body);
+  const taskPayload = {
+    request_id: requestId,
+    title,
+    due: date || null,
+    project: kind === 'reminder' ? 'Личное' : null,
+    notes: time ? 'Голосом через Алису. Время: ' + time + '.' : 'Голосом через Алису.',
+    priority: 'mid'
+  };
+
+  const calls = [aliceBridge('create_task', taskPayload)];
+  const exactTime = !!(date && time);
+  if (exactTime) {
+    const start = isoFromMoscow(date, time);
+    calls.push(aliceBridge('create_calendar_event', {
+      request_id: requestId,
+      title,
+      start,
+      end: endIsoFromStart(start, 30),
+      description: 'Создано голосом через навык «Катя Максимум».'
+    }));
+  }
+
+  const results = await Promise.all(calls);
+  return { task: results[0], calendar: exactTime ? results[1] : null, exactTime };
+}
+
+function actionResultText(result, date, time) {
+  const taskOk = !!result?.task?.ok;
+  const calendar = result?.calendar;
+  if (!taskOk) return 'Не получилось добавить задачу в фабрику. Повтори чуть позже.';
+
+  if (!result.exactTime) {
+    return result.task.created === false ? 'Такая команда уже обработана, дубль не создала.' : 'Готово. Добавила задачу в цифровую фабрику.';
+  }
+
+  if (calendar?.ok) {
+    const when = formatRuDate(date, time);
+    if (result.task.created === false && calendar.created === false) return 'Уже было добавлено, дубль не создала.';
+    return 'Готово. Добавила в фабрику и Google Calendar на ' + when + '.';
+  }
+
+  if (calendar?.error === 'calendar_not_connected') {
+    return 'Задачу в фабрику добавила. Google Calendar ещё не подключён к Алисе.';
+  }
+
+  return 'Задачу в фабрику добавила, но календарь сейчас не ответил. Повтори добавление в календарь чуть позже.';
+}
+
+function attachLocalSessionState(body, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount, extra = {}) {
   body.session_state = {
     previous_response_id: previousResponseId,
     turn_count: previousTurnCount,
     api_calls: previousApiCalls,
     rate_window_start: rateWindowStart,
-    rate_window_count: rateWindowCount
+    rate_window_count: rateWindowCount,
+    ...extra
   };
   return body;
 }
@@ -223,6 +492,59 @@ module.exports = async function aliceChatGPT(req, res) {
 
   if (/^(выход|выйти|хватит|стоп|закончить|завершить)$/i.test(userText)) {
     return send(res, 200, aliceBody('Хорошо, до связи!', { endSession: true }));
+  }
+
+
+  const pendingReminder = previousState?.pending_reminder && typeof previousState.pending_reminder === 'object'
+    ? previousState.pending_reminder
+    : null;
+
+  if (pendingReminder) {
+    const parsed = parseDateTime(userText, body.request?.nlu);
+    const pendingDate = parsed.hasDate ? parsed.date : (pendingReminder.date || null);
+    const pendingTime = parsed.hasTime ? parsed.time : null;
+    if (!pendingTime) {
+      const local = aliceBody('Во сколько напомнить?', { previousResponseId });
+      attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount, {
+        pending_reminder: { title: pendingReminder.title, date: pendingDate }
+      });
+      return send(res, 200, local);
+    }
+    const finalDate = pendingDate || parseFallbackDateTime('в ' + pendingTime).date;
+    const result = await createVoiceAction({ kind: 'reminder', title: pendingReminder.title, date: finalDate, time: pendingTime, body });
+    const local = aliceBody(actionResultText(result, finalDate, pendingTime), { previousResponseId });
+    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+    return send(res, 200, local);
+  }
+
+  const voiceActionKind = actionKind(userText);
+  if (voiceActionKind) {
+    const title = cleanActionTitle(userText);
+    if (!title) {
+      const local = aliceBody('Что именно нужно сделать?', { previousResponseId });
+      attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+      return send(res, 200, local);
+    }
+
+    const parsed = parseDateTime(userText, body.request?.nlu);
+    if (voiceActionKind === 'reminder' && !parsed.hasTime) {
+      const local = aliceBody(parsed.hasDate ? 'Во сколько напомнить?' : 'Когда напомнить? Например, завтра в десять.', { previousResponseId });
+      attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount, {
+        pending_reminder: { title, date: parsed.date || null }
+      });
+      return send(res, 200, local);
+    }
+
+    const result = await createVoiceAction({
+      kind: voiceActionKind,
+      title,
+      date: parsed.date,
+      time: parsed.time,
+      body
+    });
+    const local = aliceBody(actionResultText(result, parsed.date, parsed.time), { previousResponseId });
+    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+    return send(res, 200, local);
   }
 
   const forgetMatch = userText.match(/^забудь(?:,|:)?\s+(.{2,300})$/i);

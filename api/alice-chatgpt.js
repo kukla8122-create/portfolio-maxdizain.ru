@@ -3,12 +3,13 @@
 const OPENAI_URL = 'https://api.openai.com/v1/responses';
 const DEFAULT_MODEL = 'gpt-6-luna';
 const MAX_INPUT_CHARS = 1800;
-const MAX_REPLY_CHARS = 900;
+const MAX_REPLY_CHARS = 700;
 const OPENAI_TIMEOUT_MS = 3400;
+const MAX_CONTEXT_TURNS = 6;
 
 const SYSTEM_PROMPT = [
   'Ты личный голосовой помощник Катерины и работаешь через Яндекс Станцию.',
-  'Отвечай по-русски, естественно и очень кратко: обычно 1–4 предложения.',
+  'Отвечай по-русски, естественно и кратко: обычно 1–3 предложения.'
   'Не используй markdown, таблицы, ссылки и длинные списки, потому что ответ будет озвучен.',
   'Если вопрос связан с мебелью, учитывай контекст: Катерина — дизайнер интерьеров и мебельный технолог, бренд — «МАКСимум мебель».',
   'Не выдумывай выполненные действия, доступ к календарю, задачам, файлам или сообщениям, если соответствующая интеграция явно не подключена.',
@@ -99,7 +100,9 @@ module.exports = async function aliceChatGPT(req, res) {
     return send(res, 403, { error: 'Forbidden' });
   }
 
-  const previousResponseId = body.state?.session?.previous_response_id || null;
+  const previousState = body.state?.session || {};
+  const previousTurnCount = Number(previousState.turn_count || 0);
+  const previousResponseId = previousTurnCount >= MAX_CONTEXT_TURNS ? null : (previousState.previous_response_id || null);
   const rawText = body.request?.original_utterance || body.request?.command || '';
   const userText = String(rawText).trim().slice(0, MAX_INPUT_CHARS);
 
@@ -124,8 +127,9 @@ module.exports = async function aliceChatGPT(req, res) {
     model: process.env.ALICE_OPENAI_MODEL || DEFAULT_MODEL,
     instructions: SYSTEM_PROMPT,
     input: userText,
-    max_output_tokens: 220,
-    store: true
+    max_output_tokens: 160,
+    store: true,
+    prompt_cache_key: 'katya-alice-v1'
   };
   if (previousResponseId) payload.previous_response_id = previousResponseId;
 
@@ -176,7 +180,12 @@ module.exports = async function aliceChatGPT(req, res) {
 
     const reply = extractText(data);
     const nextResponseId = typeof data?.id === 'string' ? data.id : previousResponseId;
-    return send(res, 200, aliceBody(reply, { previousResponseId: nextResponseId }));
+    const responseBody = aliceBody(reply, { previousResponseId: nextResponseId });
+    responseBody.session_state = {
+      previous_response_id: nextResponseId,
+      turn_count: previousResponseId ? previousTurnCount + 1 : 1
+    };
+    return send(res, 200, responseBody);
   } catch (_) {
     return send(res, 200, aliceBody('Я не успела получить ответ. Повтори вопрос, пожалуйста.', { previousResponseId }));
   }

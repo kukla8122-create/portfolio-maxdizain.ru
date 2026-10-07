@@ -122,6 +122,15 @@ module.exports = async function aliceChatGPT(req, res) {
     return send(res, 200, aliceBody('Скажи, пожалуйста, что нужно.', { previousResponseId }));
   }
 
+  // Yandex health-checks should never spend OpenAI tokens.
+  if (/^ping$/i.test(userText)) {
+    return send(res, 200, aliceBody('Я на связи.', { previousResponseId }));
+  }
+
+  if (/^(помощь|что ты умеешь)$/i.test(userText)) {
+    return send(res, 200, aliceBody('Я могу отвечать на вопросы, помогать с текстами, идеями и рабочими задачами. Просто скажи, что нужно.', { previousResponseId }));
+  }
+
   if (/^(выход|выйти|хватит|стоп|закончить|завершить)$/i.test(userText)) {
     return send(res, 200, aliceBody('Хорошо, до связи!', { endSession: true }));
   }
@@ -151,7 +160,8 @@ module.exports = async function aliceChatGPT(req, res) {
     model: ALICE_MODEL,
     instructions: SYSTEM_PROMPT,
     input: userText,
-    max_output_tokens: 160,
+    max_output_tokens: 120,
+    reasoning: { effort: 'none' },
     store: true,
     prompt_cache_key: 'katya-alice-v1'
   };

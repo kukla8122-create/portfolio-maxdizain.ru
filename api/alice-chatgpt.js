@@ -9,7 +9,7 @@ const OPENAI_TIMEOUT_MS = 3500;
 const MAX_CONTEXT_TURNS = 6;
 const MAX_SESSION_AI_CALLS = 60;
 const MAX_CALLS_PER_MINUTE = 12;
-const MEMORY_TIMEOUT_MS = 650;
+const MEMORY_TIMEOUT_MS = 350;
 const SUPABASE_URL = 'https://uhyaigqizvwtsbtmvkdr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8';
 
@@ -88,11 +88,11 @@ function formatMemoryContext(data) {
       .filter(Boolean);
     if (rows.length) parts.push(label + ': ' + rows.join(' | '));
   };
-  append('Профиль', data.profile, 10);
-  append('Запомнено голосом', data.voice, 8);
-  append('Активные задачи', data.tasks, 12);
-  append('Недавние рабочие записи', data.recent_work, 6);
-  return parts.join(' ').slice(0, 6000);
+  append('Профиль', data.profile, 7);
+  append('Запомнено голосом', data.voice, 4);
+  append('Активные задачи', data.tasks, 6);
+  append('Недавние рабочие записи', data.recent_work, 3);
+  return parts.join(' ').slice(0, 3200);
 }
 
 async function memoryRpc(name, payload) {
@@ -116,8 +116,26 @@ async function memoryRpc(name, payload) {
 }
 
 async function loadMemoryContext(query) {
+  const startedAt = Date.now();
   const data = await memoryRpc('alice_memory_context', { p_query: query });
-  return formatMemoryContext(data);
+  return { data, text: formatMemoryContext(data), ms: Date.now() - startedAt };
+}
+
+function isTaskListQuestion(text) {
+  return /(какие|что).*?(задач|дел)|что у меня (сегодня|завтра)|покажи.*?(задач|дел)/i.test(text);
+}
+
+function directTaskAnswer(data) {
+  const items = Array.isArray(data?.tasks) ? data.tasks : [];
+  if (!items.length) return '';
+  const names = items.slice(0, 5).map(item => {
+    const content = String(item?.content || '');
+    const title = content.match(/Задача:\s*(.*?)(?:\s+Проект:|\s+Срок:|\s+Статус:|\s+Заметка:|$)/i)?.[1]?.trim();
+    const due = content.match(/Срок:\s*([0-9-]+)/i)?.[1];
+    return title ? (due ? title + ' — ' + due : title) : '';
+  }).filter(Boolean);
+  if (!names.length) return '';
+  return 'Сейчас вижу: ' + names.join('; ') + '.';
 }
 
 async function rememberMemory(content) {
@@ -231,7 +249,24 @@ module.exports = async function aliceChatGPT(req, res) {
     return send(res, 200, aliceBody('Связь с ChatGPT ещё не настроена. Нужно добавить ключ OpenAI на сервер.', { previousResponseId }));
   }
 
-  const memoryContext = shouldLoadMemory(userText) ? await loadMemoryContext(userText) : '';
+  let memoryData = null;
+  let memoryContext = '';
+  if (shouldLoadMemory(userText)) {
+    const loaded = await loadMemoryContext(userText);
+    memoryData = loaded.data;
+    memoryContext = loaded.text;
+    res.setHeader('X-Alice-Memory-Ms', String(loaded.ms));
+  }
+
+  if (isTaskListQuestion(userText)) {
+    const direct = directTaskAnswer(memoryData);
+    if (direct) {
+      const local = aliceBody(direct, { previousResponseId });
+      attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+      return send(res, 200, local);
+    }
+  }
+
   const instructions = memoryContext
     ? SYSTEM_PROMPT + ' ' + KATYA_PASSPORT + ' Долговременная память для этого вопроса: ' + memoryContext
     : SYSTEM_PROMPT + ' ' + KATYA_PASSPORT;

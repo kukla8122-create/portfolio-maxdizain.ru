@@ -13,6 +13,7 @@ const MEMORY_TIMEOUT_MS = 1800;
 const SUPABASE_URL = 'https://uhyaigqizvwtsbtmvkdr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8';
 const ALICE_BRIDGE_URL = SUPABASE_URL + '/functions/v1/alice-bridge';
+const KOSTYA_CALENDAR_BRIDGE_URL = SUPABASE_URL + '/functions/v1/kostya-calendar-bridge';
 const BRIDGE_TIMEOUT_MS = 2800;
 
 const SYSTEM_PROMPT = [
@@ -356,7 +357,9 @@ async function aliceBridge(action, payload = {}) {
   const secret = process.env.ALICE_MEMORY_SECRET;
   if (!secret) return { ok: false, error: 'bridge_not_configured' };
   try {
-    const response = await fetch(ALICE_BRIDGE_URL, {
+    const bridgeUrl = (action === 'create_calendar_event' || action === 'calendar_status')
+      ? KOSTYA_CALENDAR_BRIDGE_URL : ALICE_BRIDGE_URL;
+    const response = await fetch(bridgeUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Alice-Secret': secret },
       body: JSON.stringify({ action, ...payload }),

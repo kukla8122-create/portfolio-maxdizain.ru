@@ -4,7 +4,7 @@ const OPENAI_URL = 'https://api.openai.com/v1/responses';
 const ALICE_MODEL = 'gpt-6-luna';
 const MAX_INPUT_CHARS = 1800;
 const MAX_REPLY_CHARS = 700;
-const OPENAI_TIMEOUT_MS = 3400;
+const OPENAI_TIMEOUT_MS = 3000;
 const MAX_CONTEXT_TURNS = 6;
 
 const SYSTEM_PROMPT = [

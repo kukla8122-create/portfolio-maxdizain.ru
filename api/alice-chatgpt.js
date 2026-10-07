@@ -279,29 +279,39 @@ function parseFallbackDateTime(text) {
 
   let date = null;
   let hasDate = false;
-  if (/(?:^|[\\s,.:;!?—–-])послезавтра(?=$|[\\s,.:;!?—–-])/.test(value)) { date = addDaysToDate(dateStringFromEpoch(nowEpoch), 2); hasDate = true; }
-  else if (/(?:^|[\\s,.:;!?—–-])завтра(?=$|[\\s,.:;!?—–-])/.test(value)) { date = addDaysToDate(dateStringFromEpoch(nowEpoch), 1); hasDate = true; }
-  else if (/(?:^|[\\s,.:;!?—–-])сегодня(?=$|[\\s,.:;!?—–-])/.test(value)) { date = dateStringFromEpoch(nowEpoch); hasDate = true; }
+  const ruBoundaryBefore = '(?:^|[\\s,.:;!?—–-])';
+  const ruBoundaryAfter = '(?=$|[\\s,.:;!?—–-])';
+  if (new RegExp(ruBoundaryBefore + 'послезавтра' + ruBoundaryAfter).test(value)) {
+    date = addDaysToDate(dateStringFromEpoch(nowEpoch), 2); hasDate = true;
+  } else if (new RegExp(ruBoundaryBefore + 'завтра' + ruBoundaryAfter).test(value)) {
+    date = addDaysToDate(dateStringFromEpoch(nowEpoch), 1); hasDate = true;
+  } else if (new RegExp(ruBoundaryBefore + 'сегодня' + ruBoundaryAfter).test(value)) {
+    date = dateStringFromEpoch(nowEpoch); hasDate = true;
+  }
 
   const numericDate = value.match(/\b(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{2,4}))?\b/);
   if (numericDate) {
     let year = numericDate[3] ? Number(numericDate[3]) : now.year;
     if (year < 100) year += 2000;
     let epoch = moscowDateEpoch(year, Number(numericDate[2]), Number(numericDate[1]));
-    if (!numericDate[3] && epoch < moscowDateEpoch(now.year, now.month, now.day)) epoch = moscowDateEpoch(year + 1, Number(numericDate[2]), Number(numericDate[1]));
+    if (!numericDate[3] && epoch < moscowDateEpoch(now.year, now.month, now.day)) {
+      epoch = moscowDateEpoch(year + 1, Number(numericDate[2]), Number(numericDate[1]));
+    }
     date = dateStringFromEpoch(epoch); hasDate = true;
   }
 
   const monthNames = {января:1,февраля:2,марта:3,апреля:4,мая:5,июня:6,июля:7,августа:8,сентября:9,октября:10,ноября:11,декабря:12};
-  const wordDate = value.match(/(?:^|[\\s,.:;!?—–-])(\\d{1,2})\\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\\s+(\\d{4}))?(?=$|[\\s,.:;!?—–-])/);
+  const wordDate = value.match(/(?:^|[\s,.:;!?—–-])(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+(\d{4}))?(?=$|[\s,.:;!?—–-])/);
   if (wordDate) {
     let year = wordDate[3] ? Number(wordDate[3]) : now.year;
     let epoch = moscowDateEpoch(year, monthNames[wordDate[2]], Number(wordDate[1]));
-    if (!wordDate[3] && epoch < moscowDateEpoch(now.year, now.month, now.day)) epoch = moscowDateEpoch(year + 1, monthNames[wordDate[2]], Number(wordDate[1]));
+    if (!wordDate[3] && epoch < moscowDateEpoch(now.year, now.month, now.day)) {
+      epoch = moscowDateEpoch(year + 1, monthNames[wordDate[2]], Number(wordDate[1]));
+    }
     date = dateStringFromEpoch(epoch); hasDate = true;
   }
 
-  const timeMatch = value.match(/(?:^|[\\s,.:;!?—–-])в\\s+(\\d{1,2})(?::(\\d{2}))?\\s*(утра|дня|вечера|ночи)?(?=$|[\\s,.:;!?—–-])/);
+  const timeMatch = value.match(/(?:^|[\s,.:;!?—–-])в\s+(\d{1,2})(?::(\d{2}))?\s*(утра|дня|вечера|ночи)?(?=$|[\s,.:;!?—–-])/);
   let time = null;
   let hasTime = false;
   if (timeMatch) {
@@ -318,7 +328,6 @@ function parseFallbackDateTime(text) {
 
   return { date, time, hasDate, hasTime };
 }
-
 function parseDateTime(text, nlu) {
   return parseYandexDateTime(nlu) || parseFallbackDateTime(text);
 }
@@ -326,16 +335,15 @@ function parseDateTime(text, nlu) {
 function cleanActionTitle(text) {
   return String(text || '')
     .replace(/^\s*(?:пожалуйста[,\s]*)?(?:напомни(?:\s+мне)?|поставь\s+(?:мне\s+)?напоминание|создай\s+(?:мне\s+)?напоминание|добавь\s+(?:мне\s+)?(?:задачу|дело)|создай\s+(?:мне\s+)?(?:задачу|дело)|запиши\s+(?:мне\s+)?(?:задачу|дело)|добавь\s+в\s+задачи|задача)\s*[:,-]?\s*/i, '')
-    .replace(/\bчерез\s+\d+\s*(?:минут(?:у|ы)?|мин|час(?:а|ов)?|дн(?:я|ей)?)\b/gi, ' ')
-    .replace(/(?:^|[\\s,.:;!?—–-])(?:сегодня|завтра|послезавтра)(?=$|[\\s,.:;!?—–-])/gi, ' ')
+    .replace(/через\s+\d+\s*(?:минут(?:у|ы)?|мин|час(?:а|ов)?|дн(?:я|ей)?)(?=$|[\s,.:;!?—–-])/gi, ' ')
+    .replace(/(?:^|[\s,.:;!?—–-])(?:сегодня|завтра|послезавтра)(?=$|[\s,.:;!?—–-])/gi, ' ')
     .replace(/\b\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?\b/g, ' ')
-    .replace(/(?:^|[\\s,.:;!?—–-])\\d{1,2}\\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\\s+\\d{4})?(?=$|[\\s,.:;!?—–-])/gi, ' ')
-    .replace(/\bв\s+\d{1,2}(?::\d{2})?\s*(?:утра|дня|вечера|ночи)?\b/gi, ' ')
+    .replace(/(?:^|[\s,.:;!?—–-])\d{1,2}\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+\d{4})?(?=$|[\s,.:;!?—–-])/gi, ' ')
+    .replace(/(?:^|[\s,.:;!?—–-])в\s+\d{1,2}(?::\d{2})?\s*(?:утра|дня|вечера|ночи)?(?=$|[\s,.:;!?—–-])/gi, ' ')
     .replace(/\s+/g, ' ')
-    .replace(/^[,.;:\s-]+|[,.;:\s-]+$/g, '')
+    .replace(/^[,.;:\s—–-]+|[,.;:\s—–-]+$/g, '')
     .trim();
 }
-
 function actionKind(text) {
   const t = String(text || '');
   const boundary = '(?=$|[\\s,.:;!?—–-])';

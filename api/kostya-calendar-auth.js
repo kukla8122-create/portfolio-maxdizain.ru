@@ -130,9 +130,10 @@ module.exports = async function handler(req, res) {
   } catch (e) {
     console.error('Kostya calendar OAuth:', String(e.message || 'failed'));
     const reason = String(e.message || 'unknown');
-    const safeReason = /^token:400:invalid_client/.test(reason) ? 'Google отклонил секрет OAuth-клиента. Проверь переменную GOOGLE_CALENDAR_CLIENT_SECRET.' :
-      /^token:400:invalid_grant/.test(reason) ? 'Google отклонил код авторизации. Начни подключение заново.' :
-      /^token:/.test(reason) ? 'Google не смог подтвердить авторизацию (этап token).' :
+    const safeReason = /^token:\\d+:invalid_client$/.test(reason) ? 'Google отклонил учётные данные клиента (invalid_client). Проверь секрет именно этого OAuth-клиента, а не другого.' :
+      /^token:\\d+:invalid_grant$/.test(reason) ? 'Google отклонил разовый код авторизации (invalid_grant). Начни подключение заново в одной вкладке.' :
+      /^token:\\d+:redirect_uri_mismatch$/.test(reason) ? 'Не совпадает URL перенаправления OAuth (redirect_uri_mismatch).' :
+      /^token:/.test(reason) ? 'Google отклонил обмен токена: ' + reason.replace(/[^a-z0-9:_-]/gi, '').slice(0, 65) + '. Это код ошибки, не секрет.' :
       /^profile:/.test(reason) ? 'Не удалось проверить Google-аккаунт (этап profile).' :
       /^storage:403:/.test(reason) ? 'Сервер памяти запретил сохранение (403). Требуется исправление связки.' :
       /^storage:/.test(reason) ? 'Сервер памяти не сохранил доступ (' + reason.replace(/[^a-z0-9:_-]/gi, '').slice(0, 80) + ').' :

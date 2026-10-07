@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Google Calendar для Алисы — МАКСимум мебель</title>
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark}
+    body{margin:0;background:#0d1512;color:#f7f2e8;min-height:100vh;display:grid;place-items:center;padding:24px}
+    main{width:min(680px,100%);background:#14211c;border:1px solid #2d4a3c;border-radius:24px;padding:28px;box-shadow:0 24px 80px #0008}
+    h1{margin:0 0 10px;font-size:28px} p{line-height:1.5;color:#d9ddd8}
+    .status{padding:16px;border-radius:16px;background:#0c1712;border:1px solid #284436;margin:18px 0}
+    button,a.btn{display:inline-block;border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:16px;text-decoration:none;cursor:pointer}
+    button{background:#d8b968;color:#132019} button:disabled{opacity:.55;cursor:not-allowed}
+    a.btn{background:#24372f;color:#fff;margin-left:8px}
+    .ok{color:#9fe0b8}.warn{color:#ffd98a}.bad{color:#ffaaa2}
+    small{display:block;margin-top:18px;color:#9eaaa4}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<main>
+  <h1>Google Calendar для Алисы</h1>
+  <p>Это одноразовое подключение. После него навык «Катя Максимум» сможет по голосовой команде создавать напоминания в Google Calendar и одновременно добавлять задачу в цифровую фабрику.</p>
+  <div id="status" class="status">Проверяю подключение…</div>
+  <button id="connect" disabled>Подключить Google Calendar</button>
+  <a class="btn" href="/digital-factory/">Вернуться в фабрику</a>
+  <small>Запрашивается только доступ к событиям календарей, которыми ты владеешь. Google-пароль сайт не получает.</small>
+</main>
+<script>
+'use strict';
+(async()=>{
+  const SUPABASE_URL='https://uhyaigqizvwtsbtmvkdr.supabase.co';
+  const SUPABASE_KEY='sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8';
+  const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const status=document.getElementById('status'),button=document.getElementById('connect');
+  let clientId='',session=null,busy=false;
+
+  const set=(text,cls='')=>{status.className='status '+cls;status.textContent=text};
+  async function getSession(){
+    const result=await sb.auth.getSession();
+    if(result.error||!result.data.session)throw Error('Сначала войди в цифровую фабрику.');
+    session=result.data.session;return session;
+  }
+  async function api(method='GET',body){
+    const s=await getSession();
+    const response=await fetch('/api/alice-calendar-auth',{
+      method,
+      cache:'no-store',
+      headers:{
+        Authorization:'Bearer '+s.access_token,
+        ...(method==='POST'?{'Content-Type':'application/json','X-Requested-With':'XmlHttpRequest'}:{})
+      },
+      body:body?JSON.stringify(body):undefined
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(data.error||'Ошибка подключения.');
+    return data;
+  }
+  async function waitGoogle(){
+    for(let i=0;i<50;i++){
+      if(window.google?.accounts?.oauth2)return true;
+      await new Promise(r=>setTimeout(r,100));
+    }
+    throw Error('Google Identity Services не загрузился. Обнови страницу.');
+  }
+  async function refreshStatus(){
+    const data=await api();
+    if(data.connected&&data.durable){
+      set('Готово: Google Calendar постоянно подключён к Алисе'+(data.google_email?' ('+data.google_email+')':'')+'.','ok');
+      button.textContent='Подключить заново';
+    }else if(data.connected){
+      set('Календарь подключён временно. Нажми кнопку ещё раз, чтобы получить постоянный доступ.','warn');
+      button.textContent='Получить постоянный доступ';
+    }else{
+      set('Google Calendar пока не подключён к Алисе.','warn');
+      button.textContent='Подключить Google Calendar';
+    }
+  }
+
+  try{
+    await getSession();
+    const config=await fetch('/api/factory-calendar',{cache:'no-store'}).then(r=>r.json());
+    clientId=config.clientId||'';
+    if(!clientId)throw Error('Google OAuth ещё не настроен.');
+    await waitGoogle();
+    await refreshStatus();
+    button.disabled=false;
+  }catch(e){set(e.message,'bad')}
+
+  button.onclick=async()=>{
+    if(busy)return;busy=true;button.disabled=true;set('Открой окно Google и разреши доступ к календарю…');
+    try{
+      await getSession();await waitGoogle();
+      const client=google.accounts.oauth2.initCodeClient({
+        client_id:clientId,
+        scope:'openid email https://www.googleapis.com/auth/calendar.events.owned',
+        ux_mode:'popup',
+        include_granted_scopes:true,
+        callback:async response=>{
+          try{
+            if(!response?.code)throw Error('Google не вернул код авторизации.');
+            set('Сохраняю безопасное подключение…');
+            const saved=await api('POST',{code:response.code});
+            if(saved.durable){
+              set('Готово. Алиса теперь может создавать напоминания в Google Calendar даже когда сайт закрыт.','ok');
+            }else{
+              set('Google дал только временный доступ. Нажми «Подключить заново» и подтверди разрешение ещё раз.','warn');
+            }
+          }catch(e){set(e.message,'bad')}
+          finally{busy=false;button.disabled=false;button.textContent='Подключить заново'}
+        },
+        error_callback:()=>{busy=false;button.disabled=false;set('Окно Google закрыто или разрешение не дано.','bad')}
+      });
+      client.requestCode();
+    }catch(e){busy=false;button.disabled=false;set(e.message,'bad')}
+  };
+})();
+</script>
+</body>
+</html>

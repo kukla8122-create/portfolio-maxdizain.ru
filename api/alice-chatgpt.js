@@ -7,6 +7,7 @@ const MAX_REPLY_CHARS = 700;
 const OPENAI_TIMEOUT_MS = 3000;
 const MAX_CONTEXT_TURNS = 6;
 const MAX_SESSION_AI_CALLS = 60;
+const MAX_CALLS_PER_MINUTE = 12;
 
 const SYSTEM_PROMPT = [
   'Ты личный голосовой помощник Катерины и работаешь через Яндекс Станцию.',
@@ -72,7 +73,7 @@ module.exports = async function aliceChatGPT(req, res) {
   if (req.method === 'GET') {
     return send(res, 200, {
       ok: true,
-      configured: Boolean(process.env.ALICE_OPENAI_API_KEY || process.env.OPENAI_API_KEY),
+      configured: Boolean(process.env.ALICE_OPENAI_API_KEY),
       model: ALICE_MODEL
     });
   }
@@ -105,6 +106,11 @@ module.exports = async function aliceChatGPT(req, res) {
   const previousTurnCount = Number(previousState.turn_count || 0);
   const previousApiCalls = Number(previousState.api_calls || 0);
   const previousResponseId = previousTurnCount >= MAX_CONTEXT_TURNS ? null : (previousState.previous_response_id || null);
+  const now = Date.now();
+  const previousWindowStart = Number(previousState.rate_window_start || 0);
+  const sameWindow = previousWindowStart > 0 && now - previousWindowStart < 60000;
+  const rateWindowStart = sameWindow ? previousWindowStart : now;
+  const rateWindowCount = sameWindow ? Number(previousState.rate_window_count || 0) : 0;
   const rawText = body.request?.original_utterance || body.request?.command || '';
   const userText = String(rawText).trim().slice(0, MAX_INPUT_CHARS);
 
@@ -124,7 +130,19 @@ module.exports = async function aliceChatGPT(req, res) {
     return send(res, 200, aliceBody('Мы уже долго разговариваем. Скажи «Алиса, хватит», а потом запусти навык заново — так будет быстрее и дешевле.'));
   }
 
-  const apiKey = process.env.ALICE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (rateWindowCount >= MAX_CALLS_PER_MINUTE) {
+    const limited = aliceBody('Слишком много запросов подряд. Подожди немного, пожалуйста.', { previousResponseId });
+    limited.session_state = {
+      previous_response_id: previousResponseId,
+      turn_count: previousTurnCount,
+      api_calls: previousApiCalls,
+      rate_window_start: rateWindowStart,
+      rate_window_count: rateWindowCount
+    };
+    return send(res, 200, limited);
+  }
+
+  const apiKey = process.env.ALICE_OPENAI_API_KEY;
   if (!apiKey) {
     return send(res, 200, aliceBody('Связь с ChatGPT ещё не настроена. Нужно добавить ключ OpenAI на сервер.', { previousResponseId }));
   }
@@ -190,7 +208,9 @@ module.exports = async function aliceChatGPT(req, res) {
     responseBody.session_state = {
       previous_response_id: nextResponseId,
       turn_count: previousResponseId ? previousTurnCount + 1 : 1,
-      api_calls: previousApiCalls + 1
+      api_calls: previousApiCalls + 1,
+      rate_window_start: rateWindowStart,
+      rate_window_count: rateWindowCount + 1
     };
     return send(res, 200, responseBody);
   } catch (_) {

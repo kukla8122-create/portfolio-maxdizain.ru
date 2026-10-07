@@ -1,7 +1,8 @@
 'use strict';
 (()=>{
  const $=id=>document.getElementById(id),READ='https://www.googleapis.com/auth/calendar.events.owned.readonly',WRITE='https://www.googleapis.com/auth/calendar.events.owned';
- const sb=window.supabase?.createClient('https://uhyaigqizvwtsbtmvkdr.supabase.co','sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8');
+ const SUPABASE_URL='https://uhyaigqizvwtsbtmvkdr.supabase.co',SUPABASE_KEY='sb_publishable_fS6uiYMTofcNuYE5DuAfmg_lUaZQc_8',FACTORY_SYNC_URL=SUPABASE_URL+'/functions/v1/factory-sync-api';
+ const sb=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
  let clientId='',token='',expires=0,write=false,epoch=0,userId='',tasks=[],busy=false,draft=null,expiryTimer;
  function status(text){$('status').textContent=text}
  function clear(resetDraft=false){epoch++;token='';expires=0;write=false;if(resetDraft)draft=null;clearTimeout(expiryTimer);$('events').textContent='Подключи календарь, чтобы увидеть встречи.';$('refresh').hidden=true;$('disconnect').hidden=true;$('create').disabled=true}
@@ -10,6 +11,13 @@
  $('zone').textContent='Время устройства: '+Intl.DateTimeFormat().resolvedOptions().timeZone;
  const start=new Date();start.setMinutes(0,0,0);start.setHours(start.getHours()+1);$('start').value=localDate(start);$('end').value=localDate(new Date(+start+3600000));
  async function signedIn(){const {data,error}=await sb.auth.getSession();if(error||data.session?.user?.id!==userId)throw Error('Войди в свой аккаунт фабрики заново.');return data.session}
+ async function factoryPull(){
+  let session=await signedIn();
+  const send=token=>fetch(FACTORY_SYNC_URL,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,apikey:SUPABASE_KEY},body:JSON.stringify({action:'pull'}),signal:AbortSignal.timeout(20000)});
+  let response=await send(session.access_token);
+  if(response.status===401){const refreshed=await sb.auth.refreshSession();if(refreshed.error||refreshed.data.session?.user?.id!==userId)throw Error('Войди в свой аккаунт фабрики заново.');session=refreshed.data.session;response=await send(session.access_token)}
+  const data=await response.json().catch(()=>({}));if(!response.ok)throw Error('Не удалось загрузить задачи фабрики.');return data;
+ }
  function authorize(edit=false){
   if(!userId)return status('Сначала войди в аккаунт фабрики.');
   if(!clientId)return status('Подключение ожидает настройки Google OAuth.');
@@ -57,7 +65,7 @@
   if(!sb)throw Error('Сервис входа не загрузился. Обнови страницу.');const {data,error}=await sb.auth.getSession();if(error||!data.session?.user)throw Error('Сначала войди в аккаунт фабрики по ссылке выше.');userId=data.session.user.id;
   sb.auth.onAuthStateChange((event,session)=>{if(session?.user?.id!==userId){clear(true);userId='';tasks=[];$('task').replaceChildren();$('title').value='';$('description').value='';status('Аккаунт фабрики изменился. Вернись в фабрику и открой календарь заново.')}});
   const config=await fetch('/api/factory-calendar',{cache:'no-store'}).then(r=>r.json());clientId=config.clientId||'';$('connect').disabled=!clientId;status(clientId?'Нажми «Подключить Google Calendar» и выбери свой Google-аккаунт.':'Связь подготовлена. Ожидается настройка Google OAuth.');
-  const owner=userId,requestEpoch=epoch;const result=await sb.from('factory_tasks').select('client_id,title,project,due').eq('owner_id',owner).eq('status','open').limit(200);if(owner!==userId||requestEpoch!==epoch)return;if(result.error){$('result').textContent='Не удалось загрузить задачи. Можно создать свою встречу.';return}tasks=result.data||[];for(const task of tasks){const option=document.createElement('option');option.value=task.client_id;option.textContent=task.title;$('task').append(option)}const selected=new URLSearchParams(location.search).get('task');if(tasks.some(t=>t.client_id===selected)){$('task').value=selected;$('task').onchange()}
+  const owner=userId,requestEpoch=epoch;let factory;try{factory=await factoryPull()}catch(e){factory={tasks:[]};$('result').textContent='Не удалось загрузить задачи. Можно создать свою встречу.'}if(owner!==userId||requestEpoch!==epoch)return;tasks=(factory.tasks||[]).filter(t=>t.status==='open').slice(0,200);for(const task of tasks){const option=document.createElement('option');option.value=task.client_id;option.textContent=task.title;$('task').append(option)}const selected=new URLSearchParams(location.search).get('task');if(tasks.some(t=>t.client_id===selected)){$('task').value=selected;$('task').onchange()}
  }catch(error){status(error.message)}}
  init();
 })();

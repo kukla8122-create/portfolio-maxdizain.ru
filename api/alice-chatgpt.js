@@ -162,6 +162,7 @@ module.exports = async function aliceChatGPT(req, res) {
     input: userText,
     max_output_tokens: 120,
     reasoning: { effort: 'none' },
+    service_tier: 'fast',
     store: true,
     prompt_cache_key: 'katya-alice-v1'
   };

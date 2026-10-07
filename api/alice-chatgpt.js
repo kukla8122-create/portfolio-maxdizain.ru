@@ -71,7 +71,7 @@ module.exports = async function aliceChatGPT(req, res) {
   if (req.method === 'GET') {
     return send(res, 200, {
       ok: true,
-      configured: Boolean(process.env.OPENAI_API_KEY),
+      configured: Boolean(process.env.ALICE_OPENAI_API_KEY || process.env.OPENAI_API_KEY),
       model: process.env.ALICE_OPENAI_MODEL || DEFAULT_MODEL
     });
   }
@@ -118,7 +118,7 @@ module.exports = async function aliceChatGPT(req, res) {
     return send(res, 200, aliceBody('Хорошо, до связи!', { endSession: true }));
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.ALICE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return send(res, 200, aliceBody('Связь с ChatGPT ещё не настроена. Нужно добавить ключ OpenAI на сервер.', { previousResponseId }));
   }

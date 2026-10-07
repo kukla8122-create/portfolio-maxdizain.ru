@@ -145,9 +145,32 @@ module.exports = async function aliceChatGPT(req, res) {
 
     if (!response.ok) {
       const status = response.status;
-      const message = status === 429
-        ? 'Сейчас слишком много запросов. Повтори через минуту.'
-        : 'ChatGPT сейчас не ответил. Повтори вопрос, пожалуйста.';
+      const code = String(data?.error?.code || '');
+      const type = String(data?.error?.type || '');
+      const requestId = response.headers.get('x-request-id') || '';
+
+      // Log only safe diagnostics; never log the API key or request body.
+      console.warn('OpenAI request failed', { status, code, type, requestId });
+
+      let message = 'ChatGPT сейчас не ответил. Повтори вопрос, пожалуйста.';
+      if (status === 429) {
+        if (code === 'credit_balance_exhausted') {
+          message = 'У OpenAI закончился баланс API.';
+        } else if (code === 'organization_usage_limit_exceeded') {
+          message = 'Достигнут лимит использования OpenAI для организации.';
+        } else if (code === 'organization_spend_limit_exceeded') {
+          message = 'Достигнут лимит расходов OpenAI для организации.';
+        } else if (code === 'project_spend_limit_exceeded') {
+          message = 'Достигнут лимит расходов OpenAI для этого проекта.';
+        } else if (code.includes('rate_limit') || type === 'rate_limit_error') {
+          message = 'Сработал лимит скорости OpenAI. Повтори через минуту.';
+        } else if (type === 'insufficient_quota') {
+          message = 'OpenAI отклонил запрос по квоте API. Проверь лимиты проекта.';
+        } else {
+          const safeCode = (code || type || 'не указан').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+          message = 'OpenAI вернул ошибку 429. Код: ' + safeCode + '.';
+        }
+      }
       return send(res, 200, aliceBody(message, { previousResponseId }));
     }
 

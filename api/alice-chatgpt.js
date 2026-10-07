@@ -4,7 +4,7 @@ const OPENAI_URL = 'https://api.openai.com/v1/responses';
 const ALICE_MODEL = 'gpt-6-luna';
 const MAX_INPUT_CHARS = 1800;
 const MAX_REPLY_CHARS = 700;
-const OPENAI_TIMEOUT_MS = 3000;
+const OPENAI_TIMEOUT_MS = 3500;
 const MAX_CONTEXT_TURNS = 6;
 const MAX_SESSION_AI_CALLS = 60;
 const MAX_CALLS_PER_MINUTE = 12;
@@ -169,6 +169,7 @@ module.exports = async function aliceChatGPT(req, res) {
   if (previousResponseId) payload.previous_response_id = previousResponseId;
 
   try {
+    const openaiStartedAt = Date.now();
     const response = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
@@ -178,6 +179,9 @@ module.exports = async function aliceChatGPT(req, res) {
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS)
     });
+
+    const openaiMs = Date.now() - openaiStartedAt;
+    res.setHeader('Server-Timing', `openai;dur=${openaiMs}`);
 
     let data = null;
     try { data = await response.json(); } catch (_) {}
@@ -225,6 +229,7 @@ module.exports = async function aliceChatGPT(req, res) {
     };
     return send(res, 200, responseBody);
   } catch (_) {
+    res.setHeader('Server-Timing', `openai-timeout;dur=${OPENAI_TIMEOUT_MS}`);
     return send(res, 200, aliceBody('Я не успела получить ответ. Повтори вопрос, пожалуйста.', { previousResponseId }));
   }
 };

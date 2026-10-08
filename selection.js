@@ -41,7 +41,7 @@
     const button=document.getElementById('downloadSelection');button.disabled=true;
     try{
       const items=choices.filter(c=>selected.has(c.id)); const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=320+items.length*520;
-      const x=canvas.getContext('2d');x.fillStyle='#0d2020';x.fillRect(0,0,canvas.width,canvas.height);x.fillStyle='#e6cf9e';x.font='bold 52px Georgia';x.fillText('Какую кухню выберем?',60,90);x.font='28px Arial';x.fillText('Моя подборка • МАКСИМУМ МЕБЕЛЬ',60,145);
+      const x=canvas.getContext('2d');x.fillStyle='#0d2020';x.fillRect(0,0,canvas.width,canvas.height);x.fillStyle='#e6cf9e';x.font='bold 52px Georgia';x.fillText('Какую кухню выберем?',60,90);x.font='28px Arial';x.fillText('Моя подборка • МАКСимум мебель',60,145);
       for(let i=0;i<items.length;i++){
         const img=new Image();img.src=items[i].src;await img.decode();const top=190+i*520;
         const scale=Math.min(1080/img.width,420/img.height),w=img.width*scale,h=img.height*scale;

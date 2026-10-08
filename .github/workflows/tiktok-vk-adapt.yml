@@ -13,16 +13,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - name: Install yt-dlp
-        run: python -m pip install --disable-pip-version-check yt-dlp
+      - name: Install yt-dlp and portable FFmpeg
+        run: python -m pip install --disable-pip-version-check yt-dlp imageio-ffmpeg
       - name: Download public company clips from VK
         run: |
           mkdir -p _vk_sources media/tiktok
           yt-dlp --no-playlist -f 'best[height<=1080]/best' -o '_vk_sources/%(id)s.%(ext)s'             'https://vk.com/clip-108807288_456239350'             'https://vk.com/clip-108807288_456239353'
       - name: Reframe vertical 9 by 16; preserve geometry, strip potentially licensed VK audio
         run: |
-          ffmpeg -hide_banner -loglevel error -y             -i '_vk_sources/-108807288_456239350.mp4'             -vf 'crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920,fps=30'             -an -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart             'media/tiktok/vk-kuhnya-checklist-350.mp4'
-          ffmpeg -hide_banner -loglevel error -y             -i '_vk_sources/-108807288_456239353.mp4'             -vf 'crop=ih:ih:(iw-ih)/2:0,scale=1080:1080,pad=1080:1920:0:420:color=0x073c34,fps=30'             -an -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart             'media/tiktok/vk-kuhnya-design-353.mp4'
+          FFMPEG="$(python -c 'from imageio_ffmpeg import get_ffmpeg_exe; print(get_ffmpeg_exe())')"
+          "$FFMPEG" -hide_banner -loglevel error -y             -i '_vk_sources/-108807288_456239350.mp4'             -vf 'crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920,fps=30'             -an -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart             'media/tiktok/vk-kuhnya-checklist-350.mp4'
+          "$FFMPEG" -hide_banner -loglevel error -y             -i '_vk_sources/-108807288_456239353.mp4'             -vf 'crop=ih:ih:(iw-ih)/2:0,scale=1080:1080,pad=1080:1920:0:420:color=0x073c34,fps=30'             -an -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart             'media/tiktok/vk-kuhnya-design-353.mp4'
       - name: Save ready MP4s into the site's public media library
         run: |
           git config user.name 'github-actions[bot]'

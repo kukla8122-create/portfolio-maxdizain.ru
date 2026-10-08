@@ -212,11 +212,86 @@ function normalizeHour(hour, suffix) {
   return Math.max(0, Math.min(23, h));
 }
 
+
+function parseClockTime(text, allowBareHour = false) {
+  const value = String(text || '').toLowerCase().replace(/ё/g, 'е');
+  const sep = '(?=$|[\\s,;!?—–.])';
+  const numeric = [
+    new RegExp('(?:^|[\\s,;!?—–])(?:в|на)\\s+(\\d{1,2})\\s*[:.\\-–]\\s*(\\d{1,2})' + sep),
+    new RegExp('(?:^|[\\s,;!?—–])(?:в|на)\\s+(\\d{1,2})\\s+(\\d{2})' + sep),
+    new RegExp('(?:^|[\\s,;!?—–])(\\d{1,2})\\s*[:.\\-–]\\s*(\\d{1,2})' + sep),
+    new RegExp('(?:^|[\\s,;!?—–])(\\d{1,2})\\s+(\\d{2})' + sep),
+    new RegExp('(?:^|[\\s,;!?—–])(?:в|на)\\s+(\\d{1,2})' + sep)
+  ];
+  for (const expr of numeric) {
+    const m = value.match(expr);
+    if (!m) continue;
+    const hour = Number(m[1]), minute = Number(m[2] || 0), raw = m[0].trim();
+    if (hour > 23 || minute > 59) continue;
+    // A bare date "08.10" must not silently become 08:10.
+    if (!/^(?:в|на)\s/.test(raw) && /^\d{1,2}[.\-]\d{1,2}$/.test(raw)
+        && hour <= 12 && minute <= 12) continue;
+    const following = value.slice(m.index + m[0].length);
+    const suf = following.match(/^\s*(утра|дня|вечера|ночи)(?=$|[\s,;!?—–.])/);
+    return { hour: normalizeHour(hour, suf?.[1]), minute, raw: (raw + (suf ? suf[0] : '')).trim() };
+  }
+  const ones = {
+    ноль:0, один:1, одна:1, два:2, две:2, три:3, четыре:4, пять:5,
+    шесть:6, семь:7, восемь:8, девять:9, десять:10, одиннадцать:11,
+    двенадцать:12, тринадцать:13, четырнадцать:14, пятнадцать:15,
+    шестнадцать:16, семнадцать:17, восемнадцать:18, девятнадцать:19
+  };
+  const tens = { двадцать:20, тридцать:30, сорок:40, пятьдесят:50 };
+  const tokens = value.match(/[а-я]+|\d+/g) || [];
+  function readNumber(at) {
+    const token = tokens[at];
+    if (token === undefined) return null;
+    if (/^\d+$/.test(token)) return { number:Number(token), next:at+1 };
+    if (Object.hasOwn(tens, token)) {
+      const second = ones[tokens[at+1]];
+      if (second !== undefined && second > 0 && second < 10) {
+        return { number:tens[token]+second, next:at+2 };
+      }
+      return { number:tens[token], next:at+1 };
+    }
+    if (Object.hasOwn(ones, token)) return { number:ones[token], next:at+1 };
+    return null;
+  }
+  for (let i=0;i<tokens.length;i++) {
+    const hasPrefix = tokens[i] === 'в' || tokens[i] === 'на';
+    const start = hasPrefix ? i+1 : i;
+    const hours = readNumber(start);
+    if (!hours || hours.number > 23) continue;
+    let next = hours.next;
+    if (/^час(?:ов|а)?$/.test(tokens[next] || '')) {
+      next++;
+      if (tokens[next] === 'и') next++;
+    }
+    const mins = readNumber(next);
+    const minute = mins && mins.number < 60 ? mins.number : 0;
+    const end = mins && mins.number < 60 ? mins.next : next;
+    // Without 'в', require two numbers or a standalone answer.
+    if (!hasPrefix && !(mins && mins.number < 60) &&
+        !(allowBareHour && tokens.length === 1)) continue;
+    // Don't interpret an arbitrary pair of numbers in a longer sentence as time.
+    if (!hasPrefix && i !== 0 && !allowBareHour) continue;
+    let suffix = tokens[end];
+    const suffixValid = /^(утра|дня|вечера|ночи)$/.test(suffix || '');
+    if (!suffixValid) suffix = '';
+    const raw = tokens.slice(i, end + (suffixValid ? 1 : 0)).join(' ');
+    return { hour:normalizeHour(hours.number, suffix), minute, raw };
+  }
+  return null;
+}
+
 function parseYandexDateTime(nlu) {
   const entities = Array.isArray(nlu?.entities) ? nlu.entities : [];
-  const entity = entities.find(e => e?.type === 'YANDEX.DATETIME' && e?.value);
-  if (!entity) return null;
-  const v = entity.value || {};
+  const dates = entities.filter(e => e?.type === 'YANDEX.DATETIME' && e?.value);
+  if (!dates.length) return null;
+  // A date and a time may be separate Yandex entities. Never discard the second.
+  const v = Object.assign({}, ...dates.map(e => Object.fromEntries(
+    Object.entries(e.value).filter(([, value]) => value !== null && value !== undefined)
+  )));
   const nowEpoch = Date.now();
   const now = moscowNowParts(nowEpoch);
 
@@ -248,7 +323,7 @@ function parseYandexDateTime(nlu) {
 
   let time = null;
   let hasTime = false;
-  if (!v.hour_is_relative && Number.isFinite(Number(v.hour))) {
+  if (!v.hour_is_relative && v.hour !== null && v.hour !== undefined && Number.isFinite(Number(v.hour))) {
     const hour = Math.max(0, Math.min(23, Number(v.hour)));
     const minute = Math.max(0, Math.min(59, Number(v.minute || 0)));
     time = pad2(hour) + ':' + pad2(minute);
@@ -291,7 +366,8 @@ function parseFallbackDateTime(text) {
   }
 
   const numericDate = value.match(/\b(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{2,4}))?\b/);
-  if (numericDate) {
+  if (numericDate && Number(numericDate[1]) >= 1 && Number(numericDate[1]) <= 31
+        && Number(numericDate[2]) >= 1 && Number(numericDate[2]) <= 12) {
     let year = numericDate[3] ? Number(numericDate[3]) : now.year;
     if (year < 100) year += 2000;
     let epoch = moscowDateEpoch(year, Number(numericDate[2]), Number(numericDate[1]));
@@ -312,13 +388,13 @@ function parseFallbackDateTime(text) {
     date = dateStringFromEpoch(epoch); hasDate = true;
   }
 
-  const timeMatch = value.match(/(?:^|[\s,.:;!?—–-])в\s+(\d{1,2})(?::(\d{2}))?\s*(утра|дня|вечера|ночи)?(?=$|[\s,.:;!?—–-])/);
+  const clock = parseClockTime(value, true);
   let time = null;
   let hasTime = false;
-  if (timeMatch) {
-    const hour = normalizeHour(timeMatch[1], timeMatch[3]);
-    const minute = Number(timeMatch[2] || 0);
-    time = pad2(hour) + ':' + pad2(Math.max(0, Math.min(59, minute)));
+  if (clock) {
+    const hour = clock.hour;
+    const minute = clock.minute;
+    time = pad2(hour) + ':' + pad2(minute);
     hasTime = true;
     if (!hasDate) {
       const candidate = moscowDateEpoch(now.year, now.month, now.day, hour, minute);
@@ -330,7 +406,16 @@ function parseFallbackDateTime(text) {
   return { date, time, hasDate, hasTime };
 }
 function parseDateTime(text, nlu) {
-  return parseYandexDateTime(nlu) || parseFallbackDateTime(text);
+  const fallback = parseFallbackDateTime(text);
+  const fromYandex = parseYandexDateTime(nlu);
+  if (!fromYandex) return fallback;
+  // Prefer clearly spoken time; use Yandex when transcription is ambiguous.
+  return {
+    time: fallback.hasTime ? fallback.time : fromYandex.time,
+    hasTime: fallback.hasTime || fromYandex.hasTime,
+    date: fallback.hasDate ? fallback.date : fromYandex.date,
+    hasDate: fallback.hasDate || fromYandex.hasDate
+  };
 }
 
 function normalizeActionSpeech(text) {
@@ -345,7 +430,10 @@ function normalizeActionSpeech(text) {
 }
 
 function cleanActionTitle(text) {
-  return normalizeActionSpeech(text)
+  const clock = parseClockTime(text);
+  const words = normalizeActionSpeech(text);
+  const withoutClock = clock?.raw ? words.replace(clock.raw, ' ') : words;
+  return withoutClock
     .replace(/^\s*(?:пожалуйста[,\s]*)?(?:напомни(?:\s+мне)?|напомнить(?:\s+мне)?|(?:поставь|создай|сделай|добавь|запиши|запланируй)\s+(?:мне\s+)?напоминание|мне\s+нужно\s+напоминание|хочу\s+напоминание|(?:добавь|создай|запиши|поставь)\s+(?:мне\s+)?(?:задачу|дело)|добавь\s+в\s+задачи|задача)\s*[:,-]?\s*/i, '')
     .replace(/^(?:о\s+том[,\s]+чтобы|о\s+том[,\s]+что|чтобы|о)\s+/i, '')
     .replace(/через\s+\d+\s*(?:минут(?:у|ы)?|мин|час(?:а|ов)?|дн(?:я|ей)?)(?=$|[\s,.:;!?—–-])/gi, ' ')
@@ -528,7 +616,9 @@ module.exports = async function aliceChatGPT(req, res) {
 
   if (pendingReminder) {
     const parsed = parseDateTime(userText, body.request?.nlu);
-    const pendingDate = parsed.hasDate ? parsed.date : (pendingReminder.date || null);
+    const explicitDate = /(?:^|[\s,;!?—–])(?:сегодня|завтра|послезавтра|\d{1,2}\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря))(?=$|[\s,;!?—–])/.test(userText.toLowerCase());
+    // When asking only for a time, keep the date given in the previous turn.
+    const pendingDate = explicitDate && parsed.hasDate ? parsed.date : (pendingReminder.date || parsed.date || null);
     const pendingTime = parsed.hasTime ? parsed.time : null;
     if (!pendingTime) {
       const local = aliceBody('Во сколько напомнить?', { previousResponseId });

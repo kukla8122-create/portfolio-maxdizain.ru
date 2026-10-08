@@ -1,0 +1,52 @@
+name: Notify Yandex IndexNow of site content changes
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - robots.txt
+      - sitemap.xml
+      - viral-kitchen/index.html
+      - kuhni-na-zakaz/**
+      - shkafy-na-zakaz/**
+      - dizayn-interera-online/**
+      - 7-oshibok-pri-zakaze-kuhni/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-site-indexnow
+  cancel-in-progress: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Allow GitHub Pages CDN time to refresh
+        run: sleep 75
+      - name: Notify IndexNow
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > payload.json <<'JSON'
+          {
+            "host": "portfolio-maxdizain.ru",
+            "key": "09d513d76697ea98cdaf73b9ce342c7b",
+            "urlList": [
+              "https://portfolio-maxdizain.ru/",
+              "https://portfolio-maxdizain.ru/kuhni-na-zakaz/",
+              "https://portfolio-maxdizain.ru/shkafy-na-zakaz/",
+              "https://portfolio-maxdizain.ru/dizayn-interera-online/",
+              "https://portfolio-maxdizain.ru/7-oshibok-pri-zakaze-kuhni/",
+              "https://portfolio-maxdizain.ru/viral-kitchen/"
+            ]
+          }
+          JSON
+          code="$(curl --silent --show-error --retry 2 --output /tmp/indexnow-response.txt --write-out '%{http_code}' --header 'Content-Type: application/json; charset=utf-8' --data-binary @payload.json https://yandex.com/indexnow)"
+          echo "IndexNow HTTP status: ${code}"
+          if [[ "${code}" != "200" && "${code}" != "202" ]]; then
+            cat /tmp/indexnow-response.txt
+            exit 1
+          fi

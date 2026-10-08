@@ -8,6 +8,9 @@
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://portfolio-maxdizain.ru/links/">
 <meta name="theme-color" content="#073c34">
+<!-- GA4: page and outbound-link attribution for TikTok profile -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-458E2GVMPL"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-458E2GVMPL');</script>
 <meta property="og:type" content="website"><meta property="og:title" content="МАКСимум мебель — все ссылки"><meta property="og:description" content="Кухни и шкафы на заказ, дизайн-проекты. Найдите нас на удобной платформе."><meta property="og:image" content="https://portfolio-maxdizain.ru/images/added/photo-37.jpg">
 <style>
 :root{color-scheme:dark;font-family:Arial,Helvetica,sans-serif;background:#082d29;color:#fff8e8}
@@ -37,5 +40,14 @@ footer a{color:#f7deb1}
 <hr>
 <footer>Дизайнер Катерина Белякова<br><a href="tel:+79159530929">+7 915 953-09-29</a> · <a href="tel:+79107996471">+7 910 799-64-71</a><br>МАКСимум мебель · с 2012 года</footer>
 </main>
+<script>
+document.addEventListener('click',function(event){
+ var link=event.target.closest('a[href]');
+ if(!link || typeof gtag!=='function') return;
+ var url=link.getAttribute('href')||'';
+ var platform=url.indexOf('vk.ru/')!==-1?'vk':url.indexOf('max.ru/')!==-1?'max':url.indexOf('tiktok.com/')!==-1?'tiktok':url.indexOf('tel:')===0?'phone':'site';
+ gtag('event',platform==='phone'?'click_to_call':'outbound_social_link',{platform:platform,link_url:url,link_location:'linkhub'});
+});
+</script>
 </body>
 </html>

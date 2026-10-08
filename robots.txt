@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /digital-factory/
+Disallow: /api/
 Disallow: /node_modules/
 Disallow: /.git/
 

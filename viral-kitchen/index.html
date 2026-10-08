@@ -49,7 +49,7 @@
     @media(max-width:900px){.hero-grid{grid-template-columns:1fr}.kitchen-card{min-height:420px}.quiz-shell{grid-template-columns:1fr}.quiz-side{position:static}.result-grid{grid-template-columns:1fr}.share-card-preview{min-height:300px}.why-grid{grid-template-columns:1fr}.errors-grid{grid-template-columns:1fr}.expert{grid-template-columns:180px 1fr}.section-head{display:block}.section-head p{margin-top:12px}.proofs{max-width:520px}.floating{display:flex}.top-cta{display:none}}
     @media(max-width:620px){.wrap{width:min(100% - 24px,1120px)}.hero{padding-top:32px}.hero-grid{gap:26px}.lead{font-size:16px}.hero-actions{display:grid}.primary,.secondary{width:100%}.kitchen-card{min-height:340px;border-radius:28px}.scene{top:80px}.cabinet.top{height:80px}.cabinet.base{height:105px}.counter{bottom:136px}.splash{bottom:144px;height:62px}.oven{bottom:48px;height:78px}.sink{bottom:150px;width:55px}.tap{bottom:160px}.proofs{gap:5px}.proof strong{font-size:16px}.section{padding:56px 0}.quiz-main{padding:20px;border-radius:24px}.question{font-size:28px}.answers{grid-template-columns:1fr}.answer{padding:14px}.advice{grid-template-columns:1fr}.result h3{font-size:38px}.errors-grid{gap:4px}.poster{padding:22px}.expert{grid-template-columns:1fr;padding:20px}.expert img{width:130px}.expert h3{font-size:34px}.footer-in{display:block}.footer-in div+div{margin-top:8px}}
   </style>
-</head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-458E2GVMPL"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-458E2GVMPL');</script></head>
 <body>
   <header class="topbar">
     <div class="wrap in">
@@ -213,6 +213,7 @@
       const contenders=Object.keys(scores).filter(k=>scores[k]===max);
       currentProfile=contenders[0]||'smart';
       showResult(currentProfile);
+      if(typeof gtag==='function')gtag('event','quiz_completed',{quiz_result:currentProfile});
       confetti();
     }
 

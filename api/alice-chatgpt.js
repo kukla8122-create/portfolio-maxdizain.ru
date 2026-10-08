@@ -505,7 +505,7 @@ async function createVoiceAction({ kind, title, date, time, body }) {
   }
 
   const results = await Promise.all(calls);
-  return { task: results[0], calendar: exactTime ? results[1] : null, exactTime };
+  return { task: results[0], calendar: exactTime ? results[1] : null, exactTime, requestId, title };
 }
 
 function actionResultText(result, date, time) {
@@ -528,7 +528,7 @@ function actionResultText(result, date, time) {
     return 'Задачу в фабрику добавил. Google Calendar ещё не подключён к Алисе.';
   }
 
-  return 'Задачу в фабрику добавила, но календарь сейчас не ответил. Повтори добавление в календарь чуть позже.';
+  return 'Задачу в фабрику добавил, но календарь пока не ответил. Скажи «повтори календарь» — вторую задачу не создам.';
 }
 
 function attachLocalSessionState(body, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount, extra = {}) {
@@ -610,6 +610,29 @@ module.exports = async function aliceChatGPT(req, res) {
   }
 
 
+  const pendingCalendar = previousState?.pending_calendar && typeof previousState.pending_calendar === 'object'
+    ? previousState.pending_calendar : null;
+  if (/^(?:(?:костя[,!\s]*)?(?:повтори(?:\s+(?:запись|добавление|создание))?\s+(?:в\s+)?календарь|попробуй\s+(?:снова|ещ[её]\s+раз)|запиши\s+(?:это\s+)?в\s+календарь))\s*[.!?]*$/i.test(userText)) {
+    if (!pendingCalendar || !/^\d{4}-\d{2}-\d{2}$/.test(String(pendingCalendar.date || '')) ||
+        !/^\d{2}:\d{2}$/.test(String(pendingCalendar.time || '')) ||
+        !String(pendingCalendar.request_id || '').trim() || !String(pendingCalendar.title || '').trim()) {
+      return send(res, 200, aliceBody('Не вижу незавершённого календарного напоминания в этом разговоре.', { previousResponseId }));
+    }
+    const start = isoFromMoscow(pendingCalendar.date, pendingCalendar.time);
+    const calendar = await aliceBridge('create_calendar_event', {
+      request_id: pendingCalendar.request_id, title: pendingCalendar.title,
+      start, end: endIsoFromStart(start, 30),
+      description: 'Напоминание от Кости. Повторная попытка без создания второй задачи.'
+    });
+    const ok = !!calendar?.ok;
+    const local = aliceBody(ok
+      ? 'Готово, календарь подтвердил запись. Дубль задачи не создавал.'
+      : 'Календарь снова не ответил. Задача в фабрике уже сохранена.', { previousResponseId });
+    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount,
+      { pending_calendar: ok ? null : pendingCalendar });
+    return send(res, 200, local);
+  }
+
   const pendingReminder = previousState?.pending_reminder && typeof previousState.pending_reminder === 'object'
     ? previousState.pending_reminder
     : null;
@@ -630,7 +653,10 @@ module.exports = async function aliceChatGPT(req, res) {
     const finalDate = pendingDate || parseFallbackDateTime('в ' + pendingTime).date;
     const result = await createVoiceAction({ kind: 'reminder', title: pendingReminder.title, date: finalDate, time: pendingTime, body });
     const local = aliceBody(actionResultText(result, finalDate, pendingTime), { previousResponseId });
-    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount, {
+      pending_calendar: result.exactTime && !result.calendar?.ok && result.task?.ok
+        ? { request_id: result.requestId, title: result.title, date: finalDate, time: pendingTime } : null
+    });
     return send(res, 200, local);
   }
 
@@ -660,7 +686,10 @@ module.exports = async function aliceChatGPT(req, res) {
       body
     });
     const local = aliceBody(actionResultText(result, parsed.date, parsed.time), { previousResponseId });
-    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount);
+    attachLocalSessionState(local, previousResponseId, previousTurnCount, previousApiCalls, rateWindowStart, rateWindowCount, {
+      pending_calendar: result.exactTime && !result.calendar?.ok && result.task?.ok
+        ? { request_id: result.requestId, title: result.title, date: parsed.date, time: parsed.time } : null
+    });
     return send(res, 200, local);
   }
 

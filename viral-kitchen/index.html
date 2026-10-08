@@ -253,15 +253,17 @@
     document.getElementById('restartBtn').onclick=reset;
     document.querySelectorAll('[data-start]').forEach(x=>x.onclick=()=>document.getElementById('quiz').scrollIntoView({behavior:'smooth',block:'start'}));
 
-    function shareUrl(){const url=new URL(location.href);url.search='';if(currentProfile)url.searchParams.set('profile',currentProfile);url.hash='quiz';return url.href}
+    function shareUrl(){return new URL('/viral-kitchen/result/'+(currentProfile||'quiet')+'/', location.origin).href}
 
     document.getElementById('vkShare').onclick=()=>{
+      if(typeof gtag==='function')gtag('event','share_quiz_result',{quiz_result:currentProfile,share_target:'vk'});
       const p=profiles[currentProfile];
       const url='https://vk.com/share.php?url='+encodeURIComponent(shareUrl())+'&title='+encodeURIComponent('Мой тип кухни — '+p.title)+'&description='+encodeURIComponent('Я прошла тест МАКСимум мебель. А у тебя какой тип кухни?');
       window.open(url,'_blank','noopener,noreferrer');
     };
 
     document.getElementById('nativeShare').onclick=async()=>{
+      if(typeof gtag==='function')gtag('event','share_quiz_result',{quiz_result:currentProfile,share_target:'native'});
       const p=profiles[currentProfile];
       const data={title:'Мой тип кухни — '+p.title,text:'Я — «'+p.title+'». А у тебя какой тип кухни? Пройди тест 👇',url:shareUrl()};
       try{

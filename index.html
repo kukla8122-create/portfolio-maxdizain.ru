@@ -593,8 +593,8 @@
                         <svg class="w-16 h-16 mx-auto mb-4 text-gold-500" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1-1.49-1.135-1.744-1.135-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4.03 8.57 4.03 8.096c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.678.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.253-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.05.17.49-.085.744-.576.744z"/>
                         </svg>
-                        <h3 class="text-xl sm:text-2xl font-bold text-gold-100">Подготовить обращение</h3>
-                        <p class="text-gold-300/70 text-sm mt-2">Выберите услугу. Затем скопируйте готовое сообщение и отправьте Катерине в MAX или ВК.</p>
+                        <h3 class="text-xl sm:text-2xl font-bold text-gold-100">Оставить заявку</h3>
+                        <p class="text-gold-300/70 text-sm mt-2">Выберите услугу и оставьте телефон. Заявка автоматически сохранится, и Катерина сможет связаться с вами.</p>
                     </div>
                     
                     <form id="contactForm" class="w-full space-y-4"><label for="serviceInput">Что вас интересует?</label><select id="serviceInput" class="share-field"><option>Дизайн-проект</option><option>Мебель с проектом</option><option>Консультация</option></select>
@@ -606,13 +606,18 @@
                             <label for="phoneInput" class="text-gold-300 text-sm font-medium mb-2 block">Телефон</label>
                             <input type="tel" id="phoneInput" class="input-field w-full px-4 py-3 rounded-xl text-sm sm:text-base" placeholder="+7 (___) ___-__-__" required>
                         </div>
+                        <div class="hidden" aria-hidden="true"><label for="websiteHoneypot">Сайт компании</label><input id="websiteHoneypot" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+                        <label class="flex gap-3 items-start text-gold-300/80 text-xs sm:text-sm" style="line-height:1.55">
+                            <input type="checkbox" id="privacyConsent" required style="width:19px;height:19px;min-width:19px;margin-top:2px;accent-color:#c2a267">
+                            <span>Согласен(на) на обработку имени и телефона для ответа на заявку. Ознакомлен(а) с <a href="/privacy/" target="_blank" rel="noopener noreferrer" style="text-decoration:underline">политикой конфиденциальности</a>.</span>
+                        </label>
                         <button type="submit" class="btn-gold w-full py-3.5 rounded-xl text-brand-dark font-semibold text-lg flex items-center justify-center space-x-2 mt-4">
-                            <span>Подготовить сообщение</span>
+                            <span>Отправить заявку</span>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                         </button>
                     </form>
                     
-<div id="formSuccess" class="hidden w-full"><label for="requestText">Ваше сообщение</label><textarea id="requestText" class="share-field" rows="5" readonly></textarea><div class="engage-actions"><button type="button" id="copyRequest" class="engage-button">Скопировать сообщение</button><a class="engage-button secondary" href="https://max.ru/u/f9LHodD0cOKZgGLetsmOw2mmk8HbsYnumgW_8Hv58nDMArfuwWhaBozwaZY" target="_blank" rel="noopener noreferrer">Открыть MAX</a><a class="engage-button secondary" href="https://vk.me/maximummebel" target="_blank" rel="noopener noreferrer">Открыть чат ВК</a></div></div><p id="contactStatus" role="status"></p>
+<div id="formSuccess" class="hidden w-full"><p class="text-gold-300/80 text-sm mb-2">Если автоматическая отправка временно недоступна, воспользуйтесь сообщением:</p><label for="requestText">Ваше сообщение</label><textarea id="requestText" class="share-field" rows="5" readonly></textarea><div class="engage-actions"><button type="button" id="copyRequest" class="engage-button">Скопировать сообщение</button><a class="engage-button secondary" href="https://max.ru/u/f9LHodD0cOKZgGLetsmOw2mmk8HbsYnumgW_8Hv58nDMArfuwWhaBozwaZY" target="_blank" rel="noopener noreferrer">Открыть MAX</a><a class="engage-button secondary" href="https://vk.me/maximummebel" target="_blank" rel="noopener noreferrer">Открыть чат ВК</a></div></div><p id="contactStatus" role="status"></p>
                 </div>
             </div>
         </div>
@@ -628,6 +633,7 @@ document.addEventListener('click',function(e){
 });
 </script>
 
+        <p class="text-center text-xs text-gold-300/50 mt-3"><a href="/privacy/" class="underline">Обработка персональных данных</a></p>
         <!-- ФУТЕР -->
     <footer class="border-t border-gold-600/10 py-8 sm:py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">

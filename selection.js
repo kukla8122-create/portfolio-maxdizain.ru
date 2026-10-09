@@ -54,12 +54,58 @@
       status.textContent='Карточка сохранена. Отправьте её вместе со ссылкой на подборку.';track('selection_card_download');
     }catch{status.textContent='Не удалось сохранить карточку. Поделитесь ссылкой — она сохраняет ваш выбор.';}finally{button.disabled=false;}
   };
-  document.getElementById('contactForm').addEventListener('submit',e=>{
-    e.preventDefault();const name=document.getElementById('nameInput').value.trim(),phone=document.getElementById('phoneInput').value.trim();
-    if(phone.replace(/\D/g,'').length!==11){document.getElementById('contactStatus').textContent='Укажите телефон полностью: 11 цифр с кодом страны.';return;}
+  // Public Supabase anon JWT is safe to publish: the website_leads table has RLS and no anon grants.
+  const leadsEndpoint='https://uhyaigqizvwtsbtmvkdr.supabase.co/functions/v1/website-leads';
+  const leadsPublicKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoeWFpZ3FpenZ3dHNidG12a2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MjY5NDgsImV4cCI6MjEwNDAwMjk0OH0.Ctnvw9s9Azz8jWh4JPC7ry9HkrqEHBv8VJLi0fxMW20";
+  const leadsForm=document.getElementById('contactForm');
+  const leadsStartedAt=Date.now();
+  leadsForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const name=document.getElementById('nameInput').value.trim();
+    const phone=document.getElementById('phoneInput').value.trim();
     const service=document.getElementById('serviceInput').value;
-    const text=`Здравствуйте, Катерина! Меня зовут ${name}. Интересует: ${service}. Телефон: ${phone}.`+(selected.size?`\nМоя подборка: ${link()}`:'');
-    document.getElementById('requestText').value=text;document.getElementById('formSuccess').classList.remove('hidden');document.getElementById('contactStatus').textContent='Сообщение готово. Скопируйте его и отправьте в выбранный чат.';track('request_prepared');
+    const status=document.getElementById('contactStatus');
+    const fallback=document.getElementById('formSuccess');
+    fallback.classList.add('hidden');
+    if(phone.replace(/\D/g,'').length < 10 || phone.replace(/\D/g,'').length > 15){
+      status.textContent='Проверьте номер телефона с кодом страны.';return;
+    }
+    if(!document.getElementById('privacyConsent').checked){
+      status.textContent='Для отправки необходимо согласие на обработку данных.';return;
+    }
+    const message=`Здравствуйте, Катерина! Меня зовут ${name}. Интересует: ${service}. Телефон: ${phone}.`+
+      (selected.size?`\nМоя подборка: ${link()}`:'');
+    const button=leadsForm.querySelector('button[type=submit]');
+    const label=button.querySelector('span');
+    button.disabled=true;label.textContent='Отправляем заявку…';status.textContent='';
+    try{
+      const qs=new URLSearchParams(location.search);
+      const payload={
+        name,phone,service,consent:true,
+        honeypot:document.getElementById('websiteHoneypot').value,
+        started_at:leadsStartedAt,source_page:location.pathname,
+        utm_source:qs.get('utm_source')||'',utm_campaign:qs.get('utm_campaign')||''
+      };
+      const timer=new AbortController();
+      const limit=setTimeout(()=>timer.abort(),10000);
+      let response;
+      try{
+        response=await fetch(leadsEndpoint,{
+          method:'POST',mode:'cors',signal:timer.signal,
+          headers:{'Content-Type':'application/json','apikey':leadsPublicKey,'Authorization':'Bearer '+leadsPublicKey},
+          body:JSON.stringify(payload)
+        });
+      }finally{clearTimeout(limit);}
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw Error(data.error||'server');
+      status.textContent='✓ Заявка отправлена! Мы получили ваши контакты и свяжемся с вами.';
+      leadsForm.reset();track('lead_submitted');
+    }catch(err){
+      document.getElementById('requestText').value=message;
+      fallback.classList.remove('hidden');
+      status.textContent='Не удалось подтвердить отправку. Чтобы не потерять обращение, скопируйте сообщение и отправьте в MAX или ВК.';
+      track('lead_submit_failed');
+    }finally{button.disabled=false;label.textContent='Отправить заявку';}
   });
   document.getElementById('copyRequest').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('requestText').value);document.getElementById('contactStatus').textContent='Скопировано. Откройте MAX или ВК и отправьте сообщение.';}catch{document.getElementById('requestText').select();document.getElementById('contactStatus').textContent='Скопируйте выделенный текст.';}};
   document.querySelectorAll('[data-service]').forEach(a=>a.addEventListener('click',()=>{document.getElementById('serviceInput').value=a.dataset.service;track('service_interest');}));

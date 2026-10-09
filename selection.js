@@ -1,8 +1,8 @@
 (() => {
   const choices = [
-    {id:'wood',title:'Тёплое дерево',src:'images/added/photo-12.jpg'},
-    {id:'light',title:'Светлая и лаконичная',src:'images/added/photo-17.jpg'},
-    {id:'olive',title:'Оливковая классика',src:'images/added/photo-34.jpg'}
+    {id:'wood',title:'Тёплое дерево',src:'images/added/previews/photo-12.jpg',full:'images/added/photo-12.jpg'},
+    {id:'light',title:'Светлая и лаконичная',src:'images/added/previews/photo-17.jpg',full:'images/added/photo-17.jpg'},
+    {id:'olive',title:'Оливковая классика',src:'images/added/previews/photo-34.jpg',full:'images/added/photo-34.jpg'}
   ];
   const selected = new Set();
   const host = document.getElementById('kitchenChoices');
@@ -43,7 +43,7 @@
       const items=choices.filter(c=>selected.has(c.id)); const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=320+items.length*520;
       const x=canvas.getContext('2d');x.fillStyle='#0d2020';x.fillRect(0,0,canvas.width,canvas.height);x.fillStyle='#e6cf9e';x.font='bold 52px Georgia';x.fillText('Какую кухню выберем?',60,90);x.font='28px Arial';x.fillText('Моя подборка • МАКСимум мебель',60,145);
       for(let i=0;i<items.length;i++){
-        const img=new Image();img.src=items[i].src;await img.decode();const top=190+i*520;
+        const img=new Image();img.src=items[i].full || items[i].src;await img.decode();const top=190+i*520;
         const scale=Math.min(1080/img.width,420/img.height),w=img.width*scale,h=img.height*scale;
         x.drawImage(img,60+(1080-w)/2,top+(420-h)/2,w,h);
         x.font='bold 30px Arial';x.fillText(items[i].title,60,top+464);

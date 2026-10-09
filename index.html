@@ -730,6 +730,7 @@ document.addEventListener('click',function(e){
             allPortfolioItems.push({
                 category: 'kitchen',
                 src: `images/kitchens/${fileNum}.jpg`,
+                preview: `images/kitchens/previews/${fileNum}.webp`,
                 alt: kitchenTitles[index] + ' — дизайн и проектирование от МАКСимум мебель',
                 title: kitchenTitles[index],
                 desc: kitchenDescriptions[index] || "Современная кухня на заказ от МАКСимум мебель."
@@ -789,6 +790,7 @@ document.addEventListener('click',function(e){
             allPortfolioItems.push({
                 category: 'wardrobe',
                 src: `images/wardrobes/${fileNum}.jpg`,
+                preview: `images/wardrobes/previews/${fileNum}.webp`,
                 alt: wardrobeTitles[index] + ' — индивидуальная мебель от МАКСимум мебель',
                 title: wardrobeTitles[index],
                 desc: wardrobeDescriptions[index] || "Встроенный шкаф-купе на заказ. Зеркальные двери, система хранения."
@@ -810,7 +812,7 @@ document.addEventListener('click',function(e){
                 card.innerHTML = `
                     <div class="card-img-wrapper">
                         <div class="img-loading"></div>
-                        <img src="${item.preview || item.src}" ${item.preview ? `srcset="${item.preview} 1x, ${item.src} 2x"` : ""} decoding="async" alt="${item.alt}" class="card-img w-full h-full object-cover absolute top-0 left-0 z-10" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="this.previousElementSibling.style.display='flex'; this.style.display='none'; this.previousElementSibling.textContent='Фото не загружено'">
+                        <img src="${item.preview || item.src}"  decoding="async" alt="${item.alt}" class="card-img w-full h-full object-cover absolute top-0 left-0 z-10" loading="lazy" onload="this.previousElementSibling.style.display='none'" onerror="this.previousElementSibling.style.display='flex'; this.style.display='none'; this.previousElementSibling.textContent='Фото не загружено'">
                         <div class="portfolio-overlay absolute inset-0 flex flex-col justify-end p-4 sm:p-6 z-20">
                             <span class="text-gold-500 text-[10px] sm:text-xs font-semibold tracking-widest uppercase mb-1.5 sm:mb-2">${({kitchen:'Кухня',wardrobe:'Хранение',interior:'Интерьер',design:'Проектирование'})[item.category]}</span>
                             <h3 class="text-gold-100 text-base sm:text-xl font-bold mb-1.5 sm:mb-2 font-serif leading-tight">${item.title}</h3>

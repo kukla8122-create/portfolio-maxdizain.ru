@@ -6,6 +6,7 @@
 
 ### Посмотреть услуги и примеры
 - [Наш сайт и портфолио — МАКСимум мебель](https://portfolio-maxdizain.ru/)
+- [Кейс: кухня 2,2 м — прямая или угловая, видео и технические чертежи](https://portfolio-maxdizain.ru/projects/kitchen-22m/)
 - [Кухни по индивидуальным размерам](https://portfolio-maxdizain.ru/kuhni-na-zakaz/)
 - [Шкафы и системы хранения](https://portfolio-maxdizain.ru/shkafy-na-zakaz/)
 - [Дизайн интерьеров онлайн](https://portfolio-maxdizain.ru/dizayn-interera-online/)

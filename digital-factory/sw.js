@@ -1,7 +1,7 @@
-const CACHE='maksimum-factory-v310';
+const CACHE='maksimum-factory-v311';
 const SCOPE=new URL('./',self.location.href);
-const CORE=['./','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'].map(p=>new URL(p,SCOPE).href);
-const SCRIPTS=['https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js','https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2'];
+const CORE=['./','./supabase.vendor.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'].map(p=>new URL(p,SCOPE).href);
+const SCRIPTS=['https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(async cache=>{await cache.addAll(CORE);await Promise.allSettled(SCRIPTS.map(url=>cache.add(url)))}).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('maksimum-factory-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

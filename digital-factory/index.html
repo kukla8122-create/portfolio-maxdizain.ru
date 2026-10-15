@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#07110d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>МАКСимум мебель — цифровая фабрика v3.12</title>
+<title>МАКСимум мебель — цифровая фабрика v3.13</title>
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <!-- 3D is optional and loaded only on desktop after the interface is ready. -->
-<script src="./supabase.vendor.js"></script>
+<!-- Supabase SDK is loaded and verified before the app starts. -->
 <style>
 :root{
   --bg:#07110d;--panel:rgba(9,25,19,.94);--panel2:#0b1e17;--line:rgba(255,255,255,.10);
@@ -255,6 +255,22 @@ footer{border-radius:18px;padding:8px 10px;display:flex;align-items:center;gap:8
 <div id="toast" class="toast"></div>
 
 <script>
+(async function(){
+  try {
+    const response = await fetch('./supabase.vendor.js', {cache:'no-store'});
+    if(!response.ok) throw new Error('SDK HTTP '+response.status);
+    let source = await response.text();
+    const footer = source.indexOf('[executed on device:');
+    if(footer>=0) source=source.slice(0,footer).trimEnd();
+    await new Promise((resolve,reject)=>{
+      const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+      const script=document.createElement('script');
+      script.onload=()=>{URL.revokeObjectURL(url);resolve()};
+      script.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('SDK execution failed'))};
+      script.src=url;
+      document.head.appendChild(script);
+    });
+  }catch(error){console.error('Factory SDK unavailable:',error)}
 (function(){
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -593,7 +609,7 @@ let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBanner').classList.add('show')});
 $('#installBtn').onclick=async()=>{if(!deferredPrompt){toast('Установка станет доступна после размещения приложения по защищённой ссылке');return}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBanner').classList.remove('show')};
 $('#installClose').onclick=()=>$('#installBanner').classList.remove('show');
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=42',{updateViaCache:'none'}).catch(()=>toast('Офлайн-режим не подключён. Проверь сеть и обнови страницу.'));
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js?v=43',{updateViaCache:'none'}).catch(()=>toast('Офлайн-режим не подключён. Проверь сеть и обнови страницу.'));
 
 
 // ---------- Real AI, only on explicit request ----------
@@ -637,6 +653,7 @@ function startOptionalDesktopWorld(){
  document.head.appendChild(script);
 }
 startOptionalDesktopWorld();
+})();
 })();
 </script>
 </body>

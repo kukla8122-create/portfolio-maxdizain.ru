@@ -805,6 +805,32 @@ document.addEventListener('click',function(e){
             });
         });
 
+        // Entries below are already published on the site. Keep portfolio filters non-empty.
+        allPortfolioItems.push({
+            category: 'interior',
+            src: '/images/added/photo-02.jpg',
+            preview: '/images/added/previews/photo-02.jpg',
+            alt: 'Ванная в оливковых и терракотовых оттенках — визуализация интерьера',
+            title: 'Ванная: терракота и оливковый',
+            desc: 'Дизайн интерьера с сочетанием тёплых оттенков и функциональных решений.'
+        });
+        allPortfolioItems.push({
+            category: 'design',
+            src: '/projects/kitchen-22m/media/straight-storage.webp',
+            preview: '/projects/kitchen-22m/media/straight-storage.webp',
+            alt: 'Техническая схема прямой кухни 2,2 м — наполнение и размеры модулей',
+            title: 'Кухня 2,2 м — технический проект прямого варианта',
+            desc: 'Рабочая схема мебели: внутреннее наполнение и размеры. Это проект, не фото готовой кухни.'
+        });
+        allPortfolioItems.push({
+            category: 'design',
+            src: '/projects/kitchen-22m/media/corner-storage.webp',
+            preview: '/projects/kitchen-22m/media/corner-storage.webp',
+            alt: 'Техническая схема угловой кухни 2,2 м — наполнение и размеры',
+            title: 'Кухня 2,2 м — технический проект углового варианта',
+            desc: 'Альтернативная планировка, внутреннее наполнение и конструкция угловых модулей.'
+        });
+
         function renderPortfolioGrid(filterType = 'all') {
             portfolioGrid.innerHTML = '';
             const filteredItems = filterType === 'all' ? allPortfolioItems : allPortfolioItems.filter(item => item.category === filterType);

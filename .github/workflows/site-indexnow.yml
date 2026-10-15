@@ -9,6 +9,7 @@ on:
       - viral-kitchen/index.html
       - kuhni-na-zakaz/**
       - shkafy-na-zakaz/**
+      - garderobnye-na-zakaz/**
       - dizayn-interera-online/**
       - 7-oshibok-pri-zakaze-kuhni/**
       - projects/kitchen-22m/**
@@ -39,6 +40,7 @@ jobs:
               "https://portfolio-maxdizain.ru/",
               "https://portfolio-maxdizain.ru/kuhni-na-zakaz/",
               "https://portfolio-maxdizain.ru/shkafy-na-zakaz/",
+              "https://portfolio-maxdizain.ru/garderobnye-na-zakaz/",
               "https://portfolio-maxdizain.ru/dizayn-interera-online/",
               "https://portfolio-maxdizain.ru/7-oshibok-pri-zakaze-kuhni/",
               "https://portfolio-maxdizain.ru/viral-kitchen/",

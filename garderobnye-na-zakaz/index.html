@@ -61,7 +61,14 @@
 <li>Отметьте обувь, сумки, чемоданы и крупногабаритные предметы.</li>
 <li>Определитесь, нужны ли фасады, подсветка, зеркало или место для гладильной доски.</li>
 <li>Пришлите референсы и пожелания по цвету и материалам.</li>
-</ol><p>Планируете также <a href="/shkafy-na-zakaz/">встроенный шкаф или шкаф-купе</a>? Сравните оба варианта до начала ремонта.</p></div></section>
+</ol><p>Планируете также <a href="/shkafy-na-zakaz/">встроенный шкаф или шкаф-купе</a>? Сравните оба варианта до начала ремонта.</p>
+<div style="margin-top:24px;padding:20px;border-radius:15px;border:1px solid #d7bd88;background:#fff">
+<strong style="display:block;font-size:20px;margin-bottom:8px">Полезно? Отправьте чек-лист близким</strong>
+<p style="margin-top:0">Пусть размеры и наполнение гардеробной будут продуманы ещё до ремонта. Ссылка откроется сразу на этой странице.</p>
+<button type="button" class="share" id="shareWardrobeChecklist">Поделиться чек-листом ↗</button>
+<a href="https://vk.com/share.php?url=https%3A%2F%2Fportfolio-maxdizain.ru%2Fgarderobnye-na-zakaz%2F" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-left:14px;text-underline-offset:4px">Отправить во ВКонтакте</a>
+<p id="shareWardrobeStatus" role="status" aria-live="polite" style="font-size:14px;margin:8px 0 0"></p>
+</div></div></section>
 <section class="section faq"><div class="wrap"><p class="kicker">Частые вопросы</p><h2>Ответы по гардеробным</h2>
 <details><summary>Можно спроектировать маленькую гардеробную?</summary><p>Да. Сначала проверяем размеры прохода, глубину полок и ящиков. Если отдельная комната неудобна, предложим встроенную систему хранения.</p></details>
 <details><summary>Делаете проект с точными размерами?</summary><p>Да. После согласования состава и конструкции готовим технические мебельные чертежи с размерами.</p></details>
@@ -72,5 +79,22 @@
 <section class="cta"><div class="wrap"><p class="kicker">МАКСимум мебель</p><h2>Обсудим вашу гардеробную?</h2><p>Пришлите размеры помещения, фотографии, пожелания по наполнению и пример понравившейся гардеробной. Уточним задачи и порядок проектирования.</p><div class="actions"><a class="btn primary" href="https://max.ru/u/f9LHodD0cOKZgGLetsmOw2mmk8HbsYnumgW_8Hv58nDMArfuwWhaBozwaZY" rel="noopener noreferrer" target="_blank">Написать Катерине в MAX</a><a class="btn secondary" href="https://vk.me/maximummebel" target="_blank" rel="noopener noreferrer">Написать в VK</a><a class="btn secondary" href="tel:+79159530929">+7 915 953 09 29</a></div></div></section>
 </main>
 <footer class="footer"><div class="wrap"><div><b>МАКСимум мебель</b><br>Катерина Белякова · <a href="tel:+79107996471">+7 910 799 64 71</a></div><div><a href="https://vk.ru/maximummebel">VK</a><a href="https://max.ru/channel_maxmebel_52">MAX-канал</a><a href="/">Портфолио</a></div></div></footer>
+<script>
+(function(){
+  const button=document.getElementById('shareWardrobeChecklist');
+  const status=document.getElementById('shareWardrobeStatus');
+  if(!button||!status)return;
+  button.addEventListener('click',async function(){
+    const url='https://portfolio-maxdizain.ru/garderobnye-na-zakaz/?utm_source=share&utm_medium=social&utm_campaign=garderobnaya_checklist';
+    const title='Чек-лист перед заказом гардеробной — МАКСимум мебель';
+    const text='Что измерить и как продумать наполнение гардеробной до ремонта';
+    try{
+      if(navigator.share){await navigator.share({title,text,url});status.textContent='Спасибо, что делитесь полезным!';}
+      else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);status.textContent='Ссылка скопирована. Отправьте её друзьям в MAX, VK или другом мессенджере.';}
+      else{window.prompt('Скопируйте ссылку',url);status.textContent='Ссылку можно отправить друзьям.';}
+    }catch(err){if(err&&err.name==='AbortError')return;window.prompt('Скопируйте ссылку',url);status.textContent='Ссылка готова к отправке.';}
+  });
+})();
+</script>
 <script defer src="/marketing.js"></script>
 </body></html>

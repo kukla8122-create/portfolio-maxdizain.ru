@@ -64,8 +64,12 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 <option value="nizhniy">Нижний Новгород</option>
 <option value="kazan">Казань</option>
 <option value="tyumen">Тюмень</option>
+<option value="odintsovo">Одинцово</option>
+<option value="himki">Химки</option>
+<option value="krasnogorsk">Красногорск</option>
+<option value="novosibirsk">Новосибирск</option>
 </select>
-<p class="note">Работа над дизайн-проектом ведётся онлайн по России. Пока доступны ссылки на три объявления, подтверждённые в кабинете; остальные города будут добавлены после сверки. Изготовление и монтаж мебели доступны в Нижнем Новгороде и области.</p>
+<p class="note">Работа над дизайн-проектом ведётся онлайн по России. Все семь городов взяты из актуальной выгрузки Авито. Прямые адреса объявлений четырёх новых городов пока не подтверждены; для них работает переход к общему объявлению об онлайн-проектировании. Изготовление и монтаж мебели доступны в Нижнем Новгороде и области.</p>
 </div>
 <div class="panel" aria-live="polite">
 <div class="eyebrow">Предварительный расчёт</div>
@@ -73,6 +77,7 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 <p id="totalComment">40 м² × 450 ₽/м²</p>
 <p class="note" id="socketsComment">План розеток и выключателей оплачивается отдельно при необходимости.</p>
 <p>Обсудить планировку, пожелания и исходные размеры можно в переписке Авито.</p>
+<p class="note" id="destinationNote" role="status" aria-live="polite">Переход к объявлению вашего города.</p>
 <a id="avito" class="button" target="_blank" rel="noopener noreferrer" href="https://www.avito.ru/nizhniy_novgorod/predlozheniya_uslug/dizayn_kuhni_i_interera_planirovka_i_3d_3698605711">Посмотреть объявление на Авито ↗</a>
 <p class="note">Расчёт ориентировочный; состав проекта согласуем перед началом работы.</p>
 </div>
@@ -109,7 +114,11 @@ area.value=n;range.value=n;
 document.getElementById("result").textContent=rub(n*450);
 document.getElementById("totalComment").textContent=n+" м² × 450 ₽/м²";
 document.getElementById("socketsComment").textContent=check.checked?"С планом электрики: "+rub(n*450+1000)+" – "+rub(n*450+1500)+". Доплата зависит от сложности.":"План розеток и выключателей оплачивается отдельно при необходимости.";
-button.href=urls[city.value]||urls.nizhniy;
+const direct=Object.hasOwn(urls,city.value);
+button.href=direct?urls[city.value]:urls.nizhniy;
+document.getElementById("destinationNote").textContent=direct
+ ? "Переход к объявлению выбранного города."
+ : "Прямая ссылка этого города пока проверяется. Откроется наше объявление Нижнего Новгорода с услугой онлайн-дизайна по России.";
 }
 area.addEventListener("input",()=>update("input"));range.addEventListener("input",()=>update("range"));check.addEventListener("change",()=>update("input"));city.addEventListener("change",()=>update("input"));
 button.addEventListener("click",()=>{if(typeof gtag==="function")gtag("event","avito_outbound_click",{page:"design_calculator",listing_city:city.value});});

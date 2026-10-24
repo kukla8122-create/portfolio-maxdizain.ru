@@ -59,17 +59,13 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 <div class="sub">Стоимость полного проекта — 450 ₽/м²</div>
 <label class="checkbox"><input id="sockets" type="checkbox"> Добавить план розеток и выключателей</label>
 <p class="note">План электрики не входит в базовый пакет. Доплата 1 000–1 500 ₽ за проект в зависимости от сложности.</p>
-<label for="city">Город для перехода к объявлению Авито</label>
+<label for="city">Проверенные города для перехода к объявлению Авито</label>
 <select id="city">
 <option value="nizhniy">Нижний Новгород</option>
 <option value="kazan">Казань</option>
 <option value="tyumen">Тюмень</option>
-<option value="chelyabinsk">Челябинск</option>
-<option value="yaroslavl">Ярославль</option>
-<option value="ekaterinburg">Екатеринбург</option>
-<option value="volgograd">Волгоград</option>
 </select>
-<p class="note">Работа над дизайн-проектом ведётся онлайн; город указан для выбора объявления. Изготовление и монтаж мебели доступны в Нижнем Новгороде и области.</p>
+<p class="note">Работа над дизайн-проектом ведётся онлайн по России. Пока доступны ссылки на три объявления, подтверждённые в кабинете; остальные города будут добавлены после сверки. Изготовление и монтаж мебели доступны в Нижнем Новгороде и области.</p>
 </div>
 <div class="panel" aria-live="polite">
 <div class="eyebrow">Предварительный расчёт</div>
@@ -102,11 +98,7 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 const urls=Object.freeze({
 nizhniy:"https://www.avito.ru/nizhniy_novgorod/predlozheniya_uslug/dizayn_kuhni_i_interera_planirovka_i_3d_3698605711",
 kazan:"https://www.avito.ru/kazan/predlozheniya_uslug/dizayn-proekt_kuhni_onlayn_mebel_i_3d_7985119732",
-tyumen:"https://www.avito.ru/tyumen/predlozheniya_uslug/dizayn_kuhni-gostinoy_onlayn_plan_i_3d_8145037773",
-chelyabinsk:"https://www.avito.ru/chelyabinsk/predlozheniya_uslug/dizayn_kvartiry_onlayn_rasstanovka_mebeli_i_3d_8144914606",
-yaroslavl:"https://www.avito.ru/yaroslavl/predlozheniya_uslug/dizayn_doma_i_kvartiry_onlayn_planirovka_i_3d_8378671088",
-ekaterinburg:"https://www.avito.ru/ekaterinburg/predlozheniya_uslug/dizayn_interera_kvartiry_onlayn_proekt_i_3d_8381967390",
-volgograd:"https://www.avito.ru/volgograd/predlozheniya_uslug/dizayn_kvartiry_onlayn_planirovka_interera_8485775146"
+tyumen:"https://www.avito.ru/tyumen/predlozheniya_uslug/dizayn_kuhni-gostinoy_onlayn_plan_i_3d_8145037773"
 });
 const area=document.getElementById("area"),range=document.getElementById("areaRange"),check=document.getElementById("sockets"),city=document.getElementById("city"),button=document.getElementById("avito");
 const rub=n=>new Intl.NumberFormat("ru-RU").format(n)+" ₽";

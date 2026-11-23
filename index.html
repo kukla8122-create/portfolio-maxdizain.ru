@@ -884,9 +884,9 @@
         allPortfolioItems.sort((a,b)=>categoryOrder[a.category]-categoryOrder[b.category]);
         renderPortfolioGrid();
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
+        document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 renderPortfolioGrid(btn.getAttribute('data-filter'));
             });

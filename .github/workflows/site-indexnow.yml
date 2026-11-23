@@ -12,7 +12,8 @@ on:
       - garderobnye-na-zakaz/**
       - dizayn-interera-online/**
       - 7-oshibok-pri-zakaze-kuhni/**
-      - projects/kitchen-22m/**
+      - projects/**
+      - kalkulyator-dizayn-proekta.html
   workflow_dispatch:
 
 permissions:
@@ -26,28 +27,22 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Allow GitHub Pages CDN time to refresh
         run: sleep 75
       - name: Notify IndexNow
         shell: bash
         run: |
           set -euo pipefail
-          cat > payload.json <<'JSON'
-          {
-            "host": "portfolio-maxdizain.ru",
-            "key": "09d513d76697ea98cdaf73b9ce342c7b",
-            "urlList": [
-              "https://portfolio-maxdizain.ru/",
-              "https://portfolio-maxdizain.ru/kuhni-na-zakaz/",
-              "https://portfolio-maxdizain.ru/shkafy-na-zakaz/",
-              "https://portfolio-maxdizain.ru/garderobnye-na-zakaz/",
-              "https://portfolio-maxdizain.ru/dizayn-interera-online/",
-              "https://portfolio-maxdizain.ru/7-oshibok-pri-zakaze-kuhni/",
-              "https://portfolio-maxdizain.ru/viral-kitchen/",
-              "https://portfolio-maxdizain.ru/projects/kitchen-22m/"
-            ]
-          }
-          JSON
+          python3 - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          ns = {'s': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          urls = [node.text for node in ET.parse('sitemap.xml').findall('s:url/s:loc', ns)]
+          assert urls and all(url.startswith('https://portfolio-maxdizain.ru/') for url in urls)
+          with open('payload.json', 'w') as out:
+              json.dump({'host': 'portfolio-maxdizain.ru', 'key': '09d513d76697ea98cdaf73b9ce342c7b', 'urlList': list(dict.fromkeys(urls))}, out)
+          PY
           code="$(curl --silent --show-error --retry 2 --output /tmp/indexnow-response.txt --write-out '%{http_code}' --header 'Content-Type: application/json; charset=utf-8' --data-binary @payload.json https://api.indexnow.org/indexnow)"
           echo "IndexNow HTTP status: ${code}"
           if [[ "${code}" != "200" && "${code}" != "202" ]]; then

@@ -59,6 +59,7 @@
   const leadsPublicKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVoeWFpZ3FpenZ3dHNidG12a2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MjY5NDgsImV4cCI6MjEwNDAwMjk0OH0.Ctnvw9s9Azz8jWh4JPC7ry9HkrqEHBv8VJLi0fxMW20";
   const leadsForm=document.getElementById('contactForm');
   const leadsStartedAt=Date.now();
+  if(params.get('service')==='design') document.getElementById('serviceInput').value='Дизайн-проект';
   leadsForm.addEventListener('submit',async e=>{
     e.preventDefault();
     const name=document.getElementById('nameInput').value.trim();
@@ -79,12 +80,12 @@
     const label=button.querySelector('span');
     button.disabled=true;label.textContent='Отправляем заявку…';status.textContent='';
     try{
-      const qs=new URLSearchParams(location.search);
+      const attribution=window.maximumAttribution ? window.maximumAttribution.get() : Object.fromEntries(new URLSearchParams(location.search));
       const payload={
         name,phone,service,consent:true,
         honeypot:document.getElementById('websiteHoneypot').value,
         started_at:leadsStartedAt,source_page:location.pathname,
-        utm_source:qs.get('utm_source')||'',utm_campaign:qs.get('utm_campaign')||''
+        utm_source:attribution.utm_source||'',utm_campaign:attribution.utm_campaign||''
       };
       const timer=new AbortController();
       const limit=setTimeout(()=>timer.abort(),10000);

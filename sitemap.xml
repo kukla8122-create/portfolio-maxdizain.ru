@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://portfolio-maxdizain.ru/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
     <image:image>
       <image:loc>https://portfolio-maxdizain.ru/images/added/photo-11.jpg</image:loc>
     </image:image>
@@ -390,38 +390,40 @@
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/viral-kitchen/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/kuhni-na-zakaz/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/shkafy-na-zakaz/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/garderobnye-na-zakaz/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
     <image:image>
       <image:loc>https://portfolio-maxdizain.ru/images/wardrobes/29.jpg</image:loc>
     </image:image>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/dizayn-interera-online/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/7-oshibok-pri-zakaze-kuhni/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/projects/kitchen-22m/</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-11-23</lastmod>
     <image:image><image:loc>https://portfolio-maxdizain.ru/projects/kitchen-22m/media/video-cover.jpg</image:loc></image:image>
   </url>
   <url>
     <loc>https://portfolio-maxdizain.ru/kalkulyator-dizayn-proekta.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-11-23</lastmod>
   </url>
+<url><loc>https://portfolio-maxdizain.ru/projects/</loc><lastmod>2026-11-23</lastmod></url>
+<url><loc>https://portfolio-maxdizain.ru/projects/alexey-apartment-52m/</loc><lastmod>2026-11-23</lastmod></url>
 </urlset>

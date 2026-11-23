@@ -62,7 +62,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/site.css?v=1">
+    <link rel="stylesheet" href="/site.css?v=20261123">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; scroll-padding-top: 70px; }
@@ -161,7 +161,7 @@
         .portfolio-overlay {opacity:1; background:linear-gradient(180deg,transparent 45%,rgba(13,31,31,.95));}
         #lightboxImg {max-height:82vh;}
     </style>
-<link rel="stylesheet" href="selection.css?v=2"></head>
+<link rel="stylesheet" href="selection.css?v=2"><script defer src="/attribution.js?v=20261123"></script></head>
 <body>
     <!-- НАВИГАЦИЯ -->
     <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
@@ -474,6 +474,7 @@
                 <p class="text-gold-300/60 max-w-2xl mx-auto">Проекты, визуализации и решения для интерьера и мебели.</p>
             </div>
 
+<div class="project-feature"><a href="/projects/alexey-apartment-52m/"><img src="/projects/alexey-apartment-52m/media/page-35-thumb.webp" width="1000" height="469" loading="lazy" decoding="async" alt="Дизайн-проект квартиры Алексея: гостиная и рабочее место"><div><span>Полный проект · Квартира 52 м²</span><h3>Квартира Алексея</h3><p>31 визуализация, планы квартиры, мебельные чертежи, 17 листов электроточек и 5 коллажей.</p><strong>Смотреть проект и альбом на 69 страницах →</strong></div></a></div><div class="project-shortcuts"><a href="/projects/">Подробные проекты</a><a href="/projects/kitchen-22m/">Кухня 2,2 м: два решения</a><a href="/kalkulyator-dizayn-proekta.html">Калькулятор дизайн-проекта</a><a href="/dizayn-interera-online/">Дизайн интерьера онлайн</a></div>
             <!-- Фильтры -->
             <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mb-12">
                 <button class="filter-btn active text-sm" data-filter="all">Все работы</button>
@@ -482,7 +483,7 @@
             </div>
 
             <!-- Сетка портфолио -->
-            <div id="portfolioGrid" class="gallery-grid" role="list" aria-label="Галерея проектов"></div>
+            <div id="portfolioGrid" class="gallery-grid" role="list" aria-label="Галерея проектов"></div><div class="portfolio-more"><p id="portfolioCount" aria-live="polite"></p><button id="portfolioMore" type="button" class="filter-btn">Показать ещё работы</button></div><noscript><p>Откройте <a href="/projects/">подробные проекты с изображениями и чертежами</a>. Для общей интерактивной галереи включите JavaScript.</p></noscript>
         </div>
     </section>
 
@@ -634,12 +635,7 @@
 
 <div class="engage-section"><h2>Идеи, проекты и общение</h2><div class="social-links"><a href="https://max.ru/channel_maxmebel_52" target="_blank" rel="noopener noreferrer">Канал в MAX</a><a href="https://max.ru/u/f9LHodD0cOKZgGLetsmOw2mmk8HbsYnumgW_8Hv58nDMArfuwWhaBozwaZY" target="_blank" rel="noopener noreferrer">Написать Катерине в MAX</a><a href="https://vk.ru/maximummebel" target="_blank" rel="noopener noreferrer">Группа ВКонтакте</a></div></div>
 <script>
-document.addEventListener('click',function(e){
- var a=e.target.closest('a[href]'); if(!a || typeof gtag !== 'function')return;
- var href=a.getAttribute('href')||'';
- var channel=href.startsWith('tel:')?'phone':href.includes('max.ru/')?'max':href.includes('vk.me/')?'vk_chat':null;
- if(channel)gtag('event','contact_click',{contact_channel:channel,page_type:'home'});
-});
+
 </script>
 
         <p class="text-center text-xs text-gold-300/50 mt-3"><a href="/privacy/" class="underline">Обработка персональных данных</a></p>
@@ -838,11 +834,15 @@ document.addEventListener('click',function(e){
             desc: 'Альтернативная планировка, внутреннее наполнение и конструкция угловых модулей.'
         });
 
-        function renderPortfolioGrid(filterType = 'all') {
+        let portfolioLimit = 24;
+        let portfolioFilter = 'all';
+        function renderPortfolioGrid(filterType = 'all', append = false) {
+            if (!append) portfolioLimit = 24;
+            portfolioFilter = filterType;
             portfolioGrid.innerHTML = '';
             const filteredItems = filterType === 'all' ? allPortfolioItems : allPortfolioItems.filter(item => item.category === filterType);
             
-            filteredItems.forEach((item, idx) => {
+            filteredItems.slice(0, portfolioLimit).forEach((item, idx) => {
                 const card = document.createElement('div');
                 card.className = 'portfolio-card group fade-in';
                 card.setAttribute('data-category', item.category);
@@ -865,6 +865,8 @@ document.addEventListener('click',function(e){
                 portfolioGrid.appendChild(card);
             });
 
+            document.getElementById('portfolioCount').textContent = `Показано ${Math.min(portfolioLimit, filteredItems.length)} из ${filteredItems.length}`;
+            document.getElementById('portfolioMore').hidden = portfolioLimit >= filteredItems.length;
             requestAnimationFrame(() => {
                 document.querySelectorAll('.portfolio-card.fade-in').forEach((el, i) => {
                     setTimeout(() => el.classList.add('visible'), Math.min(i, 8) * 35);
@@ -872,6 +874,7 @@ document.addEventListener('click',function(e){
             });
         }
 
+        document.getElementById('portfolioMore').addEventListener('click', () => { portfolioLimit += 24; renderPortfolioGrid(portfolioFilter, true); });
         const removedPhotos = new Set([1,3,4,14,15,19,20,22].map(n => `images/kitchens/${n}.jpg`));
         for (let i = allPortfolioItems.length - 1; i >= 0; i--) {
             if (removedPhotos.has(allPortfolioItems[i].src)) allPortfolioItems.splice(i, 1);
@@ -993,6 +996,6 @@ document.addEventListener('click',function(e){
             fadeObserver.observe(el);
         });
     </script>
-<script src="selection.js?v=2"></script>
-<script defer src="/marketing.js"></script></body>
+<script src="selection.js?v=20261123"></script>
+<script defer src="/marketing.js?v=20261123"></script></body>
 </html>

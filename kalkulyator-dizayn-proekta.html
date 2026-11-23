@@ -41,7 +41,7 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-458E2GVMPL"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-458E2GVMPL');</script>
-</head>
+<script defer src="/attribution.js?v=20261123"></script></head>
 <body>
 <header><nav><a class="brand" href="/">МАКСимум мебель</a><a href="/">← На главную</a></nav></header>
 <main>
@@ -59,25 +59,21 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 <div class="sub">Стоимость полного проекта — 450 ₽/м²</div>
 <label class="checkbox"><input id="sockets" type="checkbox"> Добавить план розеток и выключателей</label>
 <p class="note">План электрики не входит в базовый пакет. Доплата 1 000–1 500 ₽ за проект в зависимости от сложности.</p>
-<label for="city">Проверенные города для перехода к объявлению Авито</label>
+<label for="city">Объявление на Авито</label>
 <select id="city">
 <option value="nizhniy">Нижний Новгород</option>
 <option value="kazan">Казань</option>
 <option value="tyumen">Тюмень</option>
-<option value="odintsovo">Одинцово</option>
-<option value="himki">Химки</option>
-<option value="krasnogorsk">Красногорск</option>
-<option value="novosibirsk">Новосибирск</option>
 </select>
-<p class="note">Работа над дизайн-проектом ведётся онлайн по России. Все семь городов взяты из актуальной выгрузки Авито. Прямые адреса объявлений четырёх новых городов пока не подтверждены; для них работает переход к общему объявлению об онлайн-проектировании. Изготовление и монтаж мебели доступны в Нижнем Новгороде и области.</p>
+<p class="note">Дизайн-проекты выполняем онлайн по России. Изготовление и монтаж мебели — в Нижнем Новгороде и области.</p>
 </div>
 <div class="panel" aria-live="polite">
 <div class="eyebrow">Предварительный расчёт</div>
 <div class="price" id="result">18 000 ₽</div>
 <p id="totalComment">40 м² × 450 ₽/м²</p>
 <p class="note" id="socketsComment">План розеток и выключателей оплачивается отдельно при необходимости.</p>
-<p>Обсудить планировку, пожелания и исходные размеры можно в переписке Авито.</p>
-<p class="note" id="destinationNote" role="status" aria-live="polite">Переход к объявлению вашего города.</p>
+<p>Обсудим планировку, пожелания и исходные размеры. Оставьте заявку на сайте или напишите через Авито.</p>
+<p><a id="siteRequest" class="button" href="/?service=design#contact">Обсудить дизайн-проект</a></p>
 <a id="avito" class="button" target="_blank" rel="noopener noreferrer" href="https://www.avito.ru/nizhniy_novgorod/predlozheniya_uslug/dizayn_kuhni_i_interera_planirovka_i_3d_3698605711">Посмотреть объявление на Авито ↗</a>
 <p class="note">Расчёт ориентировочный; состав проекта согласуем перед началом работы.</p>
 </div>
@@ -96,7 +92,7 @@ footer{border-top:1px solid var(--line);font-size:14px;color:#5a635b;margin-top:
 <details><summary>Входит ли план розеток в 450 ₽/м²?</summary><p>Нет, он оплачивается отдельно — ориентировочно 1 000–1 500 ₽ за проект, в зависимости от сложности.</p></details>
 <details><summary>Входит ли изготовление мебели в стоимость проекта?</summary><p>Нет. Стоимость изготовления кухни, шкафа или гардеробной рассчитывается индивидуально, по материалам и размерам.</p></details>
 </section>
-</main>
+<section class="section"><h2>Посмотрите, как выглядит полный проект</h2><p><a href="/projects/alexey-apartment-52m/">Квартира Алексея, 52 м²: визуализации, мебельные чертежи и электроточки</a></p></section></main>
 <footer>© 2026 МАКСимум мебель · Работаем с 2012 года. <a href="/">Портфолио и контакты</a>.</footer>
 <script>
 (function(){
@@ -116,14 +112,12 @@ document.getElementById("totalComment").textContent=n+" м² × 450 ₽/м²";
 document.getElementById("socketsComment").textContent=check.checked?"С планом электрики: "+rub(n*450+1000)+" – "+rub(n*450+1500)+". Доплата зависит от сложности.":"План розеток и выключателей оплачивается отдельно при необходимости.";
 const direct=Object.hasOwn(urls,city.value);
 button.href=direct?urls[city.value]:urls.nizhniy;
-document.getElementById("destinationNote").textContent=direct
- ? "Переход к объявлению выбранного города."
- : "Прямая ссылка этого города пока проверяется. Откроется наше объявление Нижнего Новгорода с услугой онлайн-дизайна по России.";
+
 }
 area.addEventListener("input",()=>update("input"));range.addEventListener("input",()=>update("range"));check.addEventListener("change",()=>update("input"));city.addEventListener("change",()=>update("input"));
 button.addEventListener("click",()=>{if(typeof gtag==="function")gtag("event","avito_outbound_click",{page:"design_calculator",listing_city:city.value});});
 update("input");
 })();
 </script>
-</body>
+<script defer src="/marketing.js?v=20261123"></script></body>
 </html>

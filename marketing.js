@@ -1,4 +1,4 @@
-/* МАКСимум мебель: анонимные события интереса к услугам. Телефоны, имена, тексты заявок не передаются. */
+/* Anonymous interaction events. Contact values and message text are never sent. */
 (function(){
   'use strict';
   function send(name, data) {
@@ -6,16 +6,21 @@
     window.gtag('event', name, Object.assign({page_path: location.pathname}, data));
   }
   document.addEventListener('click', function(event) {
-    var a = event.target.closest('a[href]');
+    var a = event.target.closest && event.target.closest('a[href]');
     if(!a) return;
-    var href = a.getAttribute('href') || '';
-    var channel = href.indexOf('tel:')===0 ? 'phone'
-      : href.indexOf('max.ru/')!==-1 ? 'max'
-      : href.indexOf('vk.me/')!==-1 ? 'vk_message'
-      : null;
-    if (channel) send('contact_intent', {channel:channel});
-    if (href==='#contact' || href==='/#contact') send('contact_section_open', {origin:location.pathname});
-    if (href.indexOf('/viral-kitchen/')!==-1) send('quiz_link_click', {origin:location.pathname});
-    if (href.indexOf('/7-oshibok-pri-zakaze-kuhni/')!==-1) send('checklist_link_click', {origin:location.pathname});
+    var url;
+    try { url = new URL(a.getAttribute('href'), location.href); } catch (_) { return; }
+    var host = url.hostname.replace(/^www\./, '');
+    if (url.protocol === 'tel:') send('contact_click', {contact_channel: 'phone'});
+    else if (host === 'vk.me') send('contact_click', {contact_channel: 'vk_chat'});
+    else if (host === 'max.ru' && url.pathname.indexOf('/u/') === 0) send('contact_click', {contact_channel: 'max_chat'});
+    else if (host === 'max.ru') send('channel_open', {channel: 'max'});
+    else if (host === 'vk.ru' || host === 'vk.com') send('channel_open', {channel: 'vk'});
+    else if (host === 't.me') send('telegram_link_open', {});
+    if (url.origin !== location.origin) return;
+    if (url.hash === '#contact') send('contact_section_open', {origin: location.pathname});
+    if (url.pathname === '/viral-kitchen/') send('quiz_link_click', {origin: location.pathname});
+    if (url.pathname === '/7-oshibok-pri-zakaze-kuhni/') send('checklist_link_click', {origin: location.pathname});
+    if (/\.pdf$/i.test(url.pathname)) send('project_pdf_open', {document_path: url.pathname});
   }, {passive:true});
 }());

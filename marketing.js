@@ -2,9 +2,16 @@
 (function(){
   'use strict';
   function send(name, data) {
-    if (typeof window.gtag !== 'function') return;
-    window.gtag('event', name, Object.assign({page_path: location.pathname}, data));
+    // Only explicitly supplied, non-personal event fields belong here.
+    var safe = {page_path: location.pathname};
+    ['contact_channel', 'channel', 'origin', 'document_path', 'section'].forEach(function (key) {
+      if (data && typeof data[key] === 'string') safe[key] = data[key];
+    });
+    // Analytics must never change the outcome of a form submission.
+    try { if (typeof window.gtag === 'function') window.gtag('event', name, safe); } catch (_) {}
+    try { if (typeof window.ym === 'function') window.ym(108660885, 'reachGoal', name, safe); } catch (_) {}
   }
+  window.maximumTrack = send;
   document.addEventListener('click', function(event) {
     var a = event.target.closest && event.target.closest('a[href]');
     if(!a) return;
@@ -24,4 +31,18 @@
     if (url.pathname === '/7-oshibok-pri-zakaze-kuhni/') send('checklist_link_click', {origin: location.pathname});
     if (/\.pdf$/i.test(url.pathname)) send('project_pdf_open', {document_path: url.pathname});
   }, {passive:true});
+  if (/^\/projects\/[^/]+\/$/.test(location.pathname)) send('portfolio_open', {});
+  if ('IntersectionObserver' in window) {
+    var observer = new window.IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        send('technical_section_view', {section: entry.target.closest('section').id});
+        observer.unobserve(entry.target);
+      });
+    }, {threshold: 0.5});
+    document.querySelectorAll('#plans h2, #kitchen h2, #electrical h2').forEach(function (heading) {
+      observer.observe(heading);
+    });
+  }
 }());
+

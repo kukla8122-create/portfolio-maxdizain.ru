@@ -15,6 +15,8 @@
 
 **Контакты:** Катерина Белякова · +7 915 953 09 29 · +7 910 799 64 71
 
-**Соцсети:** [группа ВКонтакте](https://vk.ru/maximummebel) · [канал MAX](https://max.ru/channel_maxmebel_52)
+**Новые услуги:** [Проект кухни онлайн](https://portfolio-maxdizain.ru/dizayn-proekt-kuhni/) · [План розеток и выключателей](https://portfolio-maxdizain.ru/plan-rozetok-i-vyklyuchateley/)
+
+**Соцсети:** [Telegram](https://t.me/proektkuhni) · [группа ВКонтакте](https://vk.ru/maximummebel) · [канал MAX](https://max.ru/channel_maxmebel_52)
 
 Этот репозиторий содержит исходный код официального сайта и связанных сервисов. Полные фото проектов сохраняются в оригинальном разрешении; для предпросмотра используются оптимизированные изображения.

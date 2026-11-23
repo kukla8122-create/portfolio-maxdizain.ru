@@ -8,7 +8,12 @@
   const host = document.getElementById('kitchenChoices');
   const result = document.getElementById('selectionResult');
   const status = document.getElementById('selectionStatus');
-  const track = (name) => { if(typeof gtag==='function') gtag('event',name); };
+  const track = (name) => {
+    try {
+      if(typeof window.maximumTrack==='function') window.maximumTrack(name);
+      else if(typeof gtag==='function') gtag('event',name);
+    } catch (_) { /* A blocked analytics script must not break the lead form. */ }
+  };
   const params = new URLSearchParams(location.search);
   (params.get('pick') || '').split(',').forEach(id => {if(choices.some(c=>c.id===id)) selected.add(id);});
   function link() {
@@ -111,3 +116,4 @@
   document.getElementById('copyRequest').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('requestText').value);document.getElementById('contactStatus').textContent='Скопировано. Откройте MAX или ВК и отправьте сообщение.';}catch{document.getElementById('requestText').select();document.getElementById('contactStatus').textContent='Скопируйте выделенный текст.';}};
   document.querySelectorAll('[data-service]').forEach(a=>a.addEventListener('click',()=>{document.getElementById('serviceInput').value=a.dataset.service;track('service_interest');}));
 })();
+

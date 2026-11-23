@@ -16,6 +16,7 @@
     else if (host === 'max.ru' && url.pathname.indexOf('/u/') === 0) send('contact_click', {contact_channel: 'max_chat'});
     else if (host === 'max.ru') send('channel_open', {channel: 'max'});
     else if (host === 'vk.ru' || host === 'vk.com') send('channel_open', {channel: 'vk'});
+    else if (host === 't.me' && /^\/proektkuhni\/?$/i.test(url.pathname)) send('channel_open', {channel: 'telegram'});
     else if (host === 't.me') send('telegram_link_open', {});
     if (url.origin !== location.origin) return;
     if (url.hash === '#contact') send('contact_section_open', {origin: location.pathname});
